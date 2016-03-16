@@ -1,8 +1,6 @@
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
-\usepackage[isolatin]{inputenc}
-%\usepackage[spanish]{babel}
 \usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -10,70 +8,40 @@
 \usepackage{multirow}
 \usepackage{color}
 
-\title{Assignment I: Performance of Polar Codes}
-\author{Santiago Conde Camacho}
-\date{May 2015}
+\title{The Virtual Grid System: Distributed Simulation of Distributed Systems}
+\author{Santiago Conde Camacho \\ Ferdy Moon Soo Beekmans}
+
+\date{March - April 2016}
 
 \begin{document}
 
 \maketitle
 
 \section{Introduction}
-Santi will write the Background on application and system design (4, 5a). 
+Could you please add the proper names, course title, instructors... as on the lab report and fix the margins? I am afraid I am not so familiar with LaTEX.
 \\\\
-In this assignment the behavior of several polar codes will be explored, constructed for one particular value of \textsc{snr} but applied to a finite range of channel \textsc{snr} rather than a single one.
-\section{Setup}
-Following the professor's advice, the Arikan algorithm \cite{arikan01} will be used to create the different polar codes as it is one of the easiest possible methods. Nonetheless, a slight modification is needed due to the non-universality of polar codes. The original recursive algorithm requires an initial value of 0.5, which corresponds to the worst \textsc{ber}. It will be replaced with exp($R E_b/N_0$) where $R E_b/N_0$ stands for \textit{design} \textsc{snr}. 
+It would be nice if you could detail a little bit more the architecture of the system I just explained the fault tolerance mechanism but I have to leave now.
+\\\
+I wouldn't worry about the figure by now but I think we should include a drawing or something. It can guide us through the developing. The more detailed we have the system overview the easier will for developing.
+\\\\ 
+Once you do the modifications and feedback I will have a quick meeting with the TA to validate the design and later we will start the implementation.
 \\\\
-The channels are \textsc{awgn} so, in order to estimate the \textsc{ber}, it is possible to apply the Gaussian approximation [2]. It basically consists on: 
-\begin{enumerate}
-\item Calculate the mean of the likelihoods under the successive decoding algorithm.
-\item Estimate the noise variance for every channel.
-\item Calculate the upper and lower bound of the bit error rate.
-\end{enumerate}
-\\
-The implementation code of this entire process is provided in the attached documents. 
-\section{Results}
-The code parameters ($N$, $K$ and $R$) are not specified on the assignment proposal, just the \textit{design} \textsc{snr} and the range to plot the results. The examples in the literature [3] show results for $R=0.5$ therefore, that rate will be used on the following simulations. Results for $N=16$ and $K=8$ are displayed in figure 1.
-
-\begin{center}
- \includegraphics[scale=0.35]{16_8.png}
- \centerline{Figure 1: Simulation results for $N=16$, $K=8$}
-\end{center}
-\vspace{0.25cm}
-Despite that all the polar codes for the range \textsc{snr} $=$ $0$, $1$,..., $10$ dB have been plotted, only two graphs are shown on the figure. This is due to the fact that for the parameters used on the simulation, the frozen indices (and consequently the channels used) are the same for every code. Thus, the results obtained are equal for all the codes and it is only possible to distinguish the upper and lower bounds corresponding with the last simulation ($10$ dB code).
+Have a nice day! 
+\section{Background on application}
+The virtual grid simulator (VGS) is a tool to monitor how a simulated system performs conducting realistic workloads. The system consists on 5 grid schedulers (GS) and 20 clusters containing 1000 nodes each one. On top of each cluster there is a resource manager (RM) which controls the cluster, thus, there are in total 20 RM. Additionally, several clusters are controlled by a grid scheduler. Users send their workload (jobs) to the cluster of their selection. If the selected cluster is free, it will accept the job adding it to the local queue. In case that the queue is full, the RM will notify the GS. The latter will maintain a global queue to allocate the jobs as soon as possible in the same or another cluster. Once the job is finished, the RM will send the result to the requester user. Once a RM receives a job from the GS, it has to accept it, even if that means adding it to the local waiting queue. The minimum workload the system support is 10,000 jobs of fixed duration. Each job records the identifier of the cluster when it originally arrives. In the case that job is reallocated to another cluster it will add the identifier of all the cluster where it passes.
 \\\\
-A simulation for $N=512$ and $K=256$ can be seen in figure 2. It is possible to identify a greater number of graphs. The explanation is that now the frozen indices are not equal for each code. However, we can realize that the code achieving the best results is the one corresponding with \textsc{snr} $= 10$ dB. This behavior is not normal because, the graph should start to go down when it get closer to its \textit{design} \textsc{snr} and not before. On the other hand, it is noticeable that as we increase the length of the codewords, the bit error rate estimation improves. This is because the polarization effect, with a higher value of $N$, more bits tend to polarize and the results are better. In figure 1 the best value was for $E_b/N_0=11$ dB \approx $ 2$\cdot $10^{-9}$, in figure 2 for $E_b/N_0=10$ dB \approx $ 1.25$\cdot $10^{-35}$ (both results for the $10$ dB code).
-
-\begin{center}
- \includegraphics[scale=0.35]{512_256.png}
- \centerline{Figure 2: Simulation results for $N=512$, $K=256$}
-\end{center}
-\vspace{0.25cm}
-Next, in figure 3 we can see the same simulation but for $K=384$ in this case. This shows that, the more channels are used for the same length of the codewords, the worse results we get. The explanation is that when transmitting through a great number of channels it is not possible to choose only those one with highest $I(W_N ^{(j)})$ thus, the results are worse.
-\begin{center}
- \includegraphics[scale=0.35]{512_384.png}
- \centerline{Figure 3: Simulation results for $N=512$, $K=384$}
-\end{center}  
-
-\vspace{0.25cm}
-Finally, another interesting effect will be explained. If we move further on the \textit{design} \textsc{snr} (e.g: $15$, $16$,..., $30$ dB) we realized that the aforementioned strange phenomenon does not occur anymore. In this new scenario, the graph which drops the last (the one achieving worst results) is the one with the highest \textsc{snr} (as expected). Apart from that, it is noticeable that the farther we move on the  $E_b/N_0$ scale, the best results we get for every code. For the same construction parameters than in figure 2 we now reach for $E_b/N_0=12$ dB \approx $ 9.05$\cdot $10^{-75}$ (in this case for the $15$ dB code, the lowest one).
-
-\begin{center}
- \includegraphics[scale=0.35]{512_256_b.png}
- \centerline{Figure 4: Another simulation for $N=512$, $K=256$}
-\end{center}  
+The system is resilient to single failures. That is, the system is able to tolerate failures in one grid scheduler node, one resource manager node or both at the same time. The user is not aware of these failures, her workload is carried out transparently. To sum up, the system is distributed (multiple clusters), replicated (possibility of replicate the job in another node in case of failure), fault-tolerant (failures do not suspend the service) and scalable (possibility of add more clusters without changing the architecture). Also, the system load-balance the job among the different clusters. The ratio of the jobs arriving at the most and least loaded cluster the system is able to tackle is 5. Lastly, to make debugging of the system easier, all events are logged in two grid schedulers.
+ 
+\section{System design}
+In this chapter, the design of the system is explained. The focus of section 3.1 will be the overview of the implemented distributed system. Here, the architecture of the system is discussed, which fault tolerance mechanism is used and how the system replicates the workload across multiple distributed clusters.
+\subsection{System overview}
+\subsection{Architecture}
+The architecture of the system is displayed on the figure 1 below. We have advocated for using a ring topology with some extra links among the RMs as it is possible to appreciate on the figure. The reason for this is the fault-tolerance. As we advanced on the sections above there are two main scenarios the system covers:
 \\\\
-\section{Conclusions}
-There is no doubt that polar codes have some features that makes them interesting from an academic point of view. They are capacity achieving codes, that means they reach $R_n \to C$.
-However, they lack universality. In this assignment, I have tried to study their estimation bit error rate when applied to a range of channel \textsc{snr} rather than to a single value. The results achieved are good but some strange phenomena are present. When the \textit{design} \textsc{snr} is low (e.g: $0$, $1$,..., $10$ dB) the code achieving the best results is the one with the highest \textit{design} \textsc{snr}. Taking into account the results from the literature, it should be the opposite. Nonetheless, if we create polar codes for a higher \textit{design} \textsc{snr}, they behave as expected. This is, the code with the lowest \textsc{snr} achieves the best results. On the other hand, these results vary strongly with the $E_b/N_0$ range where we plot the results.
-\begin{thebibliography}{9}
-
-\bibitem{arikan01}
-  E. Arıkan. \textit{"Channel polarization: a method for constructing capacity-achieving codes for symmetric binary-input memoryless channels"}. IEEE Trans. Inf. Theory, 55(7): 3051–3073, 2009.
-\bibitem{yuan02}
-H. Li, J. Yuan. \textit{"A practical construction method por polar codes in AWGN channels"}. In Proc. TENCON'13, 2013.
-\bibitem{other03}
-  E. Arıkan. \textit{"Systematic Polar Coding"}. IEEE Communications letters, 15(8): 860-862, 2011.
-\end{thebibliography}
+1. Failure on a RM: The work is done but the results cannot be dispatched to the user because the RM is down. Thus, the GS needs to relaunch the job in another available cluster.
+\\\\
+2. Failure in a GS: The cluster is not able to notify the GS about completions and availability. Thus, it will be needed to communicate with another GS.
+\\\\
+3. Failure on both GS and RM: That part of the system becomes unavailable as RM cannot accept jobs, and the GS cannot distribute the tasks among them. Thus, it is needed that another GS manages those nodes (and their workload) till the nodes are available.
+\\\\
 \end{document}
