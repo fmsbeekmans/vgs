@@ -17,31 +17,7 @@
 
 \maketitle
 
-\section{Introduction}
-Could you please add the proper names, course title, instructors... as on the lab report and fix the margins? I am afraid I am not so familiar with LaTEX.
-\\\\
-It would be nice if you could detail a little bit more the architecture of the system I just explained the fault tolerance mechanism but I have to leave now.
-\\\
-I wouldn't worry about the figure by now but I think we should include a drawing or something. It can guide us through the developing. The more detailed we have the system overview the easier will for developing.
-\\\\ 
-Once you do the modifications and feedback I will have a quick meeting with the TA to validate the design and later we will start the implementation.
-\\\\
-Have a nice day! 
-\section{Background on application}
-The virtual grid simulator (VGS) is a tool to monitor how a simulated system performs conducting realistic workloads. The system consists on 5 grid schedulers (GS) and 20 clusters containing 1000 nodes each one. On top of each cluster there is a resource manager (RM) which controls the cluster, thus, there are in total 20 RM. Additionally, several clusters are controlled by a grid scheduler. Users send their workload (jobs) to the cluster of their selection. If the selected cluster is free, it will accept the job adding it to the local queue. In case that the queue is full, the RM will notify the GS. The latter will maintain a global queue to allocate the jobs as soon as possible in the same or another cluster. Once the job is finished, the RM will send the result to the requester user. Once a RM receives a job from the GS, it has to accept it, even if that means adding it to the local waiting queue. The minimum workload the system support is 10,000 jobs of fixed duration. Each job records the identifier of the cluster when it originally arrives. In the case that job is reallocated to another cluster it will add the identifier of all the cluster where it passes.
-\\\\
-The system is resilient to single failures. That is, the system is able to tolerate failures in one grid scheduler node, one resource manager node or both at the same time. The user is not aware of these failures, her workload is carried out transparently. To sum up, the system is distributed (multiple clusters), replicated (possibility of replicate the job in another node in case of failure), fault-tolerant (failures do not suspend the service) and scalable (possibility of add more clusters without changing the architecture). Also, the system load-balance the job among the different clusters. The ratio of the jobs arriving at the most and least loaded cluster the system is able to tackle is 5. Lastly, to make debugging of the system easier, all events are logged in two grid schedulers.
- 
-\section{System design}
-In this chapter, the design of the system is explained. The focus of section 3.1 will be the overview of the implemented distributed system. Here, the architecture of the system is discussed, which fault tolerance mechanism is used and how the system replicates the workload across multiple distributed clusters.
-\subsection{System overview}
-\subsection{Architecture}
-The architecture of the system is displayed on the figure 1 below. We have advocated for using a ring topology with some extra links among the RMs as it is possible to appreciate on the figure. The reason for this is the fault-tolerance. As we advanced on the sections above there are two main scenarios the system covers:
-\\\\
-1. Failure on a RM: The work is done but the results cannot be dispatched to the user because the RM is down. Thus, the GS needs to relaunch the job in another available cluster.
-\\\\
-2. Failure in a GS: The cluster is not able to notify the GS about completions and availability. Thus, it will be needed to communicate with another GS.
-\\\\
-3. Failure on both GS and RM: That part of the system becomes unavailable as RM cannot accept jobs, and the GS cannot distribute the tasks among them. Thus, it is needed that another GS manages those nodes (and their workload) till the nodes are available.
-\\\\
+\include{introduction}
+\include{background}
+\include{design}
 \end{document}
