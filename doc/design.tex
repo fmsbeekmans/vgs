@@ -1,0 +1,12 @@
+\section{System design}
+In this chapter, the design of the system is explained. The focus of section 3.1 will be the overview of the implemented distributed system. Here, the architecture of the system is discussed, which fault tolerance mechanism is used and how the system replicates the workload across multiple distributed clusters.
+\subsection{System overview}
+\subsection{Architecture}
+The architecture of the system is displayed on the figure 1 below. We have advocated for using a ring topology with some extra links among the RMs as it is possible to appreciate on the figure. The reason for this is the fault-tolerance. As we advanced on the sections above there are two main scenarios the system covers:
+\\\\
+1. Failure on a RM: The work is done but the results cannot be dispatched to the user because the RM is down. Thus, the GS needs to relaunch the job in another available cluster.
+\\\\
+2. Failure in a GS: The cluster is not able to notify the GS about completions and availability. Thus, it will be needed to communicate with another GS.
+\\\\
+3. Failure on both GS and RM: That part of the system becomes unavailable as RM cannot accept jobs, and the GS cannot distribute the tasks among them. Thus, it is needed that another GS manages those nodes (and their workload) till the nodes are available.
+\\\\
