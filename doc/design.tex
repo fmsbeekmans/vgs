@@ -1,12 +1,44 @@
 \section{System design}
-In this chapter, the design of the system is explained. The focus of section 3.1 will be the overview of the implemented distributed system. Here, the architecture of the system is discussed, which fault tolerance mechanism is used and how the system replicates the workload across multiple distributed clusters.
+In this chapter, the design of the system is explained.
+The focus of section 3.1 will be the overview of the implemented distributed system.
+Here, the architecture of the system is discussed, which fault tolerance mechanism is used and how the system replicates the workload across multiple distributed clusters.
+
 \subsection{System overview}
-\subsection{Architecture}
-The architecture of the system is displayed on the figure 1 below. We have advocated for using a ring topology with some extra links among the RMs as it is possible to appreciate on the figure. The reason for this is the fault-tolerance. As we advanced on the sections above there are two main scenarios the system covers:
-\\\\
-1. Failure on a RM: The work is done but the results cannot be dispatched to the user because the RM is down. Thus, the GS needs to relaunch the job in another available cluster.
-\\\\
-2. Failure in a GS: The cluster is not able to notify the GS about completions and availability. Thus, it will be needed to communicate with another GS.
-\\\\
-3. Failure on both GS and RM: That part of the system becomes unavailable as RM cannot accept jobs, and the GS cannot distribute the tasks among them. Thus, it is needed that another GS manages those nodes (and their workload) till the nodes are available.
-\\\\
+
+
+\subsection{Topology}
+The proposed architecture consists of a logical ring of GSs and evenly divided groups of RMs.
+Each group of RMs is connected primarily to one GS and the next GS in the ring for failover.
+This topology is chosen because of it's simplicity and to ensure every RM has redundant connections with GSs.
+Every GS only has to synchronize job status with 1 other GS.
+
+\subsection{protocol}
+
+\subsubsection{status}
+Every GS sends periodic heartbeats in either direction in the ring. % When offline? 1 missed? 3 missed?
+Every RM sends periodic heartbeats to both it's RMs.
+The heartbeat from RM to GS also carries an indication of that RMs load.
+
+\subsubsection{load balancing}
+When a GS recieves a job that is offloaded by an RM it selects a new RM randomly.
+The weight of each RM in this selection is the difference between the
+highest load and the load of that RM.
+
+\subsubsection{job execution}
+When a client sends a job to an RM the RM sends the job to it's GS for tracking or to offload it.
+The GS than sends the job to the next GS in line for replication.
+This backup GS will keep track of the job until it learns of it's completion.
+Once a job is accepted by an RM it will schedule it on an available node in a FILO fashion.
+And when said job is completed and the user has ACKed the result the RM informs the GSs that the resources can be released.
+
+\subsubsection{fault recovery}
+When a GS discovers that the GS that it is a backup for has crashed it will replicate all the jobs that it was backup for to the next GS and assume responsibility for this job.
+
+When a GS discovers that it's backup GS has gone crashed it will replicate it's jobs to the next GS in the ring for redundancy and inform the RM that this is the RM for all jobs that have been scheduled there until that moment. 
+
+If an RM goes down the backup GS will be promoted to primary for this job
+
+% Needs to be more complete:
+% describe assigning backup separately
+% describe promoting backup separately
+% Should be in flow diagrams
