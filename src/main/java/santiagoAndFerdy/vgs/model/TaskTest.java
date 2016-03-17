@@ -31,8 +31,4 @@ public class TaskTest {
         engine.run(twice);
         engine.run(twice);
     }
-
-    public static Task<Integer> slow(int i) {
-        Task.as
-    }
 }
