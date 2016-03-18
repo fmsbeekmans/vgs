@@ -1,13 +1,18 @@
 package santiagoAndFerdy.vgs.model;
 
+import com.sun.istack.internal.NotNull;
+
 /**
  * Created by Fydio on 3/19/16.
+ * We need to keep track of where the request came from.
+ * The job might be processed on a different cluster than it was originally sent to.
+ * To keep the 'original' cluster out of the loop we pass a reference to the user respond to
  */
 public class Request {
     private Job j;
     private IUser user;
 
-    public Request(Job j, IUser user) {
+    public Request(@NotNull Job j, @NotNull IUser user) {
         this.j = j;
         this.user = user;
     }
