@@ -1,5 +1,6 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
+import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.util.Optional;
@@ -12,7 +13,7 @@ public class Node {
     private Job job;
     private IResourceManagerDriver rm;
 
-    public Node(int id, IResourceManagerDriver rm) {
+    public Node(int id, @NotNull IResourceManagerDriver rm) {
         this.id = id;
         this.rm = rm;
     }
@@ -31,5 +32,24 @@ public class Node {
 
     public IResourceManagerDriver getRm() {
         return rm;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Node)) return false;
+
+        Node node = (Node) o;
+
+        if (id != node.id) return false;
+        return rm.equals(node.rm);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + rm.hashCode();
+        return result;
     }
 }
