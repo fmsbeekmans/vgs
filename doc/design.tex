@@ -6,37 +6,37 @@ Here, the architecture of the system is discussed, which fault tolerance mechani
 \subsection{System overview}
 
 
-\subsection{Topology}
+\subsubsection{Topology}
 The proposed architecture consists of a logical ring of GSs and evenly divided groups of RMs.
-Each group of RMs is connected primarily to one GS and the next GS in the ring for failover.
-This topology is chosen because of it's simplicity and to ensure every RM has redundant connections with GSs.
-Every GS only has to synchronize job status with 1 other GS.
+Each group of RMs is connected primarily to one GS and the next GS in the ring as backup. This topology has been chosen because of its 
+%its != it's
+simplicity because it guarantees that every RM has redundant connections with more than one GS. Also, every GS has to synchronize its job status with another GS (the next in the ring). Thus, in case of GS/RM failure the workload is not lost.
 
-\subsection{protocol}
+Here we could explain a little bit more about the topology characteriscitcs
+ 
 
-\subsubsection{status}
-Every GS sends periodic heartbeats in either direction in the ring. % When offline? 1 missed? 3 missed?
-Every RM sends periodic heartbeats to both it's RMs.
-The heartbeat from RM to GS also carries an indication of that RMs load.
+\subsubsection{Protocol}
+I guess here we will have to explain which messages we use and how to process them right? 
 
-\subsubsection{load balancing}
-When a GS recieves a job that is offloaded by an RM it selects a new RM randomly.
-The weight of each RM in this selection is the difference between the
-highest load and the load of that RM.
+\subsubsection{Status}
+Every GS sends periodic heartbeats in either direction in the ring so every GS is aware of the status of the rest of GSs. Also, % When offline? 1 missed? 3 missed?
+every RM sends periodic heartbeats to both GSs which is connected to.
+The heartbeat from RM to GS also carries an indication of that RM's load and its status.
 
-\subsubsection{job execution}
-When a client sends a job to an RM the RM sends the job to it's GS for tracking or to offload it.
-The GS than sends the job to the next GS in line for replication.
-This backup GS will keep track of the job until it learns of it's completion.
-Once a job is accepted by an RM it will schedule it on an available node in a FILO fashion.
-And when said job is completed and the user has ACKed the result the RM informs the GSs that the resources can be released.
+\subsubsection{Load balancing}
+When a GS receives a job offloaded from a RM it selects a new RM according to the load of the other GSs. This information about the load is received on the heartbeats sent periodically.
 
-\subsubsection{fault recovery}
-When a GS discovers that the GS that it is a backup for has crashed it will replicate all the jobs that it was backup for to the next GS and assume responsibility for this job.
+\subsubsection{Job execution}
+When a client sends a job to an RM the RM sends the job to its GS for tracking or to offload it. Subsequently, the GS sends the job information to the next GS in the for replication.
+This backup GS will keep track of the job until its completion.
+Once a job is accepted by an RM it will be scheduled in an available node following a FIFO discipline. On completion, the RM will send the results to the user and notify both GS about it before starting with new jobs.
 
-When a GS discovers that it's backup GS has gone crashed it will replicate it's jobs to the next GS in the ring for redundancy and inform the RM that this is the RM for all jobs that have been scheduled there until that moment. 
-
-If an RM goes down the backup GS will be promoted to primary for this job
+\subsubsection{Fault recovery}
+Failures of RM are discovered by the GSs, either the main one or the backup. Unless the main GS of that RM had also crashed, the failures in RM will be discovered by the main GS. This is due to the fact that the RM sends heartbeats with a higher interval to the backup GS for the sake of overload. When a RM is not sending the periodical heartbeats for a certain amount of time, the main GS will assume that it is down. Therefore, it will reallocate the jobs that were running on that cluster in another one. Also, the backup GS will be notified so it can stop tracking that RM. The GS controlling the cluster selected to run that workload will be notified to keep track of it as on a normal execution.
+\\
+In the case that the backup GS discovers that the main GS has crashed but the RM is still running it will notify an additional GS as backup till the execution of that job is completed. Also, if both GS or RM have crashed it will relaunch the job in another cluster, selecting a proper backup for it.
+\subsubsection{Fault tolerance}
+As discussed above, the system design tolerates single failure of both GS and RM. In the case of simultaneous failures of two or more GS/RM the design would not be valid as that workload will be lost. However, we assume that the probability of occurring this is low and that the nodes reboot quickly. 
 
 % Needs to be more complete:
 % describe assigning backup separately
