@@ -13,7 +13,7 @@ import java.rmi.RemoteException;
 public class UserMain {
     public static void main(String[] args) throws RemoteException, NotBoundException, MalformedURLException {
         System.out.println("I'm a user");
-        MessageProtocol proxy = (MessageProtocol) Naming.lookup("//localhost/test");
+        MessageProtocol proxy = (MessageProtocol) Naming.lookup("//localhost/RM");
 
         System.out.println(proxy.getMessage());
     }
