@@ -26,8 +26,12 @@ public class Node {
         return Optional.ofNullable(job);
     }
 
-    public void setJob(Job job) {
+    public synchronized void setJob(@NotNull Job job) {
         this.job = job;
+    }
+
+    public synchronized void setIdle() {
+        this.job = null;
     }
 
     public IResourceManagerDriver getRm() {
