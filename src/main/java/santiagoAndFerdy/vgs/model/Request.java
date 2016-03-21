@@ -1,6 +1,9 @@
 package santiagoAndFerdy.vgs.model;
 
 import com.sun.istack.internal.NotNull;
+import santiagoAndFerdy.vgs.model.cluster.IResourceManagerProxy;
+
+import java.io.Serializable;
 
 /**
  * Created by Fydio on 3/19/16.
@@ -8,20 +11,20 @@ import com.sun.istack.internal.NotNull;
  * The job might be processed on a different cluster than it was originally sent to.
  * To keep the 'original' cluster out of the loop we pass a reference to the user respond to
  */
-public class Request {
+public class Request implements Serializable {
     private Job j;
-    private IUser user;
+    private IResourceManagerProxy user;
 
-    public Request(@NotNull Job j, @NotNull IUser user) {
+    public Request(@NotNull Job j, @NotNull IResourceManagerProxy endPoint) {
         this.j = j;
-        this.user = user;
+        this.user = endPoint;
     }
 
-    public Job getJ() {
+    public Job getJob() {
         return j;
     }
 
-    public IUser getUser() {
+    public IResourceManagerProxy getUser() {
         return user;
     }
 
@@ -34,7 +37,6 @@ public class Request {
 
         if (j != null ? !j.equals(request.j) : request.j != null) return false;
         return user != null ? user.equals(request.user) : request.user == null;
-
     }
 
     @Override
