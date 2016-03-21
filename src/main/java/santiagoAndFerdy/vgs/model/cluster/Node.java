@@ -1,17 +1,23 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
+import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.Job;
+import santiagoAndFerdy.vgs.model.Request;
 
+import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by Fydio on 3/19/16.
  */
 public class Node {
     private int id;
-    private Job job;
+    private Request request;
     private IResourceManagerDriver rm;
+
 
     public Node(int id, @NotNull IResourceManagerDriver rm) {
         this.id = id;
@@ -22,16 +28,38 @@ public class Node {
         return id;
     }
 
-    public Optional<Job> getJob() {
-        return Optional.ofNullable(job);
+    public Optional<Request> getRequest() {
+        return Optional.ofNullable(request);
     }
 
-    public synchronized void setJob(@NotNull Job job) {
-        this.job = job;
+    public synchronized void handle(@NotNull Request request) throws RemoteException, MalformedURLException, NotBoundException {
+        this.request = request;
+
+//        this.rm.executorService().schedule(
+//                () -> {
+//                    try {
+//                        this.rm.finish(this, request);
+//                    } catch (RemoteException e) {
+//                        e.printStackTrace();
+//                    } catch (MalformedURLException e) {
+//                        e.printStackTrace();
+//                    } catch (NotBoundException e) {
+//                        e.printStackTrace();
+//                    }
+//                },
+//                request.getJob().getDuration(), TimeUnit.MILLISECONDS);
+        try {
+            Thread.sleep(request.getJob().getDuration());
+            this.rm.finish(this, request);
+            this.setIdle();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    public synchronized void setIdle() {
-        this.job = null;
+    public synchronized void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
+        rm.finish(this, this.request);
+        this.request = null;
     }
 
     public IResourceManagerDriver getRm() {
