@@ -1,6 +1,6 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.sun.istack.internal.NotNull;
@@ -16,7 +16,6 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Created by Fydio on 3/20/16.
@@ -73,13 +72,13 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public synchronized Task<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
+    public synchronized Promise<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
         connect();
         SettablePromise<Void> completionPromise = Promises.settable();
         pendingJobs.put(j, completionPromise);
         driver.queue(new Request(j, this));
 
-        return Task.async(() -> completionPromise);
+        return completionPromise;
     }
 
     @Override
