@@ -1,6 +1,6 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
-import com.linkedin.parseq.Task;
+import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.net.MalformedURLException;
@@ -17,5 +17,5 @@ public interface IResourceManagerProxy extends Remote {
     String getUrl() throws RemoteException;
 
     // for the user
-    Task<Void> schedule(Job j) throws MalformedURLException, RemoteException, NotBoundException;
+    Promise<Void> schedule(Job j) throws MalformedURLException, RemoteException, NotBoundException;
 }
