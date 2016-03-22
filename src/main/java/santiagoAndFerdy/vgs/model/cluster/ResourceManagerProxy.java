@@ -1,5 +1,8 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
+import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.EngineBuilder;
+import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -16,6 +19,9 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Created by Fydio on 3/20/16.
@@ -26,6 +32,8 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
     private String url;
     private String driverUrl;
     private IResourceManagerDriver driver;
+
+    private Engine engine;
 
     private Map<Job, SettablePromise<Void>> pendingJobs;
 
@@ -38,6 +46,17 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
 
         pendingJobs = new HashMap<>();
         connect();
+
+        // setup parseq engine
+        int numCores = Runtime.getRuntime().availableProcessors();
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
+        ScheduledExecutorService timerScheduler = Executors.newSingleThreadScheduledExecutor();
+
+        engine = new EngineBuilder()
+                .setTaskExecutor(taskScheduler)
+                .setTimerScheduler(timerScheduler)
+                .build();
+
     }
 
     public void register() throws MalformedURLException, RemoteException {
@@ -74,9 +93,12 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
     @Override
     public synchronized Promise<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
         connect();
+        System.out.println("Scheduling job " + j.getJobId());
         SettablePromise<Void> completionPromise = Promises.settable();
         pendingJobs.put(j, completionPromise);
-        driver.queue(new Request(j, this));
+
+        Task<Void> queue = Task.action(() -> driver.queue(new Request(j, this)));
+        engine.run(queue);
 
         return completionPromise;
     }
