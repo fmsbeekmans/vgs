@@ -1,5 +1,6 @@
 package santiagoAndFerdy.vgs.model.cluster;
 
+import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.model.Request;
@@ -54,6 +55,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     public synchronized void finish(Node node, Request req) throws RemoteException, NotBoundException, MalformedURLException {
         respond(req);
         idleNodes.add(node);
+        processQueue();
     }
 
     // should be ran after any change in node state or job queue
