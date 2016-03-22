@@ -13,7 +13,7 @@ public class ResourceManagerMain {
     public static void main(String[] args) throws RemoteException, MalformedURLException {
         RmiServer server = new RmiServer(1099);
 
-        EagerResourceManager rmImpl = new EagerResourceManager(8);
+        EagerResourceManager rmImpl = new EagerResourceManager(10000);
         server.register("localhost/rm", rmImpl);
 
         while (true) {}
