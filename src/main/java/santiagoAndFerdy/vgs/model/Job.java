@@ -53,13 +53,12 @@ public class Job implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof Job)) return false;
 
         Job job = (Job) o;
 
         if (jobId != job.jobId) return false;
         return initialResourceManagerId == job.initialResourceManagerId;
-
     }
 
     @Override
