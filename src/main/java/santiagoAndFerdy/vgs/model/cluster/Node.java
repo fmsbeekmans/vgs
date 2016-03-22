@@ -35,26 +35,19 @@ public class Node {
     public synchronized void handle(@NotNull Request request) throws RemoteException, MalformedURLException, NotBoundException {
         this.request = request;
 
-//        this.rm.executorService().schedule(
-//                () -> {
-//                    try {
-//                        this.rm.finish(this, request);
-//                    } catch (RemoteException e) {
-//                        e.printStackTrace();
-//                    } catch (MalformedURLException e) {
-//                        e.printStackTrace();
-//                    } catch (NotBoundException e) {
-//                        e.printStackTrace();
-//                    }
-//                },
-//                request.getJob().getDuration(), TimeUnit.MILLISECONDS);
-        try {
-            Thread.sleep(request.getJob().getDuration());
-            this.rm.finish(this, request);
-            this.setIdle();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        this.rm.executorService()
+                .schedule(() -> {
+                    try {
+                        this.rm.finish(this, request);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    } catch (NotBoundException e) {
+                        e.printStackTrace();
+                    }
+                },
+                request.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
     public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {

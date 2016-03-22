@@ -85,8 +85,6 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
 
         if(promise != null) {
             promise.done(null);
-
-            System.out.println("Done");
         }
     }
 
