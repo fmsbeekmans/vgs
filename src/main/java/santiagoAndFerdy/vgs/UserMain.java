@@ -18,8 +18,8 @@ public class UserMain {
         RmiServer rmiServer = new RmiServer(1089);
 
         User u = new User(rmiServer, "localhost/proxy", "localhost/rm");
-        u.start();
+        u.start().await();
 
-        Thread.sleep(30000);
+        System.out.println("I'm done.");
     }
 }
