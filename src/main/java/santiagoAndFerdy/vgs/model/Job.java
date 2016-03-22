@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.model;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Created by Fydio on 3/3/16.
@@ -47,5 +48,23 @@ public class Job implements Serializable {
 
             additionalResourceManagerIds = swap;
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Job)) return false;
+
+        Job job = (Job) o;
+
+        if (jobId != job.jobId) return false;
+        return initialResourceManagerId == job.initialResourceManagerId;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (jobId ^ (jobId >>> 32));
+        result = 31 * result + (int) (initialResourceManagerId ^ (initialResourceManagerId >>> 32));
+        return result;
     }
 }
