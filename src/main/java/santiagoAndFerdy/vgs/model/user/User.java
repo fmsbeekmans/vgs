@@ -3,6 +3,7 @@ package santiagoAndFerdy.vgs.model.user;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
+import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.model.cluster.IResourceManagerProxy;
 import santiagoAndFerdy.vgs.model.cluster.ResourceManagerProxy;
@@ -38,14 +39,14 @@ public class User {
         rm = new ResourceManagerProxy(this, rmiServer, resourceManagerProxyUrl, resourceManagerUrl);
     }
 
-    public void start() throws MalformedURLException, RemoteException, NotBoundException {
+    public Promise<Void> start() throws MalformedURLException, RemoteException, NotBoundException {
 
-        for(long i = 0; i < 1; i++) {
-            final Job j = new Job(1000, i, 0);
-            Task<Void> execution = rm.schedule(j);
-            execution.andThen(Task.action(() -> System.out.println("Finished task " + j.getJobId())));
+//        for(long i = 0; i < 1; i++) {
+            final Job j = new Job(1000, 0, 0);
+            Promise<Void> execution = rm.schedule(j);
+            execution.addListener(e -> System.out.println("Finished task " + j.getJobId()));
+//        }
 
-            engine.run(execution);
-        }
+        return execution;
     }
 }
