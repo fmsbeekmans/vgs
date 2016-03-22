@@ -57,8 +57,7 @@ public class Node {
         }
     }
 
-    public synchronized void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
-        rm.finish(this, this.request);
+    public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
         this.request = null;
     }
 
