@@ -42,8 +42,8 @@ public class User {
 
     public Promise<Void> start() throws MalformedURLException, RemoteException, NotBoundException {
 
-        for(long i = 0; i < 1000000; i++) {
-            final Job j = new Job(30000, i, 0);
+        for(long i = 0; i < 10000; i++) {
+            final Job j = new Job(10000, i, 0);
             Promise<Void> execution = rm.schedule(j);
             execution.addListener(e -> System.out.println("Finished task " + j.getJobId()));
         }
