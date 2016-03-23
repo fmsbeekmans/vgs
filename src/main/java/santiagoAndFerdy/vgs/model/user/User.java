@@ -2,12 +2,11 @@ package santiagoAndFerdy.vgs.model.user;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
-import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerProxy;
-import santiagoAndFerdy.vgs.model.cluster.ResourceManagerProxy;
+import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
+import santiagoAndFerdy.vgs.model.cluster.ResourceManagerUserClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -25,7 +24,7 @@ public class User {
     private ScheduledExecutorService timerScheduler;
     private Engine engine;
 
-    private IResourceManagerProxy rm;
+    private IResourceManagerUserClient rm;
 
     public User(RmiServer rmiServer, String resourceManagerProxyUrl, String resourceManagerUrl) throws MalformedURLException, RemoteException {
         final int numCores = Runtime.getRuntime().availableProcessors();
@@ -37,7 +36,7 @@ public class User {
                 .setTimerScheduler(timerScheduler)
                 .build();
 
-        rm = new ResourceManagerProxy(this, rmiServer, resourceManagerProxyUrl, resourceManagerUrl);
+        rm = new ResourceManagerUserClient(this, rmiServer, resourceManagerProxyUrl, resourceManagerUrl);
     }
 
     public Promise<Void> start() throws MalformedURLException, RemoteException, NotBoundException {

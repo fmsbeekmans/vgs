@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.model;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerProxy;
+import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
 
 import java.io.Serializable;
 
@@ -13,9 +13,9 @@ import java.io.Serializable;
  */
 public class Request implements Serializable {
     private Job j;
-    private IResourceManagerProxy user;
+    private IResourceManagerUserClient user;
 
-    public Request(@NotNull Job j, @NotNull IResourceManagerProxy endPoint) {
+    public Request(@NotNull Job j, @NotNull IResourceManagerUserClient endPoint) {
         this.j = j;
         this.user = endPoint;
     }
@@ -24,7 +24,7 @@ public class Request implements Serializable {
         return j;
     }
 
-    public IResourceManagerProxy getUser() {
+    public IResourceManagerUserClient getUser() {
         return user;
     }
 
