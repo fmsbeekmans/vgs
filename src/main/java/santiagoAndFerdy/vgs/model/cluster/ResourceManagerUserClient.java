@@ -26,7 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 /**
  * Created by Fydio on 3/20/16.
  */
-public class ResourceManagerProxy extends UnicastRemoteObject implements IResourceManagerProxy {
+public class ResourceManagerUserClient extends UnicastRemoteObject implements IResourceManagerUserClient {
     private User user;
     private RmiServer rmiServer;
     private String url;
@@ -37,7 +37,7 @@ public class ResourceManagerProxy extends UnicastRemoteObject implements IResour
 
     private Map<Job, SettablePromise<Void>> pendingJobs;
 
-    public ResourceManagerProxy(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, @NotNull String driverUrl) throws RemoteException, MalformedURLException {
+    public ResourceManagerUserClient(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, @NotNull String driverUrl) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
         this.driverUrl = driverUrl;
