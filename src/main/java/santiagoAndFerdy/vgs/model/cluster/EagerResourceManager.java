@@ -22,6 +22,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     private Queue<Request> jobQueue;
     private Queue<Node> idleNodes;
     private int n;
+    private long load;
 
     private ScheduledExecutorService timerScheduler;
     private Engine engine;
@@ -30,6 +31,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         super();
 
         this.n = n;
+        this.load = 0;
 
         // node queues synchronisation need the same mutex anyway. Don't use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
@@ -52,6 +54,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     public synchronized void queue(Request req) throws RemoteException, MalformedURLException, NotBoundException {
         jobQueue.add(req);
         System.out.println("Received job " + req.getJob().getJobId());
+        load += req.getJob().getDuration();
 
         Task<Void> process = Task.action(() -> processQueue());
         engine.run(process);
@@ -62,9 +65,14 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         Task<Void> respond = Task.action(() -> {
             IResourceManagerProxy client = (IResourceManagerProxy) Naming.lookup(req.getUser().getUrl());
             client.acceptResult(req.getJob());
+            release(req);
         });
 
         engine.run(respond);
+    }
+    
+    private synchronized void release(Request req) {
+        load -= req.getJob().getDuration();
     }
 
     @Override
