@@ -11,7 +11,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/20/16.
  */
-public interface IResourceManagerProxy extends Remote {
+public interface IResourceManagerUserClient extends Remote {
     // for the driver
     void acceptResult(Job j) throws RemoteException;
     String getUrl() throws RemoteException;

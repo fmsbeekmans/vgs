@@ -63,14 +63,14 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     @Override
     public void respond(Request req) throws RemoteException, MalformedURLException, NotBoundException {
         Task<Void> respond = Task.action(() -> {
-            IResourceManagerProxy client = (IResourceManagerProxy) Naming.lookup(req.getUser().getUrl());
+            IResourceManagerUserClient client = (IResourceManagerUserClient) Naming.lookup(req.getUser().getUrl());
             client.acceptResult(req.getJob());
             release(req);
         });
 
         engine.run(respond);
     }
-    
+
     private synchronized void release(Request req) {
         load -= req.getJob().getDuration();
     }
