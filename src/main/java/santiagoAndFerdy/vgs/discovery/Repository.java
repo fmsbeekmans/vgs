@@ -13,6 +13,8 @@ import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Created by Fydio on 3/24/16.
@@ -61,6 +63,17 @@ public class Repository<T extends Remote> implements IRepository<T> {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public List<Integer> ids() {
+        if(urls.length == 0) return new LinkedList<>();
+
+        return IntStream
+                .range(0, urls.length)
+                .filter(i -> urls[i] != null)
+                .mapToObj(i -> new Integer(i))
+                .collect(Collectors.toList());
     }
 
     public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {
