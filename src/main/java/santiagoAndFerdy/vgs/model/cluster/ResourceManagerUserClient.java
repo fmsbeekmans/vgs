@@ -7,6 +7,7 @@ import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.sun.istack.internal.NotNull;
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.model.user.User;
@@ -19,6 +20,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -30,17 +32,19 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
     private User user;
     private RmiServer rmiServer;
     private String url;
-    private String driverUrl;
+    private int id;
+    private IRepository<IResourceManagerDriver> driverRepository;
     private IResourceManagerDriver driver;
 
     private Engine engine;
 
     private Map<Job, SettablePromise<Void>> pendingJobs;
 
-    public ResourceManagerUserClient(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, @NotNull String driverUrl) throws RemoteException, MalformedURLException {
+    public ResourceManagerUserClient(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, int id, IRepository<IResourceManagerDriver> driverRepository) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
-        this.driverUrl = driverUrl;
+        this.id = id;
+        this.driverRepository = driverRepository;
         this.user = user;
         register();
 
@@ -65,18 +69,15 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
 
     public boolean connect() throws MalformedURLException {
         if(driver == null) {
-            try {
-                driver = (IResourceManagerDriver) Naming.lookup(driverUrl);
-
-                return true;
-            } catch (NotBoundException e) {
-                return false;
-            } catch (RemoteException e) {
+            Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
+            if (maybeDriver.isPresent()) {
+                driver = maybeDriver.get();
+            } else {
                 return false;
             }
-        } else {
-            return true;
         }
+
+        return true;
     }
 
     @Override

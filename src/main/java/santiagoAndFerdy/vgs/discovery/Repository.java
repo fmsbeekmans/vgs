@@ -75,6 +75,17 @@ public class Repository<T extends Remote> implements IRepository<T> {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public Map<Integer, String> urls() {
+        Map<Integer, String> urlMap = new HashMap<Integer, String>();
+
+        for (int i = 0; i < urls.length; i++) {
+            if(urls[i] != null) urlMap.put(i, urls[i]);
+        }
+
+        return urlMap;
+    }
+
     public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {
         Scanner s = new Scanner(Files.newInputStream(entityListingPath));
 

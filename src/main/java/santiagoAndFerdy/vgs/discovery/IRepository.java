@@ -6,6 +6,7 @@ import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -26,4 +27,5 @@ public interface IRepository<T extends Remote> extends Serializable {
     boolean setLastKnownStatus(int id, Status newStatus);
 
     List<Integer> ids();
+    Map<Integer, String> urls();
 }
