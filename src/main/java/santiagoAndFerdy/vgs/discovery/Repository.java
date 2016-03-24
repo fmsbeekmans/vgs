@@ -59,4 +59,19 @@ public class Repository<T extends Serializable> implements IRepository<T> {
             return false;
         }
     }
+
+    public static <T extends Serializable> IRepository<T> fromFile(Path entityListingPath) throws IOException {
+        Scanner s = new Scanner(Files.newInputStream(entityListingPath));
+
+        Map<Integer, String> urls = new HashMap<>();
+
+        while(s.hasNext()) {
+            int id = s.nextInt();
+            String url = s.next();
+
+            urls.put(id, url);
+        }
+
+        return new Repository<T>(urls);
+    }
 }
