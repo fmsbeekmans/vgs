@@ -18,12 +18,12 @@ public class RmiServer {
             LocateRegistry.createRegistry(port);
             System.out.println("Registery created");
         } catch (RemoteException e) {
-            System.err.println("Registry already exists");
+            System.out.println("Registery already exsists");
         }
     }
 
-    public void register(String url, UnicastRemoteObject impl) throws MalformedURLException, RemoteException {
+    public void register(String url, Remote impl) throws MalformedURLException, RemoteException {
         Naming.rebind(url, impl);
-        System.out.println("Registered object at" + url);
+        System.out.println("Registered object at " + url);
     }
 }

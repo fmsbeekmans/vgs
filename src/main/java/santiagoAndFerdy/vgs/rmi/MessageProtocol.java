@@ -7,5 +7,5 @@ import java.rmi.RemoteException;
  * Created by Fydio on 3/18/16.
  */
 public interface MessageProtocol extends Remote {
-    public String getMessage() throws RemoteException;
+    String getMessage() throws RemoteException;
 }

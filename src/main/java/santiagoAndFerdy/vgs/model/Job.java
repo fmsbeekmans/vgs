@@ -59,7 +59,6 @@ public class Job implements Serializable {
 
         if (jobId != job.jobId) return false;
         return initialResourceManagerId == job.initialResourceManagerId;
-
     }
 
     @Override
