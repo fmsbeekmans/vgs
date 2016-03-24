@@ -18,7 +18,7 @@ public class RmiServer {
             LocateRegistry.createRegistry(port);
             System.out.println("Registery created");
         } catch (RemoteException e) {
-            System.err.println("Registry already exists");
+            System.out.println("Registery already exsists");
         }
     }
 

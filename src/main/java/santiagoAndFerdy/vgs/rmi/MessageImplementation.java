@@ -8,12 +8,7 @@ import java.rmi.server.UnicastRemoteObject;
  */
 public class MessageImplementation extends UnicastRemoteObject implements MessageProtocol {
 
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = -740195965053580337L;
-
-	public MessageImplementation() throws RemoteException {
+    public MessageImplementation() throws RemoteException {
     }
 
     @Override
