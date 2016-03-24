@@ -21,15 +21,17 @@ import java.util.concurrent.*;
 public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
     private Queue<Request> jobQueue;
     private Queue<Node> idleNodes;
+    private int id;
     private int n;
     private long load;
 
     private ScheduledExecutorService timerScheduler;
     private Engine engine;
 
-    public EagerResourceManager(int n) throws RemoteException {
+    public EagerResourceManager(int id, int n) throws RemoteException {
         super();
 
+        this.id = id;
         this.n = n;
         this.load = 0;
 

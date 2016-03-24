@@ -4,7 +4,10 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.model.Job;
+import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
 import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
 import santiagoAndFerdy.vgs.model.cluster.ResourceManagerUserClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -12,6 +15,9 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,28 +29,48 @@ public class User {
     private ExecutorService taskScheduler;
     private ScheduledExecutorService timerScheduler;
     private Engine engine;
+    private IRepository<IResourceManagerDriver> rmRepository;
+    private Map<Integer, IResourceManagerUserClient> rms;
 
-    private IResourceManagerUserClient rm;
-
-    public User(RmiServer rmiServer, String resourceManagerProxyUrl, String resourceManagerUrl) throws MalformedURLException, RemoteException {
+    public User(RmiServer rmiServer, String resourceManagerProxyUrl, IRepository<IResourceManagerDriver> rmRepository) throws MalformedURLException, RemoteException {
         final int numCores = Runtime.getRuntime().availableProcessors();
         taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
+        this.rmRepository = rmRepository;
 
         engine = new EngineBuilder()
                 .setTaskExecutor(taskScheduler)
                 .setTimerScheduler(timerScheduler)
                 .build();
 
-        rm = new ResourceManagerUserClient(this, rmiServer, resourceManagerProxyUrl, resourceManagerUrl);
+        rms = new HashMap<>();
+        rmRepository.ids().forEach(rmId -> {
+            try {
+                rms.put(rmId, new ResourceManagerUserClient(this, rmiServer, resourceManagerProxyUrl, rmId, rmRepository));
+                start(rmId);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
-    public Promise<Void> start() throws MalformedURLException, RemoteException, NotBoundException {
+    public Promise<Void> start(int rmId) {
+        for(long i = 0; i < 2; i++) {
+            final Job j = new Job(10000, i, rmId);
+            IResourceManagerUserClient rm = rms.get(rmId);
 
-        for(long i = 0; i < 10000; i++) {
-            final Job j = new Job(10000, i, 0);
-            Promise<Void> execution = rm.schedule(j);
-            execution.addListener(e -> System.out.println("Finished task " + j.getJobId()));
+            try {
+                Promise<Void> execution = rm.schedule(j);
+                execution.addListener(e -> System.out.println("Finished task " + j.getJobId()));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            } catch (NotBoundException e) {
+                e.printStackTrace();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
         }
 
         return Promises.settable();
