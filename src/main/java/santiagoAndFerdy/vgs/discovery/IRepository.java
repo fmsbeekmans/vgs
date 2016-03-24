@@ -4,12 +4,13 @@ import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
 import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
 
 import java.io.Serializable;
+import java.rmi.Remote;
 import java.util.Optional;
 
 /**
  * Created by Fydio on 3/24/16.
  */
-public interface IRepository<T extends Serializable> extends Serializable {
+public interface IRepository<T extends Remote> extends Serializable {
 
     // for user
     Optional<T> getEntity(int id);
