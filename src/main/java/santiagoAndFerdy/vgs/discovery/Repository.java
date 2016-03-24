@@ -10,19 +10,22 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.*;
 
 /**
  * Created by Fydio on 3/24/16.
  */
-public class Repository<T extends Serializable> implements IRepository<T> {
+public class Repository<T extends Remote> implements IRepository<T> {
 
     private String[] urls;
     private Status[] statuses;
 
     public Repository(Map<Integer, String> urls) {
-        int n = urls.keySet().stream().max(Comparator.naturalOrder()).orElse(0);
+        int n = urls.keySet().stream()
+                .max(Comparator.naturalOrder())
+                .map(max -> max + 1).orElse(0);
         this.urls = new String[n];
         this.statuses = new Status[n];
 
@@ -60,7 +63,7 @@ public class Repository<T extends Serializable> implements IRepository<T> {
         }
     }
 
-    public static <T extends Serializable> IRepository<T> fromFile(Path entityListingPath) throws IOException {
+    public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {
         Scanner s = new Scanner(Files.newInputStream(entityListingPath));
 
         Map<Integer, String> urls = new HashMap<>();
