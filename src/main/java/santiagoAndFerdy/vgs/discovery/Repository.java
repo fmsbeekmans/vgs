@@ -20,9 +20,8 @@ import java.util.stream.IntStream;
  * Created by Fydio on 3/24/16.
  */
 public class Repository<T extends Remote> implements IRepository<T> {
-
-    private String[] urls;
-    private Status[] statuses;
+    protected String[] urls;
+    protected Status[] statuses;
 
     public Repository(Map<Integer, String> urls) {
         int n = urls.keySet().stream()

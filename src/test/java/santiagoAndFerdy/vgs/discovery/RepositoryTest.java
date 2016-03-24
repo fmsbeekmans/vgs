@@ -30,6 +30,7 @@ public class RepositoryTest {
 
         assertTrue(repo.ids().isEmpty());
     }
+
     @Test
     public void idListingTest() {
         Map<Integer, String> entries = new HashMap<>();
