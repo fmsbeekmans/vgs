@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.cluster;
+package santiagoAndFerdy.vgs.resourceManager;
 
 import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.model.Job;

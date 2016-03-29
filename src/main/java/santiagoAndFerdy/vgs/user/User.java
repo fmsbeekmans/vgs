@@ -6,9 +6,9 @@ import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.cluster.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.cluster.IResourceManagerUserClient;
-import santiagoAndFerdy.vgs.cluster.ResourceManagerUserClient;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerUserClient;
+import santiagoAndFerdy.vgs.resourceManager.ResourceManagerUserClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

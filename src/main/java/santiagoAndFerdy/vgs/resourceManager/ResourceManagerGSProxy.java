@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.cluster;
+package santiagoAndFerdy.vgs.resourceManager;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
