@@ -1,10 +1,6 @@
 package santiagoAndFerdy.vgs.discovery;
 
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
-
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;

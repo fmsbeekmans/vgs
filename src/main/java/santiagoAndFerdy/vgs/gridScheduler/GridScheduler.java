@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.gridScheduler;
+package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
@@ -6,7 +6,7 @@ import com.linkedin.parseq.Task;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.model.cluster.EagerResourceManager;
+import santiagoAndFerdy.vgs.cluster.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

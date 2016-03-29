@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.cluster;
+package santiagoAndFerdy.vgs.cluster;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
@@ -10,11 +10,10 @@ import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.model.user.User;
+import santiagoAndFerdy.vgs.user.User;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;

@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.gridScheduler;
+package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;

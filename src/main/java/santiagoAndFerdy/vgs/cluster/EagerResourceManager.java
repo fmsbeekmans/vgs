@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.cluster;
+package santiagoAndFerdy.vgs.cluster;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
@@ -8,7 +8,6 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

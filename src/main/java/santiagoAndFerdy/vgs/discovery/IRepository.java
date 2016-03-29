@@ -1,8 +1,5 @@
 package santiagoAndFerdy.vgs.discovery;
 
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
-
 import java.io.Serializable;
 import java.rmi.Remote;
 import java.util.List;

@@ -1,6 +1,5 @@
-package santiagoAndFerdy.vgs.model.cluster;
+package santiagoAndFerdy.vgs.cluster;
 
-import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.model.Request;
 
