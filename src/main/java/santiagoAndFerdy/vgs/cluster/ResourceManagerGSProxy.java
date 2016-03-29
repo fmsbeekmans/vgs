@@ -1,9 +1,9 @@
-package santiagoAndFerdy.vgs.model.cluster;
+package santiagoAndFerdy.vgs.cluster;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.gridScheduler.IGridSchedulerDriver;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerDriver;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

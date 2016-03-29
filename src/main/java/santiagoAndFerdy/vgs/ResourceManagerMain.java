@@ -2,17 +2,15 @@ package santiagoAndFerdy.vgs;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.model.cluster.EagerResourceManager;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.cluster.EagerResourceManager;
+import santiagoAndFerdy.vgs.cluster.IResourceManagerDriver;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.RemoteException;
 import java.util.Map;
 
 /**

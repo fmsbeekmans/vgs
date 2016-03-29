@@ -1,15 +1,14 @@
-package santiagoAndFerdy.vgs.model.user;
+package santiagoAndFerdy.vgs.user;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
-import santiagoAndFerdy.vgs.model.cluster.ResourceManagerUserClient;
+import santiagoAndFerdy.vgs.cluster.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.cluster.IResourceManagerUserClient;
+import santiagoAndFerdy.vgs.cluster.ResourceManagerUserClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -17,7 +16,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

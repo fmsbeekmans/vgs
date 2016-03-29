@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.gridScheduler;
+package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.messages.Heartbeat;

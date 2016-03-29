@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.model.cluster;
+package santiagoAndFerdy.vgs.cluster;
 
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.model.Request;
@@ -7,7 +7,6 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**

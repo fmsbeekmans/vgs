@@ -4,8 +4,7 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import santiagoAndFerdy.vgs.model.gridScheduler.GridScheduler;
-import santiagoAndFerdy.vgs.messages.Heartbeat;
+import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
