@@ -6,7 +6,7 @@ import com.linkedin.parseq.Task;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.cluster.EagerResourceManager;
+import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

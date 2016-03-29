@@ -2,8 +2,8 @@ package santiagoAndFerdy.vgs;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.cluster.EagerResourceManager;
-import santiagoAndFerdy.vgs.cluster.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.io.IOException;

@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.model;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.cluster.IResourceManagerUserClient;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerUserClient;
 
 import java.io.Serializable;
 
