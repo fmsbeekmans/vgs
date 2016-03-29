@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 
-public class ResourceManagerGSProxy extends UnicastRemoteObject  {
+public class ResourceManagerGridScheduleClient extends UnicastRemoteObject  {
 
 	private static final long serialVersionUID = 3823217677238862954L;
 	private RmiServer rmiServer;
@@ -27,7 +27,7 @@ public class ResourceManagerGSProxy extends UnicastRemoteObject  {
 	private ScheduledExecutorService	timerScheduler;
 	
 
-	public ResourceManagerGSProxy(@NotNull RmiServer rmiServer, @NotNull String url, @NotNull String driverUrl)
+	public ResourceManagerGridScheduleClient(@NotNull RmiServer rmiServer, @NotNull String url, @NotNull String driverUrl)
 			throws RemoteException, MalformedURLException {
 		this.rmiServer = rmiServer;
 		this.url = url;
