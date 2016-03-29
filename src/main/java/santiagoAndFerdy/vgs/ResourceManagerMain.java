@@ -19,17 +19,19 @@ import java.util.Map;
  * Created by Fydio on 3/18/16.
  */
 public class ResourceManagerMain {
-    public static void main(String[] args) throws IOException, URISyntaxException {
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
         RmiServer server = new RmiServer(1099);
         URL url = UserMain.class.getClassLoader().getResource("rm/rms");
         Path rmRepositoryFilePath = Paths.get(url.toURI());
         IRepository<IResourceManagerDriver> repo = Repository.fromFile(rmRepositoryFilePath);
 
         Map<Integer, String> rmUrls = repo.urls();
-        for(int id : rmUrls.keySet()) {
-            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000);
-            server.register(rmUrls.get(id), rmImpl);
-        }
+        //for(int id : rmUrls.keySet()) {
+        // Thread.sleep(2000);
+        EagerResourceManager rmImpl = new EagerResourceManager(0, 10000, server);
+        server.register(rmUrls.get(0), rmImpl);
+        rmImpl.startHBHandler();
+        //}
 
         while (true) {}
     }
