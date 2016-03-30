@@ -3,6 +3,7 @@ package santiagoAndFerdy.vgs.resourceManager;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
+import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
@@ -36,9 +37,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     private int                           id;
     private String url;
 
-    private IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository;
-    private Map<Integer, String> gridSchedulerUrls;
-    private IRepository<IGridSchedulerResourceManagerClient> gsRepo;
+    private Map<Integer, IGridSchedulerResourceManagerClient> gridSchedulerClients;
 
     private long                          load;
     private ScheduledExecutorService      timerScheduler;
@@ -49,7 +48,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
                                 int nNodes,
                                 String url,
                                 RmiServer rmiServer,
-                                IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
+                                Map<Integer, IGridSchedulerResourceManagerClient> gridSchedulerClients)
             throws RemoteException, MalformedURLException, NotBoundException {
 
         super();
@@ -62,9 +61,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         idleNodes = new CircularFifoQueue<>(nNodes);
 
         this.rmiServer = rmiServer;
-        this.gridSchedulerRepository = gridSchedulerRepository;
-        gridSchedulerUrls = gridSchedulerRepository.urls();
-        Map<Integer, String> gsUrls = gridSchedulerRepository.urls();
+        this.gridSchedulerClients = gridSchedulerClients;
 
         for (int i = 0; i < nNodes; i++)
             idleNodes.add(new Node(i, this));
@@ -79,43 +76,31 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
 
     @Override
     public synchronized void queue(UserRequest req) throws RemoteException, MalformedURLException, NotBoundException {
-        jobQueue.add(req);
         System.out.println("Received job " + req.getJob().getJobId());
         load += req.getJob().getDuration();
 
-        // send to GS first
-        Task<Void> backUp = Task.action(() -> requestMonitoring(req.getJob()));
-        // send to node after ACK
-        Task<Void> process = Task.action(() -> processQueue());
-        engine.run(process.andThen(process));
+        Task<Void> queueFlow = Task
+                // send to GS first
+                .action(() -> requestMonitoring(req.getJob()))
+                // then schedule
+                .andThen(monitored -> jobQueue.add(req))
+                // and process the queue again
+                .andThen(queue -> processQueue());
+        engine.run(queueFlow);
     }
 
-    public void requestMonitoring(Job jobToMonitor) {
-        int targetGridSchedulerId = selectResourceManagerForBackUp();
-        String targetGridSchedulerUrl = gridSchedulerUrls.get(targetGridSchedulerId);
-        MonitorRequest monitorRequest = new MonitorRequest(targetGridSchedulerUrl, jobToMonitor);
+    public void requestMonitoring(Job jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
+        System.out.println("Requesting monitoring for job " + jobToMonitor.getJobId());
 
-        Optional<IGridSchedulerResourceManagerClient> backUpTarget = gridSchedulerRepository.getEntity(selectResourceManagerForBackUp());
+        IGridSchedulerResourceManagerClient backUpTarget = selectResourceManagerForBackUp();
 
-        backUpTarget.ifPresent(target -> {
-            try {
-                target.monitorPrimary(monitorRequest).await();
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                // TODO: Cancel when down
-                e.printStackTrace();
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (NotBoundException e) {
-                e.printStackTrace();
-            }
-        });
-
+        Promise<Void> monitorPromise = backUpTarget.monitorPrimary(jobToMonitor);
+        monitorPromise.await();
+        System.out.println("Job " + jobToMonitor.getJobId() + " is being monitored");
     }
 
-    public int selectResourceManagerForBackUp() {
-        return 0;
+    public IGridSchedulerResourceManagerClient selectResourceManagerForBackUp() {
+        return gridSchedulerClients.get(0);
     }
 
     @Override

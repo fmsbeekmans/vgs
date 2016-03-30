@@ -70,6 +70,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
 
     @Override
     public synchronized void monitorPrimary(MonitorRequest request) throws RemoteException, MalformedURLException, NotBoundException {
+        System.out.println("Received job " + request.getJobToMonitor().getJobId() + " to monitor ");
         monitoredJobs.add(request);
         IGridSchedulerGridSchedulerClient backUp = selectBackUp();
 

@@ -38,5 +38,9 @@ public class GridSchedulerMain {
                     gridSchedulerUrls.get(gsId),
                     gsId);
         }
+
+        System.out.println("Waiting for work");
+
+        while (true);
     }
 }

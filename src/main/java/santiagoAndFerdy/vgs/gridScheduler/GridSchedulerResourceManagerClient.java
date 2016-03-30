@@ -36,7 +36,8 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
     }
 
     @Override
-    public Promise<Void> monitorPrimary(MonitorRequest monitorRequest) throws RemoteException, MalformedURLException, NotBoundException {
+    public Promise<Void> monitorPrimary(Job jobToMonitor) throws RemoteException, MalformedURLException, NotBoundException {
+        MonitorRequest monitorRequest = new MonitorRequest(url, jobToMonitor);
         SettablePromise<Void> monitorPromise = Promises.settable();
         pendingBackupRequests.put(monitorRequest.getJobToMonitor(), monitorPromise);
 

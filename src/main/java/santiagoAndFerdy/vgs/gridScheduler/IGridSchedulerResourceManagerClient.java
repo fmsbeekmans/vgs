@@ -16,10 +16,10 @@ import java.rmi.RemoteException;
 public interface IGridSchedulerResourceManagerClient extends Remote {
     /**
      * UserRequest this grid scheduler to monitor the life-cycle for this job
-     * @param monitorRequest the request to watch
+     * @param job to oversee
      * @throws RemoteException
      */
-    Promise<Void> monitorPrimary(MonitorRequest monitorRequest) throws RemoteException, MalformedURLException, NotBoundException;
+    Promise<Void> monitorPrimary(Job job) throws RemoteException, MalformedURLException, NotBoundException;
 
     /**
      * For a Grid Scheduler Driver to communicate that a monitoring request has been accepted.

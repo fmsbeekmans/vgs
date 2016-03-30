@@ -19,7 +19,7 @@ import java.rmi.NotBoundException;
 public class UserMain {
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
         System.out.println("I'm a user");
-        RmiServer rmiServer = new RmiServer(1089);
+        RmiServer rmiServer = new RmiServer(1099);
         URL url = UserMain.class.getClassLoader().getResource("user/rms");
         Path rmRepositoryFilePath = Paths.get(url.toURI());
         IRepository<IResourceManagerDriver> repo = Repository.fromFile(rmRepositoryFilePath);
