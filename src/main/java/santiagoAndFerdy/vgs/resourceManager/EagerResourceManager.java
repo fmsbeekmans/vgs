@@ -7,7 +7,6 @@ import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.messages.MonitorRequest;
@@ -40,7 +39,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     private IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository;
     private Map<Integer, String> gridSchedulerUrls;
     private IRepository<IGridSchedulerResourceManagerClient> gsRepo;
-    private Map<Integer, HeartbeatHandler> gsHeartBeatHandlers;
 
     private long                          load;
     private ScheduledExecutorService      timerScheduler;
@@ -51,7 +49,9 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
                                 int nNodes,
                                 String url,
                                 RmiServer rmiServer,
-                                IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository) throws RemoteException, MalformedURLException, NotBoundException {
+                                IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
+            throws RemoteException, MalformedURLException, NotBoundException {
+
         super();
         this.id = id;
         this.url = url;
@@ -64,10 +64,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         this.rmiServer = rmiServer;
         this.gridSchedulerRepository = gridSchedulerRepository;
         gridSchedulerUrls = gridSchedulerRepository.urls();
-        gsHeartBeatHandlers = new HashedMap<>();
         Map<Integer, String> gsUrls = gridSchedulerRepository.urls();
-        for (int gsId : gridSchedulerRepository.ids())  gsHeartBeatHandlers.put(gsId, new HeartbeatHandler(url, gsUrls.get(gsId), rmiServer));
-
 
         for (int i = 0; i < nNodes; i++)
             idleNodes.add(new Node(i, this));

@@ -35,11 +35,11 @@ public interface IGridSchedulerDriver extends Remote {
      * For a resource manager to userRequest a job to be scheduled elsewhere
      * @param userRequest to schedule somewhere else
      */
-    void offload(UserRequest userRequest);
+    void offload(UserRequest userRequest) throws RemoteException;
 
     /**
      * A job has finished. All the reserved resources can be released.
      * @param requestId
      */
-    void releaseResources(int requestId);
+    void releaseResources(int requestId) throws RemoteException;
 }

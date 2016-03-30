@@ -25,17 +25,17 @@ public interface IGridSchedulerResourceManagerClient extends Remote {
      * For a Grid Scheduler Driver to communicate that a monitoring request has been accepted.
      * @param job that is being monitored
      */
-    void monitoringRequestAccepted(Job job);
+    void monitoringRequestAccepted(Job job) throws RemoteException;
 
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere
      * @param userRequest to schedule somewhere else
      */
-    Promise<Void> offload(UserRequest userRequest);
+    Promise<Void> offload(UserRequest userRequest) throws RemoteException;
 
     /**
      * A job has finished. All the reserved resources can be released.
      * @param requestId
      */
-    Promise<Void> releaseResources(int requestId);
+    Promise<Void> releaseResources(int requestId) throws RemoteException;
 }

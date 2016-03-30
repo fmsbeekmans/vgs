@@ -3,7 +3,6 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
@@ -29,8 +28,6 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
 
     private IRepository<IResourceManagerGridSchedulerClient> rmRepository;
     private IRepository<IGridSchedulerGridSchedulerClient> gsRepository;
-    private HashMap<Integer, HeartbeatHandler> rmHeartbeatHandlers;
-    private HashMap<Integer, HeartbeatHandler> gsHeartbeatHandlers;
 
     private Queue<MonitorRequest> monitoredJobs;
     private Queue<BackUpRequest> backUpMonitoredJobs;
@@ -52,9 +49,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         this.id = id;
 
         this.rmRepository = rmRepository;
-        this.rmHeartbeatHandlers = new HashMap<>();
         this.gsRepository = gsRepository;
-        this.gsHeartbeatHandlers = new HashMap<>();
 
         monitoredJobs = new PriorityQueue<>();
         backUpMonitoredJobs = new PriorityQueue<>();

@@ -22,11 +22,11 @@ public interface IGridSchedulerGridSchedulerClient extends Remote {
      * Become the primary grid scheduler for this job
      * @param userRequest the userRequest to reschedule and rebackup
      */
-    void promoteToPrimary(UserRequest userRequest);
+    void promoteToPrimary(UserRequest userRequest) throws  RemoteException;
 
     /**
      * A job has finished. All the reserved resources can be released.
      * @param requestId
      */
-    Promise<Void> releaseResources(int requestId);
+    Promise<Void> releaseResources(int requestId) throws RemoteException;
 }
