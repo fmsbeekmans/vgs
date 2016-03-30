@@ -5,8 +5,11 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
+import santiagoAndFerdy.vgs.resourceManager.ResourceManagerGridScheduleClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -22,12 +25,13 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public class GridScheduler extends UnicastRemoteObject {
     private static final long             serialVersionUID = -5694724140595312739L;
-    private Queue<Request>                jobQueue;
-    private Queue<EagerResourceManager>   idleRM;
-    private HeartbeatHandler              hHandler;
+
+    private IRepository<IResourceManagerGridSchedulerClient> rms;
+    private IRepository<IGridSchedulerGridSchedulerClient> rms;
+    private HashMap<Integer, HeartbeatHandler> heartbeatHandlers;
+
     private ScheduledExecutorService      timerScheduler;
     private Engine                        engine;
-    private HashMap<String, Task<Object>> status;
     private RmiServer rmiServer;
     
     public GridScheduler(RmiServer rmiServer) throws RemoteException, MalformedURLException {
