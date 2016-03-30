@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
+import santiagoAndFerdy.vgs.discovery.Entity;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 
@@ -10,7 +11,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/30/16.
  */
-public interface IGridSchedulerGridSchedulerClient extends Remote {
+public interface IGridSchedulerGridSchedulerClient extends Entity {
     /**
      * UserRequest this grid scheduler to also watch a job in case the primary grid scheduler crashes
      * @param backUpRequest the userRequest to watch

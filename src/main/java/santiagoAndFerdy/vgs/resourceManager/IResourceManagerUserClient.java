@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.linkedin.parseq.promise.Promise;
+import santiagoAndFerdy.vgs.discovery.Entity;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.net.MalformedURLException;
@@ -11,7 +12,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/20/16.
  */
-public interface IResourceManagerUserClient extends Remote {
+public interface IResourceManagerUserClient extends Entity {
     // for the driver
     void acceptResult(Job j) throws RemoteException;
     String getUrl() throws RemoteException;

@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
+import santiagoAndFerdy.vgs.discovery.Entity;
 import santiagoAndFerdy.vgs.messages.MonitorRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
@@ -13,7 +14,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/30/16.
  */
-public interface IGridSchedulerResourceManagerClient extends Remote {
+public interface IGridSchedulerResourceManagerClient extends Entity {
     /**
      * UserRequest this grid scheduler to monitor the life-cycle for this job
      * @param job to oversee
