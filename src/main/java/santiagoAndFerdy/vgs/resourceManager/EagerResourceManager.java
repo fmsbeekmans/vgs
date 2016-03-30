@@ -1,15 +1,5 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.EngineBuilder;
-import com.linkedin.parseq.Task;
-import com.sun.istack.internal.NotNull;
-import org.apache.commons.collections4.queue.CircularFifoQueue;
-
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
-import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.rmi.RmiServer;
-
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -17,24 +7,48 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+
+import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.EngineBuilder;
+import com.linkedin.parseq.Task;
+import com.sun.istack.internal.NotNull;
+
+import santiagoAndFerdy.vgs.discovery.HeartbeatHandler2;
+import santiagoAndFerdy.vgs.discovery.IHeartbeatSender;
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, Runnable {
+
+    private static final long             serialVersionUID = -4089353922882117112L;
+    private Thread                        pollingThread;
     private Queue<Request>                jobQueue;
     private Queue<Node>                   idleNodes;
     private int                           n;
     private int                           id;
     private long                          load;
-    private HeartbeatHandler              hHandler;
+    private HeartbeatHandler2             hHandler;
     private ScheduledExecutorService      timerScheduler;
     private Engine                        engine;
     private HashMap<String, Task<Object>> status;
     private RmiServer                     rmiServer;
+    private String                        myURLForHB;
+    private String                        myURL;
+    private IRepository<IHeartbeatSender> repoForHB;
+    private boolean                       running;
 
-    public EagerResourceManager(int id, int n, RmiServer rmiServer) throws RemoteException, MalformedURLException {
+    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url, IRepository<IHeartbeatSender> repo)
+            throws RemoteException, MalformedURLException {
         super();
         this.id = id;
         this.n = n;
@@ -44,7 +58,9 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         // node queues synchronisation need the same mutex anyway. Don't use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
         idleNodes = new CircularFifoQueue<>(n);
-
+        myURL = url;
+        myURLForHB = url + "-hb";
+        repoForHB = repo;
         for (int i = 0; i < n; i++)
             idleNodes.add(new Node(i, this));
 
@@ -53,6 +69,23 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
+        hHandler = new HeartbeatHandler2(myURLForHB, repoForHB, rmiServer);
+        // // On shutdown unregister this RM and his HB handler.
+        // Runtime.getRuntime().addShutdownHook(new Thread() {
+        // @Override
+        // public void run() {
+        // try {
+        // rmiServer.unRegister(myURLForHB);
+        // rmiServer.unRegister(myURL);
+        // } catch (Exception e) {
+        // e.printStackTrace();
+        // }
+        // }
+        // });
+
+        pollingThread = new Thread(this);
+        running = true;
+        pollingThread.start();
 
     }
 
@@ -82,18 +115,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     public void startHBHandler() {
-        try {
-            hHandler = new HeartbeatHandler("localhost/hRM", "localhost/hGS", rmiServer);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (NotBoundException e) {
-            e.printStackTrace();
-        }
-//        while(true){
-//            System.out.println(hHandler.getS());
-//        }
+       hHandler.connectHandler();
     }
 
     @Override
@@ -123,19 +145,33 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         return timerScheduler;
     }
 
-    // @Override
-    // public void sendHeartbeat() throws RemoteException, MalformedURLException, NotBoundException, InterruptedException {
-    // System.out.println("ahsdjashudsha");
-    // String url = h.getSenderURL();
-    // Task<Void> heartbeat = Task.action(() -> {
-    // System.out.println("A");
-    // }).withTimeout(5, TimeUnit.SECONDS);
-    // // status.put(url, heartbeat);
-    // heartbeat.onFailure(result -> {
-    // System.out.println("TIME OUT");
-    // });
-    // engine.run(heartbeat);
-    // heartbeat.await();
-    // }
+    public void checkConnections() {
+        hHandler.checkLife();
+    }
 
+    public void shutdown() {
+
+        try {
+            rmiServer.unRegister(myURLForHB);
+            rmiServer.unRegister(myURL);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        running = false;
+//        try {
+//            pollingThread.join();
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+        //System.out.println("Died");
+    }
+
+    @Override
+    public void run() {
+        // Here is where the logic of the component should be
+        while (running) {
+            //do something
+        }
+
+    }
 }

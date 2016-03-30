@@ -2,6 +2,7 @@ package santiagoAndFerdy.vgs.rmi;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -25,5 +26,28 @@ public class RmiServer {
     public void register(String url, Remote impl) throws MalformedURLException, RemoteException {
         Naming.rebind(url, impl);
         System.out.println("Registered object at " + url);
+    }
+    public void unRegister(String url){
+        System.out.println("Unregistering: "+url);
+        try {
+            Naming.unbind(url);
+        } catch (RemoteException | MalformedURLException | NotBoundException e) {
+            e.printStackTrace();
+        }
+    }
+    public void lookUp(String name){
+        
+        try {
+            String [] list = Naming.list(name);
+            for(int i = 0; i< list.length; i++){
+                System.out.println(list[i]);
+            }
+        } catch (RemoteException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
     }
 }
