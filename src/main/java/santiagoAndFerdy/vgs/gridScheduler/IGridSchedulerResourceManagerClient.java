@@ -1,7 +1,8 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
-import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.model.MonitorRequest;
+import santiagoAndFerdy.vgs.model.UserRequest;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
@@ -11,23 +12,17 @@ import java.rmi.RemoteException;
  */
 public interface IGridSchedulerResourceManagerClient extends Remote {
     /**
-     * Request this grid scheduler to monitor the life-cycle for this job
-     * @param request the request to watch
+     * UserRequest this grid scheduler to monitor the life-cycle for this job
+     * @param monitorRequest the request to watch
      * @throws RemoteException
      */
-    Promise<Void> monitorPrimary(Request request) throws RemoteException;
+    Promise<Void> monitorPrimary(MonitorRequest monitorRequest) throws RemoteException;
 
     /**
-     * Become the primary grid scheduler for this job
-     * @param request the request to reschedule and rebackup
+     * For a resource manager to userRequest a job to be scheduled elsewhere
+     * @param userRequest to schedule somewhere else
      */
-    Promise<Void> promoteToPrimary(Request request);
-
-    /**
-     * For a resource manager to request a job to be scheduled elsewhere
-     * @param request to schedule somewhere else
-     */
-    Promise<Void> offload(Request request);
+    Promise<Void> offload(UserRequest userRequest);
 
     /**
      * A job has finished. All the reserved resources can be released.

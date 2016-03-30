@@ -3,15 +3,16 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
+import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
-import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
-import santiagoAndFerdy.vgs.model.Request;
-import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.model.BackUpRequest;
+import santiagoAndFerdy.vgs.model.Job;
+import santiagoAndFerdy.vgs.model.MonitorRequest;
+import santiagoAndFerdy.vgs.model.UserRequest;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
-import santiagoAndFerdy.vgs.resourceManager.ResourceManagerGridScheduleClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -19,10 +20,10 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSchedulerDriver {
@@ -32,6 +33,9 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     private IRepository<IGridSchedulerGridSchedulerClient> gsRepository;
     private HashMap<Integer, HeartbeatHandler> rmHeartbeatHandlers;
     private HashMap<Integer, HeartbeatHandler> gsHeartbeatHandlers;
+
+    private Queue<MonitorRequest> jobsPrimary;
+    private Queue<BackUpRequest> jobsBackUp;
 
     private RmiServer rmiServer;
     private int id;
@@ -54,6 +58,9 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         this.gsRepository = gsRepository;
         this.gsHeartbeatHandlers = new HashMap<>();
 
+        jobsPrimary = new PriorityQueue<>();
+        jobsBackUp = new PriorityQueue<>();
+
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
@@ -69,22 +76,35 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     }
 
     @Override
-    public void monitorPrimary(Request request) throws RemoteException {
+    public synchronized void monitorPrimary(MonitorRequest request) throws RemoteException {
+        jobsPrimary.add(request);
+        IGridSchedulerGridSchedulerClient backUp = selectBackUp();
+
+        // do async
+        engine.run(Task.action(() -> {
+            // first send to back up
+            BackUpRequest backUpRequest = new BackUpRequest(backUp, request.getJobToBackUp());
+            Promise<Void> backUpAck = backUp.monitorBackUp(backUpRequest);
+            backUpAck.addListener(backUpResult -> {
+                    // TODO retry on different gs upon failure
+                    request.getSource().jobBackUpped(request.getJobToBackUp());
+            });
+        }));
+    }
+
+    public IGridSchedulerGridSchedulerClient selectBackUp() {
+        // TODO
+
+        return null;
+    }
+
+    @Override
+    public void monitorBackUp(BackUpRequest userRequest) throws RemoteException {
 
     }
 
     @Override
-    public void manitorBackUp(Request request) throws RemoteException {
-
-    }
-
-    @Override
-    public void promoteToPrimary(Request request) {
-
-    }
-
-    @Override
-    public void offload(Request request) {
+    public void offload(UserRequest userRequest) {
 
     }
 

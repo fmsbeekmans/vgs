@@ -7,7 +7,7 @@ import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
-import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.model.UserRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -23,7 +23,7 @@ import java.util.concurrent.*;
  * Created by Fydio on 3/19/16.
  */
 public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
-    private Queue<Request>                jobQueue;
+    private Queue<UserRequest>                jobQueue;
     private Queue<Node>                   idleNodes;
     private int                           n;
     private int                           id;
@@ -57,7 +57,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public synchronized void queue(Request req) throws RemoteException, MalformedURLException, NotBoundException {
+    public synchronized void queue(UserRequest req) throws RemoteException, MalformedURLException, NotBoundException {
         jobQueue.add(req);
         System.out.println("Received job " + req.getJob().getJobId());
         load += req.getJob().getDuration();
@@ -67,7 +67,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public void respond(Request req) throws RemoteException, MalformedURLException, NotBoundException {
+    public void respond(UserRequest req) throws RemoteException, MalformedURLException, NotBoundException {
         Task<Void> respond = Task.action(() -> {
             IResourceManagerUserClient client = (IResourceManagerUserClient) Naming.lookup(req.getUser().getUrl());
             client.acceptResult(req.getJob());
@@ -77,7 +77,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         engine.run(respond);
     }
 
-    private synchronized void release(Request req) {
+    private synchronized void release(UserRequest req) {
         load -= req.getJob().getDuration();
     }
 
@@ -97,7 +97,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public synchronized void finish(Node node, Request req) throws RemoteException, NotBoundException, MalformedURLException {
+    public synchronized void finish(Node node, UserRequest req) throws RemoteException, NotBoundException, MalformedURLException {
         respond(req);
         idleNodes.add(node);
 
@@ -109,7 +109,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     protected synchronized void processQueue() throws RemoteException, MalformedURLException, NotBoundException {
         while (!jobQueue.isEmpty() && !idleNodes.isEmpty()) {
             Node allocatedNode = idleNodes.poll();
-            Request req = jobQueue.poll();
+            UserRequest req = jobQueue.poll();
             System.out.println("Running job " + req.getJob().getJobId());
 
             Task<Void> run = Task.action(() -> allocatedNode.handle(req));

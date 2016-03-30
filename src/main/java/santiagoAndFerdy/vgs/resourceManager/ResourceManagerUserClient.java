@@ -9,7 +9,7 @@ import com.linkedin.parseq.promise.SettablePromise;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.model.UserRequest;
 import santiagoAndFerdy.vgs.user.User;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -95,7 +95,7 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
         SettablePromise<Void> completionPromise = Promises.settable();
         pendingJobs.put(j, completionPromise);
 
-        Task<Void> queue = Task.action(() -> driver.queue(new Request(j, this)));
+        Task<Void> queue = Task.action(() -> driver.queue(new UserRequest(j, this)));
         engine.run(queue);
 
         return completionPromise;

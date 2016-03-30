@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.model.UserRequest;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class Node {
     private int id;
-    private Request request;
+    private UserRequest userRequest;
     private IResourceManagerDriver rm;
 
 
@@ -27,17 +27,17 @@ public class Node {
         return id;
     }
 
-    public Optional<Request> getRequest() {
-        return Optional.ofNullable(request);
+    public Optional<UserRequest> getUserRequest() {
+        return Optional.ofNullable(userRequest);
     }
 
-    public synchronized void handle(@NotNull Request request) throws RemoteException, MalformedURLException, NotBoundException {
-        this.request = request;
+    public synchronized void handle(@NotNull UserRequest userRequest) throws RemoteException, MalformedURLException, NotBoundException {
+        this.userRequest = userRequest;
 
         this.rm.executorService()
                 .schedule(() -> {
                     try {
-                        this.rm.finish(this, request);
+                        this.rm.finish(this, userRequest);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     } catch (MalformedURLException e) {
@@ -46,11 +46,11 @@ public class Node {
                         e.printStackTrace();
                     }
                 },
-                request.getJob().getDuration(), TimeUnit.MILLISECONDS);
+                userRequest.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
     public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
-        this.request = null;
+        this.userRequest = null;
     }
 
     public IResourceManagerDriver getRm() {
