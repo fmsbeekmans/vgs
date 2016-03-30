@@ -9,7 +9,7 @@ import com.linkedin.parseq.promise.SettablePromise;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.user.User;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 

@@ -8,10 +8,9 @@ import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
-import santiagoAndFerdy.vgs.model.BackUpRequest;
-import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.MonitorRequest;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.MonitorRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 

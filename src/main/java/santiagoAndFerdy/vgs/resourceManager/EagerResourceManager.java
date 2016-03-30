@@ -10,9 +10,8 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.model.BackUpRequest;
-import santiagoAndFerdy.vgs.model.MonitorRequest;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.MonitorRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;

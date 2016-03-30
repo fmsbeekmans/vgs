@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;

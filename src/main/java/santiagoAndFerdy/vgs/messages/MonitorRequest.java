@@ -1,25 +1,26 @@
-package santiagoAndFerdy.vgs.model;
+package santiagoAndFerdy.vgs.messages;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
+import santiagoAndFerdy.vgs.model.Job;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 
 import java.io.Serializable;
 
 /**
  * Created by Fydio on 3/30/16.
  */
-public class BackUpRequest implements Serializable {
+public class MonitorRequest implements Serializable {
+    private @NotNull IResourceManagerGridSchedulerClient source;
     private @NotNull
-    IGridSchedulerGridSchedulerClient primary;
-    private @NotNull Job jobToBackUp;
+    Job jobToBackUp;
 
-    public BackUpRequest(IGridSchedulerGridSchedulerClient source, Job j) {
-        this.primary = primary;
+    public MonitorRequest(IResourceManagerGridSchedulerClient source, Job j) {
+        this.source = source;
         this.jobToBackUp = j;
     }
 
-    public IGridSchedulerGridSchedulerClient getPrimary() {
-        return primary;
+    public IResourceManagerGridSchedulerClient getSource() {
+        return source;
     }
 
     public Job getJobToBackUp() {
@@ -31,7 +32,7 @@ public class BackUpRequest implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        BackUpRequest that = (BackUpRequest) o;
+        MonitorRequest that = (MonitorRequest) o;
 
         return jobToBackUp != null ? jobToBackUp.equals(that.jobToBackUp) : that.jobToBackUp == null;
 

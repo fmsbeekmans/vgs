@@ -1,8 +1,8 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
-import santiagoAndFerdy.vgs.model.BackUpRequest;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

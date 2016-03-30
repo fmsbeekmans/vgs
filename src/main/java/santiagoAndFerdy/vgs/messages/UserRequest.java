@@ -1,6 +1,7 @@
-package santiagoAndFerdy.vgs.model;
+package santiagoAndFerdy.vgs.messages;
 
 import com.sun.istack.internal.NotNull;
+import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerUserClient;
 
 import java.io.Serializable;

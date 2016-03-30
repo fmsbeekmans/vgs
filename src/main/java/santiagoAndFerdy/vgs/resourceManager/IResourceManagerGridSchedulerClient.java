@@ -2,7 +2,7 @@ package santiagoAndFerdy.vgs.resourceManager;
 
 import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;

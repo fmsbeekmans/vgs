@@ -2,9 +2,9 @@ package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
-import santiagoAndFerdy.vgs.model.BackUpRequest;
-import santiagoAndFerdy.vgs.model.MonitorRequest;
-import santiagoAndFerdy.vgs.model.UserRequest;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.MonitorRequest;
+import santiagoAndFerdy.vgs.messages.UserRequest;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
