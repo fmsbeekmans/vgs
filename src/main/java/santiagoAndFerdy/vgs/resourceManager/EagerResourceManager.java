@@ -4,9 +4,14 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
+import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
+import santiagoAndFerdy.vgs.model.BackUpRequest;
+import santiagoAndFerdy.vgs.model.MonitorRequest;
 import santiagoAndFerdy.vgs.model.UserRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -15,7 +20,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.*;
 
@@ -25,23 +30,42 @@ import java.util.concurrent.*;
 public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
     private Queue<UserRequest>            jobQueue;
     private Queue<Node>                   idleNodes;
+
+    private RmiServer                     rmiServer;
+    private int nNodes;
     private int                           id;
+    private String url;
+
+    private IRepository<IGridSchedulerResourceManagerClient> gsRepo;
+    private Map<Integer, HeartbeatHandler> gsHeartBeatHandlers;
+
     private long                          load;
     private ScheduledExecutorService      timerScheduler;
     private Engine                        engine;
 
-    private RmiServer                     rmiServer;
 
-    public EagerResourceManager(int id, RmiServer rmiServer) throws RemoteException, MalformedURLException {
+    public EagerResourceManager(int id,
+                                int nNodes,
+                                String url,
+                                RmiServer rmiServer,
+                                IRepository<IGridSchedulerResourceManagerClient> gsRepo) throws RemoteException, MalformedURLException, NotBoundException {
         super();
         this.id = id;
+        this.url = url;
+        this.nNodes = nNodes;
         this.load = 0;
-        this.rmiServer = rmiServer;
-        // node queues synchronisation need the same mutex anyway. Don't use threadsafe queue
+        // node queues synchronisation need the same mutex anyway. Don't use need to use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
-        idleNodes = new CircularFifoQueue<>(n);
+        idleNodes = new CircularFifoQueue<>(nNodes);
 
-        for (int i = 0; i < n; i++)
+        this.rmiServer = rmiServer;
+        this.gsRepo = gsRepo;
+        gsHeartBeatHandlers = new HashedMap<>();
+        Map<Integer, String> gsUrls = gsRepo.urls();
+        for (int gsId : gsRepo.ids())  gsHeartBeatHandlers.put(gsId, new HeartbeatHandler(url, gsUrls.get(gsId), rmiServer));
+
+
+        for (int i = 0; i < nNodes; i++)
             idleNodes.add(new Node(i, this));
 
         // setup async machinery
@@ -57,9 +81,15 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         jobQueue.add(req);
         System.out.println("Received job " + req.getJob().getJobId());
         load += req.getJob().getDuration();
-
+        IGridSchedulerResourceManagerClient backUpTarget = selectResourceManagerForBackUp();
+        MonitorRequest backUpRequest = new MonitorRequest(backUpTarget, req.getJob());
+        Task<Void> backUp = Task.action()
         Task<Void> process = Task.action(() -> processQueue());
         engine.run(process);
+    }
+
+    public IGridSchedulerResourceManagerClient selectResourceManagerForBackUp() {
+        return null;
     }
 
     @Override
@@ -77,17 +107,17 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         load -= req.getJob().getDuration();
     }
 
-    public void startHBHandler() {
-        try {
-            hHandler = new HeartbeatHandler("localhost/hRM", "localhost/hGS", rmiServer);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        } catch (NotBoundException e) {
-            e.printStackTrace();
-        }
-    }
+//    public void startHBHandler() {
+//        try {
+//            hHandler = new HeartbeatHandler("localhost/hRM", "localhost/hGS", rmiServer);
+//        } catch (MalformedURLException e) {
+//            e.printStackTrace();
+//        } catch (RemoteException e) {
+//            e.printStackTrace();
+//        } catch (NotBoundException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
     @Override
     public synchronized void finish(Node node, UserRequest req) throws RemoteException, NotBoundException, MalformedURLException {
