@@ -11,11 +11,11 @@ import java.io.Serializable;
  * The job might be processed on a different cluster than it was originally sent to.
  * To keep the 'original' cluster out of the loop we pass a reference to the user respond to
  */
-public class Request implements Serializable {
+public class UserRequest implements Serializable {
     private Job j;
     private IResourceManagerUserClient user;
 
-    public Request(@NotNull Job j, @NotNull IResourceManagerUserClient endPoint) {
+    public UserRequest(@NotNull Job j, @NotNull IResourceManagerUserClient endPoint) {
         this.j = j;
         this.user = endPoint;
     }
@@ -31,12 +31,12 @@ public class Request implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Request)) return false;
+        if (!(o instanceof UserRequest)) return false;
 
-        Request request = (Request) o;
+        UserRequest userRequest = (UserRequest) o;
 
-        if (j != null ? !j.equals(request.j) : request.j != null) return false;
-        return user != null ? user.equals(request.user) : request.user == null;
+        if (j != null ? !j.equals(userRequest.j) : userRequest.j != null) return false;
+        return user != null ? user.equals(userRequest.user) : userRequest.user == null;
     }
 
     @Override
