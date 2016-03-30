@@ -3,7 +3,10 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.messages.MonitorRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
+import santiagoAndFerdy.vgs.model.Job;
 
+import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
@@ -16,7 +19,13 @@ public interface IGridSchedulerResourceManagerClient extends Remote {
      * @param monitorRequest the request to watch
      * @throws RemoteException
      */
-    Promise<Void> monitorPrimary(MonitorRequest monitorRequest) throws RemoteException;
+    Promise<Void> monitorPrimary(MonitorRequest monitorRequest) throws RemoteException, MalformedURLException, NotBoundException;
+
+    /**
+     * For a Grid Scheduler Driver to communicate that a monitoring request has been accepted.
+     * @param job that is being monitored
+     */
+    void monitoringRequestAccepted(Job job);
 
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere

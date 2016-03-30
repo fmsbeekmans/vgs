@@ -19,17 +19,17 @@ public interface IGridSchedulerDriver extends Remote {
 
     /**
      * UserRequest this grid scheduler to monitor the life-cycle for this job
-     * @param userRequest the userRequest to watch
+     * @param monitorRequest the userRequest to watch
      * @throws RemoteException
      */
-    void monitorPrimary(MonitorRequest userRequest) throws RemoteException;
+    void monitorPrimary(MonitorRequest monitorRequest) throws RemoteException, MalformedURLException, NotBoundException;
 
     /**
      * UserRequest this grid scheduler to also watch a job in case the primary grid scheduler crashes
-     * @param userRequest the userRequest to watch
+     * @param backUpRequest the userRequest to watch
      * @throws RemoteException
      */
-    void monitorBackUp(BackUpRequest userRequest) throws RemoteException;
+    void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException;
 
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere

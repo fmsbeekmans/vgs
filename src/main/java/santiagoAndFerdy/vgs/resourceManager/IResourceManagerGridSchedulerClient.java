@@ -20,6 +20,4 @@ public interface IResourceManagerGridSchedulerClient extends Remote {
      * @throws RemoteException
      */
     Promise<Void> schedule(UserRequest userRequest) throws RemoteException;
-
-    void jobBackUpped(Job job);
 }

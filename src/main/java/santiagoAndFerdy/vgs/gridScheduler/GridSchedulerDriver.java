@@ -2,8 +2,6 @@ package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
-import com.linkedin.parseq.Task;
-import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
@@ -15,6 +13,7 @@ import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
+import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
@@ -33,8 +32,8 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     private HashMap<Integer, HeartbeatHandler> rmHeartbeatHandlers;
     private HashMap<Integer, HeartbeatHandler> gsHeartbeatHandlers;
 
-    private Queue<MonitorRequest> jobsPrimary;
-    private Queue<BackUpRequest> jobsBackUp;
+    private Queue<MonitorRequest> monitoredJobs;
+    private Queue<BackUpRequest> backUpMonitoredJobs;
 
     private RmiServer rmiServer;
     private int id;
@@ -57,8 +56,8 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         this.gsRepository = gsRepository;
         this.gsHeartbeatHandlers = new HashMap<>();
 
-        jobsPrimary = new PriorityQueue<>();
-        jobsBackUp = new PriorityQueue<>();
+        monitoredJobs = new PriorityQueue<>();
+        backUpMonitoredJobs = new PriorityQueue<>();
 
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
@@ -75,20 +74,13 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     }
 
     @Override
-    public synchronized void monitorPrimary(MonitorRequest request) throws RemoteException {
-        jobsPrimary.add(request);
+    public synchronized void monitorPrimary(MonitorRequest request) throws RemoteException, MalformedURLException, NotBoundException {
+        monitoredJobs.add(request);
         IGridSchedulerGridSchedulerClient backUp = selectBackUp();
 
-        // do async
-        engine.run(Task.action(() -> {
-            // first send to back up
-            BackUpRequest backUpRequest = new BackUpRequest(backUp, request.getJobToBackUp());
-            Promise<Void> backUpAck = backUp.monitorBackUp(backUpRequest);
-            backUpAck.addListener(backUpResult -> {
-                    // TODO retry on different gs upon failure
-                    request.getSource().jobBackUpped(request.getJobToBackUp());
-            });
-        }));
+        // ACK
+        IGridSchedulerResourceManagerClient sourceClient = (IGridSchedulerResourceManagerClient) Naming.lookup(request.getSourceClientUrl());
+        sourceClient.monitoringRequestAccepted(request.getJobToMonitor());
     }
 
     public IGridSchedulerGridSchedulerClient selectBackUp() {
