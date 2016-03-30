@@ -23,24 +23,20 @@ import java.util.concurrent.*;
  * Created by Fydio on 3/19/16.
  */
 public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
-    private Queue<UserRequest>                jobQueue;
+    private Queue<UserRequest>            jobQueue;
     private Queue<Node>                   idleNodes;
-    private int                           n;
     private int                           id;
     private long                          load;
-    private HeartbeatHandler              hHandler;
     private ScheduledExecutorService      timerScheduler;
     private Engine                        engine;
-    private HashMap<String, Task<Object>> status;
+
     private RmiServer                     rmiServer;
 
-    public EagerResourceManager(int id, int n, RmiServer rmiServer) throws RemoteException, MalformedURLException {
+    public EagerResourceManager(int id, RmiServer rmiServer) throws RemoteException, MalformedURLException {
         super();
         this.id = id;
-        this.n = n;
         this.load = 0;
         this.rmiServer = rmiServer;
-        status = new HashMap<String, Task<Object>>();
         // node queues synchronisation need the same mutex anyway. Don't use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
         idleNodes = new CircularFifoQueue<>(n);
@@ -91,9 +87,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         } catch (NotBoundException e) {
             e.printStackTrace();
         }
-//        while(true){
-//            System.out.println(hHandler.getS());
-//        }
     }
 
     @Override
@@ -122,20 +115,4 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     public ScheduledExecutorService executorService() throws RemoteException {
         return timerScheduler;
     }
-
-    // @Override
-    // public void sendHeartbeat() throws RemoteException, MalformedURLException, NotBoundException, InterruptedException {
-    // System.out.println("ahsdjashudsha");
-    // String url = h.getSenderURL();
-    // Task<Void> heartbeat = Task.action(() -> {
-    // System.out.println("A");
-    // }).withTimeout(5, TimeUnit.SECONDS);
-    // // status.put(url, heartbeat);
-    // heartbeat.onFailure(result -> {
-    // System.out.println("TIME OUT");
-    // });
-    // engine.run(heartbeat);
-    // heartbeat.await();
-    // }
-
 }
