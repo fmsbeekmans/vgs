@@ -4,7 +4,10 @@ import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.discovery.Entity;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
+import santiagoAndFerdy.vgs.model.Job;
 
+import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
@@ -14,10 +17,12 @@ import java.rmi.RemoteException;
 public interface IGridSchedulerGridSchedulerClient extends Entity {
     /**
      * UserRequest this grid scheduler to also watch a job in case the primary grid scheduler crashes
-     * @param backUpRequest the userRequest to watch
+     * @param job to monitor
      * @throws RemoteException
      */
-    Promise<Void> monitorBackUp(BackUpRequest backUpRequest) throws RemoteException;
+    Promise<Void> monitorBackUp(Job job) throws RemoteException, MalformedURLException, NotBoundException;
+
+    void monitorBackUpAccepted(Job job) throws RemoteException;
 
     /**
      * Become the primary grid scheduler for this job

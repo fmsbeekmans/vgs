@@ -6,7 +6,7 @@ import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
-import santiagoAndFerdy.vgs.messages.MonitorRequest;
+import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -16,7 +16,6 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.HashMap;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -29,7 +28,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     private IRepository<IResourceManagerGridSchedulerClient> rmRepository;
     private IRepository<IGridSchedulerGridSchedulerClient> gsRepository;
 
-    private Queue<MonitorRequest> monitoredJobs;
+    private Queue<MonitoringRequest> monitoredJobs;
     private Queue<BackUpRequest> backUpMonitoredJobs;
 
     private RmiServer rmiServer;
@@ -69,7 +68,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     }
 
     @Override
-    public synchronized void monitorPrimary(MonitorRequest request) throws RemoteException, MalformedURLException, NotBoundException {
+    public synchronized void monitorPrimary(MonitoringRequest request) throws RemoteException, MalformedURLException, NotBoundException {
         System.out.println("Received job " + request.getJobToMonitor().getJobId() + " to monitor ");
         monitoredJobs.add(request);
         IGridSchedulerGridSchedulerClient backUp = selectBackUp();
@@ -104,5 +103,15 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         rmiServer.register(url, this);
 
         //TODO + broadcast wakeup!
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getUrl() {
+        return url;
     }
 }

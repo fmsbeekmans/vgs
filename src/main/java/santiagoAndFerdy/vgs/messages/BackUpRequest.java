@@ -11,16 +11,16 @@ import java.io.Serializable;
  * Created by Fydio on 3/30/16.
  */
 public class BackUpRequest implements Serializable {
-    private IGridSchedulerResourceManagerClient source;
+    private String sourceUrl;
     private @NotNull Job jobToBackUp;
 
-    public BackUpRequest(IGridSchedulerResourceManagerClient source, Job jobToBackUp) {
-        this.source = source;
+    public BackUpRequest(String sourceUrl, Job jobToBackUp) {
+        this.sourceUrl = sourceUrl;
         this.jobToBackUp = jobToBackUp;
     }
 
-    public IGridSchedulerResourceManagerClient getSource() {
-        return source;
+    public String getSourceUrl() {
+        return sourceUrl;
     }
 
     public Job getJobToBackUp() {
@@ -34,14 +34,14 @@ public class BackUpRequest implements Serializable {
 
         BackUpRequest that = (BackUpRequest) o;
 
-        if (source != null ? !source.equals(that.source) : that.source != null) return false;
+        if (sourceUrl != null ? !sourceUrl.equals(that.sourceUrl) : that.sourceUrl != null) return false;
         return jobToBackUp != null ? jobToBackUp.equals(that.jobToBackUp) : that.jobToBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = source != null ? source.hashCode() : 0;
+        int result = sourceUrl != null ? sourceUrl.hashCode() : 0;
         result = 31 * result + (jobToBackUp != null ? jobToBackUp.hashCode() : 0);
         return result;
     }

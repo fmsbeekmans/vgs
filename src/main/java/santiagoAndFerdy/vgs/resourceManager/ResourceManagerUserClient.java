@@ -29,9 +29,11 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class ResourceManagerUserClient extends UnicastRemoteObject implements IResourceManagerUserClient {
     private User user;
+
     private RmiServer rmiServer;
-    private String url;
     private int id;
+    private String url;
+
     private IRepository<IResourceManagerDriver> driverRepository;
     private IResourceManagerDriver driver;
 
@@ -99,6 +101,11 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
         engine.run(queue);
 
         return completionPromise;
+    }
+
+    @Override
+    public int getId() {
+        return id;
     }
 
     @Override

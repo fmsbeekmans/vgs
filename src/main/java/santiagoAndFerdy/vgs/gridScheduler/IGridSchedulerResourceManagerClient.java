@@ -2,13 +2,11 @@ package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
 import santiagoAndFerdy.vgs.discovery.Entity;
-import santiagoAndFerdy.vgs.messages.MonitorRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**

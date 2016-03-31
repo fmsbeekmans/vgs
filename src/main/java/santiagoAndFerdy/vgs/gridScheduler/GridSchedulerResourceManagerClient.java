@@ -3,7 +3,7 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
-import santiagoAndFerdy.vgs.messages.MonitorRequest;
+import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -27,6 +27,8 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
     private Map<Job, SettablePromise<Void>> pendingBackupRequests;
 
     public GridSchedulerResourceManagerClient(RmiServer rmiServer, int id, String url, String driverUrl) throws RemoteException {
+        super();
+
         this.rmiServer = rmiServer;
         this.id = id;
         this.url = url;
@@ -37,12 +39,12 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
 
     @Override
     public Promise<Void> monitorPrimary(Job jobToMonitor) throws RemoteException, MalformedURLException, NotBoundException {
-        MonitorRequest monitorRequest = new MonitorRequest(url, jobToMonitor);
+        MonitoringRequest monitoringRequest = new MonitoringRequest(url, jobToMonitor);
         SettablePromise<Void> monitorPromise = Promises.settable();
-        pendingBackupRequests.put(monitorRequest.getJobToMonitor(), monitorPromise);
+        pendingBackupRequests.put(monitoringRequest.getJobToMonitor(), monitorPromise);
 
         IGridSchedulerDriver driver = (IGridSchedulerDriver) Naming.lookup(driverUrl);
-        driver.monitorPrimary(monitorRequest);
+        driver.monitorPrimary(monitoringRequest);
 
         return monitorPromise;
     }
@@ -61,5 +63,15 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
     @Override
     public Promise<Void> releaseResources(int requestId) {
         return null;
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getUrl() {
+        return url;
     }
 }

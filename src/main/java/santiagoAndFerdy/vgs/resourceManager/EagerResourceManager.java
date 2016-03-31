@@ -5,12 +5,9 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
-import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.messages.MonitorRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -21,7 +18,6 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.*;
 
@@ -149,6 +145,16 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
             Task<Void> run = Task.action(() -> allocatedNode.handle(req));
             engine.run(run);
         }
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getUrl() {
+        return url;
     }
 
     @Override
