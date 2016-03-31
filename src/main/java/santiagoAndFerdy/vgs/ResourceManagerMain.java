@@ -1,49 +1,41 @@
 package santiagoAndFerdy.vgs;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatSender;
-import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.rmi.RmiServer;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+
+import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repository;
+import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/18/16.
  */
 public class ResourceManagerMain {
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
-        RmiServer server = new RmiServer(1099);
-        URL url = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
-        Path rmRepositoryFilePath = Paths.get(url.toURI());
-        IRepository<IResourceManagerDriver> repo = Repository.fromFile(rmRepositoryFilePath);
-        Map<Integer, String> rmUrls = repo.urls();
-        HashMap<Integer, EagerResourceManager> rmConnections = new HashMap<Integer, EagerResourceManager>();
-        URL urlHB = ResourceManagerMain.class.getClassLoader().getResource("gs/gss-hb");
-        Path rmRepositoryFilePathHB = Paths.get(urlHB.toURI());
-        IRepository<IHeartbeatSender> repoHB = Repository.fromFile(rmRepositoryFilePathHB);
+        if (args.length < 3) {
+            System.err.println("Please enter the URL of this ResourceManager, the id and the location of GS registry");
+            return;
+        }
 
-        for (int id : rmUrls.keySet()) {
-            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, rmUrls.get(id), repoHB);
-            server.register(rmUrls.get(id), rmImpl);
-            rmConnections.put(id, rmImpl);
-        }
-        
-        Thread.sleep(5000);
-        rmConnections.get(0).shutdown();
-        
-       //for(int i : rmUrls.keySet()){
-            //server.lookUp("");
-        //}
-        while (true) {
-            
-        }
+        // Probably will have to pass the number of nodes as a parameter as well...
+        String url = args[0];
+        int id = Integer.valueOf(args[1]);
+        String registryLocation = args[2];
+
+        // GS Repository for connections
+        // Hardcoded because I am getting java.nio.file.FileSystemNotFoundException: Provider "rsrc" not installed, in the future it will be a path to
+        // a S3 bucket in Amazon
+        Path gsRepositoryFilePath = Paths.get(registryLocation);
+        IRepository<IHeartbeatReceiver> repoGS = Repository.fromFile(gsRepositoryFilePath);
+
+        RmiServer server = new RmiServer(1099);
+        EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url, repoGS);
+        server.register(url, rmImpl);
+
     }
 }

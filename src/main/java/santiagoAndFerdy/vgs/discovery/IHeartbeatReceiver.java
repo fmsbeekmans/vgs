@@ -7,6 +7,6 @@ import java.rmi.RemoteException;
 
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 
-public interface IHeartbeatSender extends Remote {
+public interface IHeartbeatReceiver extends Remote {
     void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException;
 }

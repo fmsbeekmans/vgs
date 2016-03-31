@@ -35,19 +35,4 @@ public class RmiServer {
             e.printStackTrace();
         }
     }
-    public void lookUp(String name){
-        
-        try {
-            String [] list = Naming.list(name);
-            for(int i = 0; i< list.length; i++){
-                System.out.println(list[i]);
-            }
-        } catch (RemoteException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (MalformedURLException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
 }

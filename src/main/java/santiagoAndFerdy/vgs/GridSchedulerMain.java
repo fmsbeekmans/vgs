@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.NotBoundException;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatSender;
+import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
@@ -18,20 +18,29 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
  */
 public class GridSchedulerMain {
     public static void main(String[] args) throws InterruptedException, NotBoundException, URISyntaxException, IOException {
+        if (args.length < 2) {
+            System.err.println("Please enter the URL of this GridScheduler and the location of RM registry");
+            return;
+        }
+        String url = args[0];
+        String registryLocation = args[1];
+
+        // RM Repository for connections
+
+        // Hardcoded because I am getting java.nio.file.FileSystemNotFoundException: Provider "rsrc" not installed, in the future it will be a path to
+        // a S3 bucket in Amazon
+        Path rmRepositoryFilePath = Paths.get(registryLocation);
+        System.out.println(rmRepositoryFilePath);
+        IRepository<IHeartbeatReceiver> repoRM = Repository.fromFile(rmRepositoryFilePath);
+
         RmiServer server = new RmiServer(1099);
-        URL url = GridSchedulerMain.class.getClassLoader().getResource("rm/rms-hb");
-        Path rmRepositoryFilePath = Paths.get(url.toURI());
-        IRepository<IHeartbeatSender> repo = Repository.fromFile(rmRepositoryFilePath);
-        GridScheduler gs = new GridScheduler(server, repo, "//localhost/gs-d0");
-        server.register("//localhost/gs-d0", gs);
-        //Thread.sleep(5000);
-        //server.unRegister("//localhost/gs-d0-hb");
-        //server.unRegister("//localhost/gs-d0");
+
+        GridScheduler gs = new GridScheduler(server, repoRM, url);
+        server.register(url, gs);
         while(true){
             Thread.sleep(2000);
             gs.checkConnections();
-            System.out.println("");
-            
         }
+
     }
 }

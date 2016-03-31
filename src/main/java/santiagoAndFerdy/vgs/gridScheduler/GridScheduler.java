@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
@@ -16,83 +17,62 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler2;
-import santiagoAndFerdy.vgs.discovery.IHeartbeatSender;
+import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
+import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
-public class GridScheduler extends UnicastRemoteObject implements Runnable {
-    private static final long             serialVersionUID = -5694724140595312739L;
-    private Queue<Request>                jobQueue;
-    private Queue<EagerResourceManager>   idleRM;
-    private HeartbeatHandler2             hHandler;
-    private ScheduledExecutorService      timerScheduler;
-    private Engine                        engine;
-    private HashMap<String, Task<Object>> status;
-    private String                        myURLForHB;
-    private String                        myURL;
-    private IRepository<IHeartbeatSender> repoForHB;
-    private RmiServer                     rmiServer;
-    private boolean                       running;
-    private Thread                        pollingThread;
+public class GridScheduler extends UnicastRemoteObject implements IHeartbeatReceiver{
+    private static final long               serialVersionUID = -5694724140595312739L;
+    private Queue<Request>                  jobQueue;
+    private Queue<EagerResourceManager>     idleRM;
+    private HeartbeatHandler                hHandler;
+    private ScheduledExecutorService        timerScheduler;
+    private Engine                          engine;
+    private HashMap<String, Task<Object>>   status;
+    private RmiServer                       rmiServer;
+    private String                          myURL;
+    private IRepository<IHeartbeatReceiver> repo;
 
-    public GridScheduler(RmiServer rmiServer, IRepository<IHeartbeatSender> repo, String url) throws RemoteException, MalformedURLException {
+    public GridScheduler(RmiServer rmiServer, IRepository<IHeartbeatReceiver> repo, String url) throws RemoteException, MalformedURLException {
         jobQueue = new LinkedBlockingQueue<>();
         idleRM = new CircularFifoQueue<>();
-        myURLForHB = url + "-hb";
         myURL = url;
         status = new HashMap<String, Task<Object>>();
+        this.repo = repo;
         this.rmiServer = rmiServer;
-        repoForHB = repo;
-
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
-        hHandler = new HeartbeatHandler2(myURLForHB, repoForHB, rmiServer);
-        pollingThread = new Thread(this);
-        running = true;
-        pollingThread.start();
+        hHandler = new HeartbeatHandler(repo);
+
     }
 
     public void checkConnections() {
-        hHandler.checkLife();
+        hHandler.getStatus();
     }
 
     public void addRM(EagerResourceManager rm) {
         idleRM.add(rm);
     }
 
-    public void startHBHandler() {
-        if(hHandler != null){
-            hHandler.connectHandler();
+    public void shutdown() {
+        try {
+            rmiServer.unRegister(myURL);
+            UnicastRemoteObject.unexportObject(this, true);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     @Override
-    public void run() {
-        while (running) {
-//logic
-        }
-
-    }
-
-    public void shutdown() {
-        try {
-            rmiServer.unRegister(myURLForHB);
-            rmiServer.unRegister(myURL);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        running = false;
-        try {
-            pollingThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+        // TODO Auto-generated method stub
+        
     }
 }

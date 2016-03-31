@@ -17,37 +17,49 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
-import com.sun.istack.internal.NotNull;
 
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler2;
-import santiagoAndFerdy.vgs.discovery.IHeartbeatSender;
+import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
+import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, Runnable {
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IHeartbeatReceiver {
 
-    private static final long             serialVersionUID = -4089353922882117112L;
-    private Thread                        pollingThread;
-    private Queue<Request>                jobQueue;
-    private Queue<Node>                   idleNodes;
-    private int                           n;
-    private int                           id;
-    private long                          load;
-    private HeartbeatHandler2             hHandler;
-    private ScheduledExecutorService      timerScheduler;
-    private Engine                        engine;
-    private HashMap<String, Task<Object>> status;
-    private RmiServer                     rmiServer;
-    private String                        myURLForHB;
-    private String                        myURL;
-    private IRepository<IHeartbeatSender> repoForHB;
-    private boolean                       running;
+    private static final long               serialVersionUID = -4089353922882117112L;
+    private Queue<Request>                  jobQueue;
+    private Queue<Node>                     idleNodes;
+    private int                             n;
+    private int                             id;
+    private long                            load;
+    private HeartbeatHandler                hHandler;
+    private ScheduledExecutorService        timerScheduler;
+    private Engine                          engine;
+    private HashMap<String, Task<Object>>   status;
+    private RmiServer                       rmiServer;
+    private String                          myURL;
 
-    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url, IRepository<IHeartbeatSender> repo)
+    /**
+     * Creates a RM
+     * 
+     * @param id
+     *            - id of this RM
+     * @param n
+     *            - number of nodes it has
+     * @param rmiServer
+     *            - server to disconnect this RM later on
+     * @param url
+     *            - the RM url
+     * @param repo
+     *            - repository with the connections to GS it should have
+     * @throws RemoteException
+     * @throws MalformedURLException
+     */
+    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url, IRepository<IHeartbeatReceiver> repo)
             throws RemoteException, MalformedURLException {
         super();
         this.id = id;
@@ -59,8 +71,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         jobQueue = new LinkedBlockingQueue<>();
         idleNodes = new CircularFifoQueue<>(n);
         myURL = url;
-        myURLForHB = url + "-hb";
-        repoForHB = repo;
         for (int i = 0; i < n; i++)
             idleNodes.add(new Node(i, this));
 
@@ -69,23 +79,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
-        hHandler = new HeartbeatHandler2(myURLForHB, repoForHB, rmiServer);
-        // // On shutdown unregister this RM and his HB handler.
-        // Runtime.getRuntime().addShutdownHook(new Thread() {
-        // @Override
-        // public void run() {
-        // try {
-        // rmiServer.unRegister(myURLForHB);
-        // rmiServer.unRegister(myURL);
-        // } catch (Exception e) {
-        // e.printStackTrace();
-        // }
-        // }
-        // });
-
-        pollingThread = new Thread(this);
-        running = true;
-        pollingThread.start();
+        hHandler = new HeartbeatHandler(repo);
 
     }
 
@@ -114,10 +108,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         load -= req.getJob().getDuration();
     }
 
-    public void startHBHandler() {
-       hHandler.connectHandler();
-    }
-
     @Override
     public synchronized void finish(Node node, Request req) throws RemoteException, NotBoundException, MalformedURLException {
         respond(req);
@@ -127,7 +117,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         engine.run(process);
     }
 
-    // should be ran after any change in node state or job queue
+    // should be run after any change in node state or job queue
     protected synchronized void processQueue() throws RemoteException, MalformedURLException, NotBoundException {
         while (!jobQueue.isEmpty() && !idleNodes.isEmpty()) {
             Node allocatedNode = idleNodes.poll();
@@ -140,38 +130,30 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    @NotNull
     public ScheduledExecutorService executorService() throws RemoteException {
         return timerScheduler;
     }
-
+    /**
+     * public method to check the connections the handler is monitoring
+     */
     public void checkConnections() {
         hHandler.checkLife();
     }
-
+    /**
+     * Shutdown method to kill this RM
+     */
     public void shutdown() {
-
         try {
-            rmiServer.unRegister(myURLForHB);
             rmiServer.unRegister(myURL);
+            UnicastRemoteObject.unexportObject(this, true);
+            System.out.println("Done");
         } catch (Exception e) {
             e.printStackTrace();
         }
-        running = false;
-//        try {
-//            pollingThread.join();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-        //System.out.println("Died");
     }
-
+    /**
+     * Method to check if this RM is alive. Nothing is needed 
+     */
     @Override
-    public void run() {
-        // Here is where the logic of the component should be
-        while (running) {
-            //do something
-        }
-
-    }
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {}
 }
