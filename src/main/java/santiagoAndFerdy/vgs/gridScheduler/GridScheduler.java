@@ -21,11 +21,12 @@ import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
+import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
-public class GridScheduler extends UnicastRemoteObject implements IHeartbeatReceiver{
+public class GridScheduler extends UnicastRemoteObject implements IHeartbeatReceiver, IRemoteShutdown {
     private static final long               serialVersionUID = -5694724140595312739L;
     private Queue<Request>                  jobQueue;
     private Queue<EagerResourceManager>     idleRM;
@@ -61,7 +62,15 @@ public class GridScheduler extends UnicastRemoteObject implements IHeartbeatRece
         idleRM.add(rm);
     }
 
-    public void shutdown() {
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {}
+
+    /**
+     * This method is called by the Simulation Launcher to kill the node. However it is also needed to kill the process, so we will have to implement
+     * a mechanisim to kill all the nodes in a clean way, probably with Threads
+     */
+    @Override
+    public void shutDown() {
         try {
             rmiServer.unRegister(myURL);
             UnicastRemoteObject.unexportObject(this, true);
@@ -70,9 +79,4 @@ public class GridScheduler extends UnicastRemoteObject implements IHeartbeatRece
         }
     }
 
-    @Override
-    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
-        // TODO Auto-generated method stub
-        
-    }
 }

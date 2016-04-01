@@ -22,26 +22,27 @@ import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
+import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.model.Request;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IHeartbeatReceiver {
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IHeartbeatReceiver, IRemoteShutdown {
 
-    private static final long               serialVersionUID = -4089353922882117112L;
-    private Queue<Request>                  jobQueue;
-    private Queue<Node>                     idleNodes;
-    private int                             n;
-    private int                             id;
-    private long                            load;
-    private HeartbeatHandler                hHandler;
-    private ScheduledExecutorService        timerScheduler;
-    private Engine                          engine;
-    private HashMap<String, Task<Object>>   status;
-    private RmiServer                       rmiServer;
-    private String                          myURL;
+    private static final long             serialVersionUID = -4089353922882117112L;
+    private Queue<Request>                jobQueue;
+    private Queue<Node>                   idleNodes;
+    private int                           n;
+    private int                           id;
+    private long                          load;
+    private HeartbeatHandler              hHandler;
+    private ScheduledExecutorService      timerScheduler;
+    private Engine                        engine;
+    private HashMap<String, Task<Object>> status;
+    private RmiServer                     rmiServer;
+    private String                        myURL;
 
     /**
      * Creates a RM
@@ -73,14 +74,12 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         myURL = url;
         for (int i = 0; i < n; i++)
             idleNodes.add(new Node(i, this));
-
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
         hHandler = new HeartbeatHandler(repo);
-
     }
 
     @Override
@@ -133,12 +132,14 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     public ScheduledExecutorService executorService() throws RemoteException {
         return timerScheduler;
     }
+
     /**
      * public method to check the connections the handler is monitoring
      */
     public void checkConnections() {
         hHandler.checkLife();
     }
+
     /**
      * Shutdown method to kill this RM
      */
@@ -151,9 +152,22 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void shutDown() {
+        try {
+            rmiServer.unRegister(myURL);
+            UnicastRemoteObject.unexportObject(this, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     /**
-     * Method to check if this RM is alive. Nothing is needed 
+     * Method to check if this RM is alive. Nothing is needed
      */
     @Override
     public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {}
+
 }

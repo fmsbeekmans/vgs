@@ -17,7 +17,6 @@ import santiagoAndFerdy.vgs.messages.Heartbeat;
 
 public class HeartbeatHandler {
 
-    private String                   originURL;
     private HashMap<Integer, Status> status;
     private Map<Integer, String>     urls;
     private Engine                   engine; //dunno if we need the Engine here actually
@@ -48,13 +47,15 @@ public class HeartbeatHandler {
     public void checkLife() {
         timerScheduler.scheduleAtFixedRate(() -> {
             for (int id : urls.keySet()) {
-                Heartbeat h = new Heartbeat(originURL, urls.get(id));
+                Heartbeat h = new Heartbeat(urls.get(id));
                 try {
                     IHeartbeatReceiver driver;
                     driver = (IHeartbeatReceiver) Naming.lookup(urls.get(id));
                     driver.iAmAlive(h);
                     status.put(id, Status.ONLINE);
                 } catch (Exception e) {
+//                    if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
+//                        e.printStackTrace();
                     status.put(id, Status.OFFLINE);
                 }
             }
