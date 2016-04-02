@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.promise.Promise;
-import santiagoAndFerdy.vgs.discovery.IAdressable;
+import santiagoAndFerdy.vgs.discovery.IAddressable;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
 
@@ -12,9 +12,9 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/30/16.
  */
-public interface IGridSchedulerGridSchedulerClient extends IAdressable {
+public interface IGridSchedulerGridSchedulerClient extends IAddressable {
     /**
-     * UserRequest this grid scheduler to also watch a job in case the primary grid scheduler crashes
+     * Request this grid scheduler to also watch a job in case the primary grid scheduler crashes
      * @param job to monitor
      * @throws RemoteException
      */

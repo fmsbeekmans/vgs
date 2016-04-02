@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.rmi.NotBoundException;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
@@ -28,7 +29,7 @@ public class ResourceManagerMain {
     private static AWSCredentials credentials;
     private static AmazonS3       s3Client;
     
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
         if (args.length < 4) {
             System.err.println("Please enter the URL of this ResourceManager, the id, the bucket name and the GS file name");
             return;

@@ -35,28 +35,28 @@ import com.linkedin.parseq.Task;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
+import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
-    private static final long             serialVersionUID = -4089353922882117112L;
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IRemoteShutdown {
+    private static final long                                 serialVersionUID = -4089353922882117112L;
 
-    private Queue<UserRequest>            jobQueue;
-    private Queue<Node>                   idleNodes;
+    private Queue<UserRequest>                                jobQueue;
+    private Queue<Node>                                       idleNodes;
 
-    private RmiServer                     rmiServer;
-    private int nNodes;
-    private int                           id;
-    private String url;
+    private RmiServer                                         rmiServer;
+    private int                                               nNodes;
+    private int                                               id;
+    private String                                            url;
 
-    private IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository;
+    private IRepository<IGridSchedulerResourceManagerClient>  gridSchedulerRepository;
     private Map<Integer, IGridSchedulerResourceManagerClient> gridSchedulerClients;
-    private HeartbeatHandler heartbeatHandler;
-
-    private long                          load;
-    private ScheduledExecutorService      timerScheduler;
-    private Engine                        engine;
+    private HeartbeatHandler                                  hHandler;
+    private long                                              load;
+    private ScheduledExecutorService                          timerScheduler;
+    private Engine                                            engine;
 
     /**
      * Creates a RM
@@ -74,16 +74,13 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
      * @throws RemoteException
      * @throws MalformedURLException
      */
-    public EagerResourceManager(int id,
-                                int n,
-                                RmiServer rmiServer,
-                                String url,
-                                IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
-            throws RemoteException, MalformedURLException, NotBoundException {
+    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url,
+            IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
+                    throws RemoteException, MalformedURLException, NotBoundException {
         super();
         this.id = id;
         this.url = url;
-        this.nNodes = nNodes;
+        this.nNodes = n;
         this.load = 0;
         // node queues synchronisation need the same mutex anyway. Don't use need to use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
@@ -93,15 +90,14 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         this.gridSchedulerRepository = gridSchedulerRepository;
         this.gridSchedulerClients = new HashMap<>();
         for (int gsId : gridSchedulerRepository.ids()) {
-            IGridSchedulerResourceManagerClient client = new GridSchedulerResourceManagerClient(
-                    rmiServer,
-                    gsId,
-                    "",
+            IGridSchedulerResourceManagerClient client = new GridSchedulerResourceManagerClient(rmiServer, gsId, gridSchedulerRepository.getUrl(gsId),
                     gridSchedulerRepository.getUrl(gsId));
-            //TODO add client repo
+            // TODO add client repo
             gridSchedulerClients.put(gsId, client);
         }
-
+        // I think that the RM should ping the GS not the client that he has... I think we could have the functionality of the client here inside the
+        // RM.
+        hHandler = new HeartbeatHandler(gridSchedulerRepository, id, false);
         for (int i = 0; i < nNodes; i++)
             idleNodes.add(new Node(i, this));
         // setup async machinery
@@ -109,7 +105,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
-        heartbeatHandler = new HeartbeatHandler(gridSchedulerRepository);
     }
 
     @Override
@@ -196,7 +191,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
      * public method to check the connections the handler is monitoring
      */
     public void checkConnections() {
-        heartbeatHandler.checkLife();
+        hHandler.getStatus();
     }
 
     /**
@@ -217,5 +212,19 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
      */
     @Override
     public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {}
+
+    /**
+     * This method is called by the Simulation Launcher to kill the node. However it is also needed to kill the process, so we will have to implement
+     * a mechanisim to kill all the nodes in a clean way, probably with Threads
+     */
+    @Override
+    public void shutDown() {
+        try {
+            rmiServer.unRegister(url);
+            UnicastRemoteObject.unexportObject(this, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 }

@@ -6,6 +6,7 @@ import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
+import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
@@ -23,29 +24,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSchedulerDriver {
-    private static final long             serialVersionUID = -5694724140595312739L;
+public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSchedulerDriver, IRemoteShutdown {
+    private static final long                                serialVersionUID = -5694724140595312739L;
 
     private IRepository<IResourceManagerGridSchedulerClient> rmRepository;
-    private IRepository<IGridSchedulerGridSchedulerClient> gsRepository;
+    private IRepository<IGridSchedulerGridSchedulerClient>   gsRepository;
 
-    private Queue<MonitoringRequest> monitoredJobs;
-    private Queue<BackUpRequest> backUpMonitoredJobs;
+    private Queue<MonitoringRequest>                         monitoredJobs;
+    private Queue<BackUpRequest>                             backUpMonitoredJobs;
 
-    private RmiServer rmiServer;
-    private int id;
-    private String url;
+    private RmiServer                                        rmiServer;
+    private int                                              id;
+    private String                                           url;
 
-    private HeartbeatHandler heartbeatHandler;
+    private HeartbeatHandler                                 heartbeatHandler;
+    private GridSchedulerGridSchedulerClient                 gsClient;
+    private ScheduledExecutorService                         timerScheduler;
+    private Engine                                           engine;
 
-    private ScheduledExecutorService      timerScheduler;
-    private Engine                        engine;
-    
-    public GridSchedulerDriver(RmiServer rmiServer,
-                               IRepository<IResourceManagerGridSchedulerClient> rmRepository,
-                               IRepository<IGridSchedulerGridSchedulerClient> gsRepository,
-                               String url,
-                               int id) throws RemoteException, MalformedURLException {
+    public GridSchedulerDriver(RmiServer rmiServer, IRepository<IResourceManagerGridSchedulerClient> rmRepository,
+            IRepository<IGridSchedulerGridSchedulerClient> gsRepository, String url, int id) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
         this.id = id;
@@ -61,14 +59,9 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
-
-        heartbeatHandler = new HeartbeatHandler(rmRepository);
+        heartbeatHandler = new HeartbeatHandler(rmRepository, id, false);
+        gsClient = new GridSchedulerGridSchedulerClient(rmiServer, id, url, url, gsRepository); // I don't think we need a GS-GS client...
         wakeUp();
-    }
-
-    @Override
-    public void ping(@NotNull Heartbeat h) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException {
-        //TODO ???
     }
 
     @Override
@@ -91,7 +84,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     @Override
     public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException {
         backUpMonitoredJobs.add(backUpRequest);
-        IGridSchedulerGridSchedulerClient client = (IGridSchedulerGridSchedulerClient)Naming.lookup(backUpRequest.getSourceUrl());
+        IGridSchedulerGridSchedulerClient client = (IGridSchedulerGridSchedulerClient) Naming.lookup(backUpRequest.getSourceUrl());
         client.monitorBackUpAccepted(backUpRequest.getJobToBackUp());
     }
 
@@ -108,7 +101,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     public void wakeUp() throws MalformedURLException, RemoteException {
         rmiServer.register(url, this);
 
-        //TODO + broadcast wakeup!
+        // TODO + broadcast wakeup!
     }
 
     public void checkConnections() {
@@ -128,5 +121,22 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     @Override
     public String getUrl() {
         return url;
+    }
+
+    /**
+     * This method is called by the Simulation Launcher to kill the node. However it is also needed to kill the process, so we will have to implement
+     * a mechanisim to kill all the nodes in a clean way, probably with Threads
+     */
+    @Override
+    public void shutDown() {
+        try {
+            rmiServer.unRegister(url);
+            UnicastRemoteObject.unexportObject(this, true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public GridSchedulerGridSchedulerClient getClient(){
+        return this.gsClient;
     }
 }

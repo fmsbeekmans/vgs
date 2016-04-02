@@ -5,6 +5,8 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+
+import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
@@ -27,25 +29,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implements IGridSchedulerGridSchedulerClient {
-    private RmiServer rmiServer;
-    private int id;
-    private String url;
-    private String driverUrl;
 
+    private static final long serialVersionUID = -3646696281731009836L;
+    private RmiServer                       rmiServer;
+    private int                             id;
+    private String                          url;
+    private String                          driverUrl;
+    private HeartbeatHandler                hHandler;
     private Map<Job, SettablePromise<Void>> pendingMonitoringRequests;
+    IRepository<IGridSchedulerGridSchedulerClient> gsRepository;
+    private Engine                          engine;
 
-    private Engine engine;
-
-    public GridSchedulerGridSchedulerClient(RmiServer rmiServer,
-                                            int id,
-                                            String url,
-                                            String driverUrl)
-            throws RemoteException {
+    public GridSchedulerGridSchedulerClient(RmiServer rmiServer, int id, String url, String driverUrl, IRepository<IGridSchedulerGridSchedulerClient> gsRepository) throws RemoteException, MalformedURLException {
 
         this.rmiServer = rmiServer;
         this.id = id;
         this.url = url;
         this.driverUrl = driverUrl;
+        this.gsRepository = gsRepository;
 
         pendingMonitoringRequests = new HashMap<>();
 
@@ -54,6 +55,7 @@ public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implem
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
+        hHandler = new HeartbeatHandler(gsRepository, id, true);
     }
 
     @Override
@@ -70,8 +72,7 @@ public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implem
 
     @Override
     public void monitorBackUpAccepted(Job job) throws RemoteException {
-        Optional.ofNullable(pendingMonitoringRequests.remove(job))
-                .ifPresent(p -> p.done(null));
+        Optional.ofNullable(pendingMonitoringRequests.remove(job)).ifPresent(p -> p.done(null));
     }
 
     @Override
@@ -97,5 +98,8 @@ public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implem
     @Override
     public String getUrl() throws RemoteException {
         return null;
+    }
+    public void checkConnections() {
+        hHandler.getStatus();
     }
 }

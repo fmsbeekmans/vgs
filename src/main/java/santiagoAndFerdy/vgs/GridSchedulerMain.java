@@ -2,17 +2,8 @@ package santiagoAndFerdy.vgs;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -21,6 +12,11 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repository;
+import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
@@ -31,8 +27,8 @@ public class GridSchedulerMain {
     private static AmazonS3       s3Client;
 
     public static void main(String[] args) throws InterruptedException, NotBoundException, URISyntaxException, IOException {
-        if (args.length < 3) {
-            System.err.println("Please enter the URL of this GridScheduler, the bucket name and the RM file name");
+        if (args.length < 5) {
+            System.err.println("Please enter the URL of this GridScheduler, the bucket name, the RM file name and the GS file name");
             return;
         }
 
@@ -57,14 +53,13 @@ public class GridSchedulerMain {
         IRepository<IGridSchedulerGridSchedulerClient> gridSchedulerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
         RmiServer server = new RmiServer(1099);
 
-        GridSchedulerDriver gs = new GridSchedulerDriver(
-                server,
-                resourceManagerClientRepository,
-                gridSchedulerClientRepository,
-                url,
-                id);
+        GridSchedulerDriver gs = new GridSchedulerDriver(server, resourceManagerClientRepository, gridSchedulerClientRepository, url, id);
         server.register(url, gs);
-
-        //TODO check connections?
+        while(true){
+            Thread.sleep(2000);
+            gs.checkConnections();
+            gs.getClient().checkConnections();
+            System.out.println("");
+        }
     }
 }

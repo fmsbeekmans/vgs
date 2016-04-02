@@ -17,24 +17,25 @@ import java.util.stream.IntStream;
  * Created by Fydio on 3/24/16.
  */
 public class Repository<T extends Remote> implements IRepository<T> {
-    protected String[] urls;
-    protected Status[] statuses;
+    private static final long serialVersionUID = 1619009373620002568L;
 
-    Map<Integer, String> memoizedUrls;
+    protected String[]        urls;
+    protected Status[]        statuses;
+
+    Map<Integer, String>      memoizedUrls;
 
     public Repository(Map<Integer, String> urls) {
-        int n = urls.keySet().stream()
-                .max(Comparator.naturalOrder())
-                .map(max -> max + 1).orElse(0);
+        int n = urls.keySet().stream().max(Comparator.naturalOrder()).map(max -> max + 1).orElse(0);
         this.urls = new String[n];
         this.statuses = new Status[n];
 
-        for(int k : urls.keySet()) {
+        for (int k : urls.keySet()) {
             this.urls[k] = urls.get(k);
             this.statuses[k] = Status.OFFLINE;
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException {
         return (T) Naming.lookup(urls[id]);
@@ -47,7 +48,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @Override
     public boolean setLastKnownStatus(int id, Status newStatus) {
-        if(statuses[id] != null) {
+        if (statuses[id] != null) {
             statuses[id] = newStatus;
             return true;
         } else {
@@ -57,13 +58,10 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @Override
     public List<Integer> ids() {
-        if(urls.length == 0) return new LinkedList<>();
+        if (urls.length == 0)
+            return new LinkedList<>();
 
-        return IntStream
-                .range(0, urls.length)
-                .filter(i -> urls[i] != null)
-                .mapToObj(i -> new Integer(i))
-                .collect(Collectors.toList());
+        return IntStream.range(0, urls.length).filter(i -> urls[i] != null).mapToObj(i -> new Integer(i)).collect(Collectors.toList());
     }
 
     @Override
@@ -76,7 +74,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
         Map<Integer, String> urls = new HashMap<>();
 
-        while(s.hasNext()) {
+        while (s.hasNext()) {
             int id = s.nextInt();
             String url = s.next();
 
@@ -85,15 +83,16 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
         return new Repository<T>(urls);
     }
-    
+
     public static <T extends Remote> IRepository<T> fromS3(InputStream input) throws IOException {
         Scanner s = new Scanner(input);
         Map<Integer, String> urls = new HashMap<>();
-        while(s.hasNext()) {
+        while (s.hasNext()) {
             int id = s.nextInt();
             String url = s.next();
             urls.put(id, url);
         }
+        s.close();
         return new Repository<T>(urls);
     }
 }
