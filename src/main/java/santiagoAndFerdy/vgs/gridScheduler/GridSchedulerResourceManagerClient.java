@@ -4,8 +4,6 @@ import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 
-import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
-import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
@@ -48,7 +46,7 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
         SettablePromise<Void> monitorPromise = Promises.settable();
         pendingBackupRequests.put(monitoringRequest.getJobToMonitor(), monitorPromise);
 
-        IGridSchedulerDriver driver = (IGridSchedulerDriver) Naming.lookup(driverUrl);
+        IGridScheduler driver = (IGridScheduler) Naming.lookup(driverUrl);
         driver.monitorPrimary(monitoringRequest);
 
         return monitorPromise;

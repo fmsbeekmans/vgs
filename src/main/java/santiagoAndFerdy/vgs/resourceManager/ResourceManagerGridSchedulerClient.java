@@ -4,7 +4,6 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerDriver;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -56,7 +55,7 @@ public class ResourceManagerGridSchedulerClient extends UnicastRemoteObject impl
 
     @Override
     public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
-        IResourceManagerDriver driver = (IResourceManagerDriver) Naming.lookup(driverUrl);
+        IResourceManager driver = (IResourceManager) Naming.lookup(driverUrl);
         driver.iAmAlive(h);
     }
 

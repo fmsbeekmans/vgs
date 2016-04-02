@@ -12,7 +12,7 @@ import santiagoAndFerdy.vgs.messages.UserRequest;
 /**
  * Created by Fydio on 3/19/16.
  */
-public interface IGridSchedulerDriver extends IAddressable {
+public interface IGridScheduler extends IAddressable {
     /**
      * Request this grid scheduler to monitor the life-cycle for this job
      * 

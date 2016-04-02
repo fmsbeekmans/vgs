@@ -20,7 +20,6 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,13 +34,13 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
     private int id;
     private String url;
 
-    private IRepository<IResourceManagerDriver> driverRepository;
+    private IRepository<IResourceManager> driverRepository;
 
     private Engine engine;
 
     private Map<Job, SettablePromise<Void>> pendingJobs;
 
-    public ResourceManagerUserClient(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, int id, IRepository<IResourceManagerDriver> driverRepository) throws RemoteException, MalformedURLException {
+    public ResourceManagerUserClient(@NotNull User user, @NotNull RmiServer rmiServer, @NotNull String url, int id, IRepository<IResourceManager> driverRepository) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
         this.id = id;
@@ -78,7 +77,7 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
 
     @Override
     public synchronized Promise<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
-        IResourceManagerDriver driver = driverRepository.getEntity(id);
+        IResourceManager driver = driverRepository.getEntity(id);
         System.out.println("Scheduling job " + j.getJobId());
         SettablePromise<Void> completionPromise = Promises.settable();
         pendingJobs.put(j, completionPromise);
@@ -91,7 +90,7 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
 
     @Override
     public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
-        IResourceManagerDriver driver = driverRepository.getEntity(id);
+        IResourceManager driver = driverRepository.getEntity(id);
         driver.iAmAlive(h);
     }
 

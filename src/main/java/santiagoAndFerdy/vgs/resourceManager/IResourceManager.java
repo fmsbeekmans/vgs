@@ -12,7 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
 /**
  * Created by Fydio on 3/19/16.
  */
-public interface IResourceManagerDriver extends IAddressable {
+public interface IResourceManager extends IAddressable {
     void queue(@NotNull UserRequest req) throws RemoteException, MalformedURLException, NotBoundException;
     void respond(@NotNull UserRequest req) throws RemoteException, MalformedURLException, NotBoundException;
     void finish(Node node, @NotNull UserRequest req) throws RemoteException, NotBoundException, MalformedURLException;

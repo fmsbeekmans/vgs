@@ -14,7 +14,7 @@ import com.amazonaws.services.s3.model.S3Object;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
+import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -53,7 +53,7 @@ public class GridSchedulerMain {
         IRepository<IGridSchedulerGridSchedulerClient> gridSchedulerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
         RmiServer server = new RmiServer(1099);
 
-        GridSchedulerDriver gs = new GridSchedulerDriver(server, resourceManagerClientRepository, gridSchedulerClientRepository, url, id);
+        GridScheduler gs = new GridScheduler(server, resourceManagerClientRepository, gridSchedulerClientRepository, url, id);
         server.register(url, gs);
         while(true){
             Thread.sleep(2000);

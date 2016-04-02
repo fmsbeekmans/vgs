@@ -6,7 +6,7 @@ import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerUserClient;
 import santiagoAndFerdy.vgs.resourceManager.ResourceManagerUserClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -27,10 +27,10 @@ public class User {
     private ExecutorService taskScheduler;
     private ScheduledExecutorService timerScheduler;
     private Engine engine;
-    private IRepository<IResourceManagerDriver> rmRepository;
+    private IRepository<IResourceManager> rmRepository;
     private Map<Integer, IResourceManagerUserClient> rms;
 
-    public User(RmiServer rmiServer, String resourceManagerProxyUrl, IRepository<IResourceManagerDriver> rmRepository) throws MalformedURLException, RemoteException {
+    public User(RmiServer rmiServer, String resourceManagerProxyUrl, IRepository<IResourceManager> rmRepository) throws MalformedURLException, RemoteException {
         final int numCores = Runtime.getRuntime().availableProcessors();
         taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         timerScheduler = Executors.newSingleThreadScheduledExecutor();

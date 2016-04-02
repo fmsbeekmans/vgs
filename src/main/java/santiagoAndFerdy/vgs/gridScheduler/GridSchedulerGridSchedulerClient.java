@@ -10,10 +10,8 @@ import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
-import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.net.MalformedURLException;
@@ -64,7 +62,7 @@ public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implem
         pendingMonitoringRequests.put(jobToBackUp, monitoringPromise);
         BackUpRequest monitoringRequest = new BackUpRequest(url, jobToBackUp);
 
-        IGridSchedulerDriver driver = (IGridSchedulerDriver) Naming.lookup(driverUrl);
+        IGridScheduler driver = (IGridScheduler) Naming.lookup(driverUrl);
         driver.monitorBackUp(monitoringRequest);
 
         return monitoringPromise;

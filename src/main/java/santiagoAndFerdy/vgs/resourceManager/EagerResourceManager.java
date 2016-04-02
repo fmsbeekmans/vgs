@@ -4,7 +4,6 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
-import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerResourceManagerClient;
@@ -26,12 +25,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.commons.collections4.queue.CircularFifoQueue;
-
-import com.linkedin.parseq.Engine;
-import com.linkedin.parseq.EngineBuilder;
-import com.linkedin.parseq.Task;
-
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
@@ -40,7 +33,7 @@ import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IRemoteShutdown {
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManager, IRemoteShutdown {
     private static final long                                 serialVersionUID = -4089353922882117112L;
 
     private Queue<UserRequest>                                jobQueue;

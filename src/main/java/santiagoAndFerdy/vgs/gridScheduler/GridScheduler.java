@@ -2,7 +2,6 @@ package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
-import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
@@ -24,7 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSchedulerDriver, IRemoteShutdown {
+public class GridScheduler extends UnicastRemoteObject implements IGridScheduler, IRemoteShutdown {
     private static final long                                serialVersionUID = -5694724140595312739L;
 
     private IRepository<IResourceManagerGridSchedulerClient> rmRepository;
@@ -42,8 +41,8 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     private ScheduledExecutorService                         timerScheduler;
     private Engine                                           engine;
 
-    public GridSchedulerDriver(RmiServer rmiServer, IRepository<IResourceManagerGridSchedulerClient> rmRepository,
-            IRepository<IGridSchedulerGridSchedulerClient> gsRepository, String url, int id) throws RemoteException, MalformedURLException {
+    public GridScheduler(RmiServer rmiServer, IRepository<IResourceManagerGridSchedulerClient> rmRepository,
+                         IRepository<IGridSchedulerGridSchedulerClient> gsRepository, String url, int id) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
         this.id = id;

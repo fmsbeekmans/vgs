@@ -15,10 +15,10 @@ import java.util.concurrent.TimeUnit;
 public class Node {
     private int id;
     private UserRequest userRequest;
-    private IResourceManagerDriver rm;
+    private IResourceManager rm;
 
 
-    public Node(int id, @NotNull IResourceManagerDriver rm) {
+    public Node(int id, @NotNull IResourceManager rm) {
         this.id = id;
         this.rm = rm;
     }
@@ -53,7 +53,7 @@ public class Node {
         this.userRequest = null;
     }
 
-    public IResourceManagerDriver getRm() {
+    public IResourceManager getRm() {
         return rm;
     }
 

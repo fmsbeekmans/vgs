@@ -11,13 +11,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
+import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
@@ -32,7 +31,7 @@ public class SimulationLauncher implements Runnable {
     IRepository<IGridSchedulerGridSchedulerClient>   repoGS;
     IRepository<IGridSchedulerResourceManagerClient> repoGSClients;
     String                                           urlRM0;
-    GridSchedulerDriver[]                            gsArray;
+    GridScheduler[]                            gsArray;
     //
     final ArrayList<Process>                         gsProcesses = new ArrayList<Process>();
     final ArrayList<Process>                         rmProcesses = new ArrayList<Process>();
@@ -64,10 +63,10 @@ public class SimulationLauncher implements Runnable {
         Path gsClientsRepositoryFilePath = Paths.get(urlGSClients.toURI());
         repoGSClients = Repository.fromFile(gsClientsRepositoryFilePath);
 
-        gsArray = new GridSchedulerDriver[repoGS.ids().size()];
+        gsArray = new GridScheduler[repoGS.ids().size()];
         for (int id : repoGS.ids()) {
             String url = repoGS.getUrl(id);
-            GridSchedulerDriver gs = new GridSchedulerDriver(server, repoRM, repoGS, url, id);
+            GridScheduler gs = new GridScheduler(server, repoRM, repoGS, url, id);
             gsArray[id] = gs;
         }
 
