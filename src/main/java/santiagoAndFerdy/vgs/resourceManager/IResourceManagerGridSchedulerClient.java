@@ -1,16 +1,15 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.linkedin.parseq.promise.Promise;
-import santiagoAndFerdy.vgs.discovery.Entity;
+import santiagoAndFerdy.vgs.discovery.IAdressable;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**
  * Created by Fydio on 3/30/16.
  */
-public interface IResourceManagerGridSchedulerClient extends Entity {
+public interface IResourceManagerGridSchedulerClient extends IAdressable {
 
     /**
      * Schedule a job on this cluster managed by this resource manager.

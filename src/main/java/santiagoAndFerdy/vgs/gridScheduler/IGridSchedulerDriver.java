@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.discovery.Entity;
+import santiagoAndFerdy.vgs.discovery.IAdressable;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
@@ -14,7 +14,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/19/16.
  */
-public interface IGridSchedulerDriver extends Entity {
+public interface IGridSchedulerDriver extends IAdressable {
     void ping(@NotNull Heartbeat h) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException;
 
     /**
