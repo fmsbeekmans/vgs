@@ -20,6 +20,8 @@ public class Repository<T extends Remote> implements IRepository<T> {
     protected String[] urls;
     protected Status[] statuses;
 
+    Map<Integer, String> memoizedUrls;
+
     public Repository(Map<Integer, String> urls) {
         int n = urls.keySet().stream()
                 .max(Comparator.naturalOrder())
@@ -34,21 +36,13 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     @Override
-    public Optional<T> getEntity(int id) {
-        return Optional.ofNullable(urls[id])
-                .flatMap(url -> {
-                    try {
-                        return Optional.of((T) Naming.lookup(url));
-                    } catch (NotBoundException | MalformedURLException | RemoteException e) {
-                        e.printStackTrace();
-                        return Optional.empty();
-                    }
-                });
+    public T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException {
+        return (T) Naming.lookup(urls[id]);
     }
 
     @Override
-    public Optional<Status> getLastKnownStatus(int id) {
-        return Optional.ofNullable(statuses[id]);
+    public Status getLastKnownStatus(int id) {
+        return statuses[id];
     }
 
     @Override
@@ -73,14 +67,8 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     @Override
-    public Map<Integer, String> urls() {
-        Map<Integer, String> urlMap = new HashMap<Integer, String>();
-
-        for (int i = 0; i < urls.length; i++) {
-            if(urls[i] != null) urlMap.put(i, urls[i]);
-        }
-
-        return urlMap;
+    public String getUrl(int id) {
+        return urls[id];
     }
 
     public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {

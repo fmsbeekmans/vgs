@@ -14,19 +14,13 @@ import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.SDKGlobalConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.model.S3Object;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
-import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**

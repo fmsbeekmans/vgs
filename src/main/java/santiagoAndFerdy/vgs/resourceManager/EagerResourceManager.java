@@ -7,7 +7,6 @@ import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.messages.UserRequest;
@@ -34,16 +33,13 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
-import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
-import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver, IHeartbeatReceiver {
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManagerDriver {
     private static final long             serialVersionUID = -4089353922882117112L;
 
     private Queue<UserRequest>            jobQueue;
@@ -83,7 +79,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
                                 RmiServer rmiServer,
                                 String url,
                                 IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
-            throws RemoteException, MalformedURLException {
+            throws RemoteException, MalformedURLException, NotBoundException {
         super();
         this.id = id;
         this.url = url;
@@ -101,7 +97,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
                     rmiServer,
                     gsId,
                     "",
-                    gridSchedulerRepository.urls().get(gsId));
+                    gridSchedulerRepository.getUrl(gsId));
             //TODO add client repo
             gridSchedulerClients.put(gsId, client);
         }

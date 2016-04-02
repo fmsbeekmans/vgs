@@ -14,7 +14,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;

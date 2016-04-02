@@ -22,10 +22,8 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;

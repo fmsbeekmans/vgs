@@ -78,31 +78,20 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
 
     @Override
     public synchronized Promise<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
-        Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
-        Optional<Promise<Void>> scheduleResult = maybeDriver.map(driver -> {
-            System.out.println("Scheduling job " + j.getJobId());
-            SettablePromise<Void> completionPromise = Promises.settable();
-            pendingJobs.put(j, completionPromise);
+        IResourceManagerDriver driver = driverRepository.getEntity(id);
+        System.out.println("Scheduling job " + j.getJobId());
+        SettablePromise<Void> completionPromise = Promises.settable();
+        pendingJobs.put(j, completionPromise);
 
-            Task<Void> queue = Task.action(() -> driver.queue(new UserRequest(j, this)));
-            engine.run(queue);
+        Task<Void> queue = Task.action(() -> driver.queue(new UserRequest(j, this)));
+        engine.run(queue);
 
-            return completionPromise;
-        });
-
-        if(scheduleResult.isPresent()) {
-            return scheduleResult.get();
-        }
-        else {
-            throw new RemoteException("Not connected");
-        }
-
+        return completionPromise;
     }
 
     @Override
     public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
-        Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
-        IResourceManagerDriver driver = maybeDriver.get();
+        IResourceManagerDriver driver = driverRepository.getEntity(id);
         driver.iAmAlive(h);
     }
 
