@@ -29,7 +29,7 @@ public interface IGridSchedulerDriver extends IAdressable {
      * @param backUpRequest the userRequest to watch
      * @throws RemoteException
      */
-    void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException;
+    void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException;
 
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere

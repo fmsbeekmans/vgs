@@ -85,8 +85,10 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     }
 
     @Override
-    public void monitorBackUp(BackUpRequest userRequest) throws RemoteException {
-
+    public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException {
+        backUpMonitoredJobs.add(backUpRequest);
+        IGridSchedulerGridSchedulerClient client = (IGridSchedulerGridSchedulerClient)Naming.lookup(backUpRequest.getSourceUrl());
+        client.monitorBackUpAccepted(backUpRequest.getJobToBackUp());
     }
 
     @Override
