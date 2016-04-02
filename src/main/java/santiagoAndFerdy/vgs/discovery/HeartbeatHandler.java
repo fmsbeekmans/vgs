@@ -18,13 +18,13 @@ import santiagoAndFerdy.vgs.messages.Heartbeat;
 public class HeartbeatHandler {
 
     private HashMap<Integer, Status> status;
-    private Map<Integer, String>     urls;
+    private IRepository<?> repository;
     private Engine                   engine; //dunno if we need the Engine here actually
     private ScheduledExecutorService timerScheduler;
 
-    public HeartbeatHandler(IRepository<IHeartbeatReceiver> repo) throws MalformedURLException, RemoteException {
-        status = new HashMap<Integer, Status>();
-        urls = repo.urls();
+    public HeartbeatHandler(IRepository<? extends IAdressable> repository) throws MalformedURLException, RemoteException {
+        status = new HashMap<>();
+        this.repository = repository;
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
@@ -36,7 +36,7 @@ public class HeartbeatHandler {
      */
     public void getStatus() {
         for (int id : status.keySet()) {
-            System.out.println(urls.get(id) + " is " + status.get(id));
+            System.out.println(repository.getUrl(id) + " is " + status.get(id));
         }
     }
 
@@ -46,11 +46,11 @@ public class HeartbeatHandler {
      */
     public void checkLife() {
         timerScheduler.scheduleAtFixedRate(() -> {
-            for (int id : urls.keySet()) {
-                Heartbeat h = new Heartbeat(urls.get(id));
+            for (int id : repository.ids()) {
+                Heartbeat h = new Heartbeat(repository.getUrl(id));
                 try {
-                    IHeartbeatReceiver driver;
-                    driver = (IHeartbeatReceiver) Naming.lookup(urls.get(id));
+                    IAdressable driver;
+                    driver = (IAdressable) Naming.lookup(repository.getUrl(id));
                     driver.iAmAlive(h);
                     status.put(id, Status.ONLINE);
                 } catch (Exception e) {

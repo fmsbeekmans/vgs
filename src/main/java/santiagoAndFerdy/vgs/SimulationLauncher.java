@@ -22,10 +22,9 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
+import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerDriver;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -36,7 +35,7 @@ public class SimulationLauncher implements Runnable {
     Map<Integer, String>            rmUrls;
     Map<Integer, String>            gsUrls;
     IRepository<IHeartbeatReceiver> repoGS;
-    GridScheduler[]                 gsArray;
+    GridSchedulerDriver[]           gsArray;
     //
     final ArrayList<Process>        gsProcesses = new ArrayList<Process>();
     final ArrayList<Process>        rmProcesses = new ArrayList<Process>();
@@ -63,10 +62,10 @@ public class SimulationLauncher implements Runnable {
         Path gsRepositoryFilePath = Paths.get(urlGS.toURI());
         repoGS = Repository.fromFile(gsRepositoryFilePath);
         Map<Integer, String> gsUrls = repoGS.urls();
-        gsArray = new GridScheduler[gsUrls.size()];
+        gsArray = new GridSchedulerDriver[gsUrls.size()];
         for (int id : gsUrls.keySet()) {
             String url = gsUrls.get(id);
-            GridScheduler gs = new GridScheduler(server, repoRM, url);
+            GridSchedulerDriver gs = new GridSchedulerDriver(server, repoRM, url);
             server.register(url, gs);
             gsArray[id] = gs;
         }

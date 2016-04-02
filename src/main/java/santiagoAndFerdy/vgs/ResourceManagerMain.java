@@ -14,9 +14,10 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -48,7 +49,7 @@ public class ResourceManagerMain {
         
         s3Client = new AmazonS3Client(new ProfileCredentialsProvider());
         S3Object s3object = s3Client.getObject(new GetObjectRequest(bucketName, fileName));
-        IRepository<IHeartbeatReceiver> repoGS = Repository.fromS3(s3object.getObjectContent());
+        IRepository<IGridSchedulerResourceManagerClient> repoGS = Repository.fromS3(s3object.getObjectContent());
 
         RmiServer server = new RmiServer(1099);
         EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url, repoGS);
