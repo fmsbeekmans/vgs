@@ -5,6 +5,7 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerDriver;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -25,7 +26,6 @@ public class ResourceManagerGridSchedulerClient extends UnicastRemoteObject impl
     private int id;
     private String                        url;
     private String                        driverUrl;
-    private IGridSchedulerDriver        driver;
     private Engine                        engine;
     private ScheduledExecutorService    timerScheduler;
     
@@ -41,29 +41,10 @@ public class ResourceManagerGridSchedulerClient extends UnicastRemoteObject impl
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
         register();
-        connect();
-        
-
     }
 
     public void register() throws MalformedURLException, RemoteException {
         rmiServer.register(url, this);
-    }
-
-    public boolean connect() throws MalformedURLException {
-        if (driver == null) {
-            try {
-                driver = (IGridSchedulerDriver) Naming.lookup(driverUrl);
-                //keepAlive();
-                return true;
-            } catch (NotBoundException e) {
-                return false;
-            } catch (RemoteException e) {
-                return false;
-            }
-        } else {
-            return true;
-        }
     }
 
     @Override
@@ -71,6 +52,12 @@ public class ResourceManagerGridSchedulerClient extends UnicastRemoteObject impl
         //TODO:
 
         return null;
+    }
+
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+        IResourceManagerDriver driver = (IResourceManagerDriver) Naming.lookup(driverUrl);
+        driver.iAmAlive(h);
     }
 
     @Override

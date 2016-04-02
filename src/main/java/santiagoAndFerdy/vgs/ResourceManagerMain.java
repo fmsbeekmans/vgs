@@ -1,66 +1,60 @@
 package santiagoAndFerdy.vgs;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.rmi.RmiServer;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.Naming;
-import java.rmi.NotBoundException;
-import java.util.HashMap;
-import java.util.Map;
+
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+
+import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
+import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repository;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
+import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
+import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
  * Created by Fydio on 3/18/16.
  */
 public class ResourceManagerMain {
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
-        RmiServer rmiServer = new RmiServer(1099);
-        URL rmFileUrl = UserMain.class.getClassLoader().getResource("rm/rms");
-        Path rmRepositoryFilePath = Paths.get(rmFileUrl.toURI());
-        IRepository<IResourceManagerDriver> rmRepo = Repository.fromFile(rmRepositoryFilePath);
-        Map<Integer, String> rmUrls = rmRepo.urls();
-
-        URL gsClientFileUrl = UserMain.class.getClassLoader().getResource("rm/gs-clients");
-        Path gsClientRepositoryFilePath = Paths.get(gsClientFileUrl.toURI());
-        IRepository<IGridSchedulerResourceManagerClient> gsClientRepo = Repository.fromFile(gsClientRepositoryFilePath);
-        Map<Integer, String> gsClientUrls = gsClientRepo.urls();
-        Map<Integer, IGridSchedulerResourceManagerClient> gsClients = new HashMap<>();
-
-        URL gsDriverFileUrl = UserMain.class.getClassLoader().getResource("rm/gs-drivers");
-        Path gsDriverRepositoryFilePath = Paths.get(gsDriverFileUrl.toURI());
-        IRepository<IGridSchedulerResourceManagerClient> gsDriverRepo = Repository.fromFile(gsDriverRepositoryFilePath);
-        Map<Integer, String> gsDriverUrls = gsDriverRepo.urls();
-
-        // create and bind clients
-        for (int gsClientId : gsClientUrls.keySet()) {
-            String clientUrl =
-                    gsClientUrls.get(gsClientId);
-            IGridSchedulerResourceManagerClient gsClient = new GridSchedulerResourceManagerClient(
-                    rmiServer,
-                    gsClientId,
-                    clientUrl,
-                    gsDriverUrls.get(gsClientId));
-            gsClients.put(gsClientId, gsClient);
-            rmiServer.register(clientUrl, gsClient);
+    private static AWSCredentials credentials;
+    private static AmazonS3       s3Client;
+    
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
+        if (args.length < 4) {
+            System.err.println("Please enter the URL of this ResourceManager, the id, the bucket name and the GS file name");
+            return;
         }
 
+        // Probably will have to pass the number of nodes as a parameter as well...
+        String url = args[0];
+        int id = Integer.valueOf(args[1]);
+        String bucketName = args[2];
+        String fileName = args[3];
 
-        for(int id : rmUrls.keySet()) {
-            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, rmUrls.get(id), rmiServer, gsClients);
-            rmiServer.register(rmUrls.get(id), rmImpl);
+        credentials = null;
+        try {
+            credentials = new ProfileCredentialsProvider("default").getCredentials();
+        } catch (Exception e) {
+            throw new AmazonClientException(e.getMessage());
         }
+        
+        s3Client = new AmazonS3Client(new ProfileCredentialsProvider());
+        S3Object s3object = s3Client.getObject(new GetObjectRequest(bucketName, fileName));
+        IRepository<IGridSchedulerResourceManagerClient> repoGS = Repository.fromS3(s3object.getObjectContent());
 
-        System.out.println("Waiting for work");
+        RmiServer server = new RmiServer(1099);
+        EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url, repoGS);
+        server.register(url, rmImpl);
 
-        while (true);
     }
 }

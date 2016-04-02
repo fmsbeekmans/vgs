@@ -3,6 +3,7 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.sun.istack.internal.NotNull;
+import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
@@ -35,6 +36,8 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
     private int id;
     private String url;
 
+    private HeartbeatHandler heartbeatHandler;
+
     private ScheduledExecutorService      timerScheduler;
     private Engine                        engine;
     
@@ -59,6 +62,7 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
 
+        heartbeatHandler = new HeartbeatHandler(rmRepository);
         wakeUp();
     }
 
@@ -105,6 +109,15 @@ public class GridSchedulerDriver extends UnicastRemoteObject implements IGridSch
         rmiServer.register(url, this);
 
         //TODO + broadcast wakeup!
+    }
+
+    public void checkConnections() {
+        heartbeatHandler.getStatus();
+    }
+
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+
     }
 
     @Override

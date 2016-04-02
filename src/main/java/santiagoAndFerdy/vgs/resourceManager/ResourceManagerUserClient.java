@@ -8,6 +8,7 @@ import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.user.User;
@@ -35,7 +36,6 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
     private String url;
 
     private IRepository<IResourceManagerDriver> driverRepository;
-    private IResourceManagerDriver driver;
 
     private Engine engine;
 
@@ -50,7 +50,6 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
         register();
 
         pendingJobs = new HashMap<>();
-        connect();
 
         // setup parseq engine
         int numCores = Runtime.getRuntime().availableProcessors();
@@ -68,19 +67,6 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
         rmiServer.register(url, this);
     }
 
-    public boolean connect() throws MalformedURLException {
-        if(driver == null) {
-            Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
-            if (maybeDriver.isPresent()) {
-                driver = maybeDriver.get();
-            } else {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     @Override
     public void acceptResult(@NotNull Job j) {
         SettablePromise<Void> promise = pendingJobs.get(j);
@@ -92,15 +78,32 @@ public class ResourceManagerUserClient extends UnicastRemoteObject implements IR
 
     @Override
     public synchronized Promise<Void> schedule(@NotNull Job j) throws MalformedURLException, RemoteException, NotBoundException {
-        connect();
-        System.out.println("Scheduling job " + j.getJobId());
-        SettablePromise<Void> completionPromise = Promises.settable();
-        pendingJobs.put(j, completionPromise);
+        Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
+        Optional<Promise<Void>> scheduleResult = maybeDriver.map(driver -> {
+            System.out.println("Scheduling job " + j.getJobId());
+            SettablePromise<Void> completionPromise = Promises.settable();
+            pendingJobs.put(j, completionPromise);
 
-        Task<Void> queue = Task.action(() -> driver.queue(new UserRequest(j, this)));
-        engine.run(queue);
+            Task<Void> queue = Task.action(() -> driver.queue(new UserRequest(j, this)));
+            engine.run(queue);
 
-        return completionPromise;
+            return completionPromise;
+        });
+
+        if(scheduleResult.isPresent()) {
+            return scheduleResult.get();
+        }
+        else {
+            throw new RemoteException("Not connected");
+        }
+
+    }
+
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+        Optional<IResourceManagerDriver> maybeDriver = driverRepository.getEntity(id);
+        IResourceManagerDriver driver = maybeDriver.get();
+        driver.iAmAlive(h);
     }
 
     @Override

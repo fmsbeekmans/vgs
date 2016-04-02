@@ -3,6 +3,7 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import com.linkedin.parseq.promise.Promise;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
@@ -63,6 +64,12 @@ public class GridSchedulerResourceManagerClient extends UnicastRemoteObject impl
     @Override
     public Promise<Void> releaseResources(int requestId) {
         return null;
+    }
+
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+        IGridSchedulerDriver driver = (IGridSchedulerDriver) Naming.lookup(driverUrl);
+        driver.iAmAlive(h);
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.UserRequest;
 import santiagoAndFerdy.vgs.model.Job;
@@ -81,6 +82,11 @@ public class GridSchedulerGridSchedulerClient extends UnicastRemoteObject implem
     @Override
     public Promise<Void> releaseResources(int requestId) throws RemoteException {
         return null;
+    }
+
+    @Override
+    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+
     }
 
     @Override
