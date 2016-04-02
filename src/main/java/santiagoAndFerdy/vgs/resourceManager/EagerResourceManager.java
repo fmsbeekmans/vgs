@@ -4,11 +4,12 @@ import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promise;
+import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
-import santiagoAndFerdy.vgs.gridScheduler.GridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
-import santiagoAndFerdy.vgs.messages.UserRequest;
+import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
+import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -17,8 +18,6 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,6 +28,7 @@ import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
+import santiagoAndFerdy.vgs.user.IUser;
 
 /**
  * Created by Fydio on 3/19/16.
@@ -36,7 +36,7 @@ import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 public class EagerResourceManager extends UnicastRemoteObject implements IResourceManager, IRemoteShutdown {
     private static final long                                 serialVersionUID = -4089353922882117112L;
 
-    private Queue<UserRequest>                                jobQueue;
+    private Queue<WorkRequest>                                jobQueue;
     private Queue<Node>                                       idleNodes;
 
     private RmiServer                                         rmiServer;
@@ -44,8 +44,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     private int                                               id;
     private String                                            url;
 
-    private IRepository<IGridSchedulerResourceManagerClient>  gridSchedulerRepository;
-    private Map<Integer, IGridSchedulerResourceManagerClient> gridSchedulerClients;
+    private IRepository<IGridScheduler>  gridSchedulerRepository;
     private HeartbeatHandler                                  hHandler;
     private long                                              load;
     private ScheduledExecutorService                          timerScheduler;
@@ -68,7 +67,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
      * @throws MalformedURLException
      */
     public EagerResourceManager(int id, int n, RmiServer rmiServer, String url,
-            IRepository<IGridSchedulerResourceManagerClient> gridSchedulerRepository)
+            IRepository<IGridScheduler> gridSchedulerRepository)
                     throws RemoteException, MalformedURLException, NotBoundException {
         super();
         this.id = id;
@@ -81,18 +80,13 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
 
         this.rmiServer = rmiServer;
         this.gridSchedulerRepository = gridSchedulerRepository;
-        this.gridSchedulerClients = new HashMap<>();
-        for (int gsId : gridSchedulerRepository.ids()) {
-            IGridSchedulerResourceManagerClient client = new GridSchedulerResourceManagerClient(rmiServer, gsId, gridSchedulerRepository.getUrl(gsId),
-                    gridSchedulerRepository.getUrl(gsId));
-            // TODO add client repo
-            gridSchedulerClients.put(gsId, client);
-        }
+
+
         // I think that the RM should ping the GS not the client that he has... I think we could have the functionality of the client here inside the
         // RM.
         hHandler = new HeartbeatHandler(gridSchedulerRepository, id, false);
         for (int i = 0; i < nNodes; i++)
-            idleNodes.add(new Node(i, this));
+            idleNodes.add(new Node(i, this, timerScheduler));
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
@@ -101,66 +95,56 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public synchronized void queue(UserRequest req) throws RemoteException, MalformedURLException, NotBoundException {
-        System.out.println("Received job " + req.getJob().getJobId());
-        load += req.getJob().getDuration();
+    public synchronized void offerWork(WorkRequest req) throws RemoteException, MalformedURLException, NotBoundException {
+        System.out.println("Received job " + req.getToExecute().getJobId());
 
         Task<Void> queueFlow = Task
                 // send to GS first
-                .action(() -> requestMonitoring(req.getJob()))
+                .action(() -> requestMonitoring(req.getToExecute()))
                 // then schedule
                 .andThen(monitored -> jobQueue.add(req))
                 // and process the queue again
                 .andThen(queue -> processQueue());
         engine.run(queueFlow);
+        load += req.getToExecute().getDuration();
+    }
+
+    @Override
+    public void schedule(@NotNull WorkRequest toSchedule) throws RemoteException, MalformedURLException, NotBoundException {
+        // Assume a job is already monitored if it's scheduled directly from a grid scheduler.
+        jobQueue.add(toSchedule);
+        processQueue();
     }
 
     public void requestMonitoring(Job jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
         System.out.println("Requesting monitoring for job " + jobToMonitor.getJobId());
 
-        IGridSchedulerResourceManagerClient backUpTarget = selectResourceManagerForBackUp();
-
-        Promise<Void> monitorPromise = backUpTarget.monitorPrimary(jobToMonitor);
-        monitorPromise.await();
-        System.out.println("Job " + jobToMonitor.getJobId() + " is being monitored");
+        IGridScheduler backUpTarget = selectResourceManagerForBackUp();
+        backUpTarget.monitorPrimary(new MonitoringRequest(id, jobToMonitor));
     }
 
-    public IGridSchedulerResourceManagerClient selectResourceManagerForBackUp() {
-        return gridSchedulerClients.get(0);
+    public IGridScheduler selectResourceManagerForBackUp() throws RemoteException, NotBoundException, MalformedURLException {
+        return gridSchedulerRepository.getEntity(0);
     }
 
     @Override
-    public void respond(UserRequest req) throws RemoteException, MalformedURLException, NotBoundException {
-        Task<Void> respond = Task.action(() -> {
-            IResourceManagerUserClient client = (IResourceManagerUserClient) Naming.lookup(req.getUser().getUrl());
-            client.acceptResult(req.getJob());
-            release(req);
-        });
-
-        engine.run(respond);
+    public void finish(Node node, WorkRequest toFinish) throws RemoteException, MalformedURLException, NotBoundException {
+        IUser user = (IUser) Naming.lookup(toFinish.getUserUrl());
+        user.acceptResult(toFinish.getToExecute());
     }
 
-    private synchronized void release(UserRequest req) {
-        load -= req.getJob().getDuration();
-    }
-
-    @Override
-    public synchronized void finish(Node node, UserRequest req) throws RemoteException, NotBoundException, MalformedURLException {
-        respond(req);
-        idleNodes.add(node);
-
-        Task<Void> process = Task.action(() -> processQueue());
-        engine.run(process);
+    private synchronized void release(Job toRelease) {
+        load -= toRelease.getDuration();
     }
 
     // should be run after any change in node state or job queue
     protected synchronized void processQueue() throws RemoteException, MalformedURLException, NotBoundException {
         while (!jobQueue.isEmpty() && !idleNodes.isEmpty()) {
             Node allocatedNode = idleNodes.poll();
-            UserRequest req = jobQueue.poll();
-            System.out.println("Running job " + req.getJob().getJobId());
+            WorkRequest toRun = jobQueue.poll();
+            System.out.println("Running job " + toRun.getToExecute().getJobId());
 
-            Task<Void> run = Task.action(() -> allocatedNode.handle(req));
+            Task<Void> run = Task.action(() -> allocatedNode.handle(toRun));
             engine.run(run);
         }
     }
@@ -173,11 +157,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     @Override
     public String getUrl() {
         return url;
-    }
-
-    @Override
-    public ScheduledExecutorService executorService() throws RemoteException {
-        return timerScheduler;
     }
 
     /**

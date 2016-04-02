@@ -17,19 +17,17 @@ import java.util.ArrayList;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
+import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 public class SimulationLauncher implements Runnable {
 
     RmiServer                                        server;
-    IRepository<IResourceManagerGridSchedulerClient> repoRM;
-    IRepository<IGridSchedulerGridSchedulerClient>   repoGS;
-    IRepository<IGridSchedulerResourceManagerClient> repoGSClients;
+    IRepository<IResourceManager> resourceManagerRepository;
+    IRepository<IGridScheduler> gridSchedulerRepository;
     String                                           urlRM0;
     GridScheduler[]                            gsArray;
     //
@@ -51,30 +49,25 @@ public class SimulationLauncher implements Runnable {
         // RM Drivers (RM Component)
         URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
         Path rmRepositoryFilePath = Paths.get(urlRM.toURI());
-        repoRM = Repository.fromFile(rmRepositoryFilePath);
+        resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
         // GS Drivers (GS Component)
         URL urlGS = ResourceManagerMain.class.getClassLoader().getResource("gs/gss");
         Path gsRepositoryFilePath = Paths.get(urlGS.toURI());
-        repoGS = Repository.fromFile(gsRepositoryFilePath);
+        gridSchedulerRepository = Repository.fromFile(gsRepositoryFilePath);
 
-        // GS Clients
-        URL urlGSClients = ResourceManagerMain.class.getClassLoader().getResource("rm/gs-clients");
-        Path gsClientsRepositoryFilePath = Paths.get(urlGSClients.toURI());
-        repoGSClients = Repository.fromFile(gsClientsRepositoryFilePath);
-
-        gsArray = new GridScheduler[repoGS.ids().size()];
-        for (int id : repoGS.ids()) {
-            String url = repoGS.getUrl(id);
-            GridScheduler gs = new GridScheduler(server, repoRM, repoGS, url, id);
+        gsArray = new GridScheduler[gridSchedulerRepository.ids().size()];
+        for (int id : gridSchedulerRepository.ids()) {
+            String url = gridSchedulerRepository.getUrl(id);
+            GridScheduler gs = new GridScheduler(server, resourceManagerRepository, gridSchedulerRepository, url, id);
             gsArray[id] = gs;
         }
 
-        for (int id : repoRM.ids()) {
-            String url2 = repoRM.getUrl(id);
+        for (int id : resourceManagerRepository.ids()) {
+            String url2 = resourceManagerRepository.getUrl(id);
             if (id == 0) // for the restart in the simulation method
                 urlRM0 = url2;
-            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url2, repoGSClients);
+            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url2, gridSchedulerRepository);
             server.register(url2, rmImpl);
 
         }
@@ -120,10 +113,10 @@ public class SimulationLauncher implements Runnable {
         // Create the GS nodes
         URL urlGS = SimulationLauncher.class.getClassLoader().getResource("gs/gss");
         Path gsRepositoryFilePath = Paths.get(urlGS.toURI());
-        repoGS = Repository.fromFile(gsRepositoryFilePath);
+        gridSchedulerRepository = Repository.fromFile(gsRepositoryFilePath);
 
-        for (int id : repoGS.ids()) {
-            String url = repoGS.getUrl(id);
+        for (int id : gridSchedulerRepository.ids()) {
+            String url = gridSchedulerRepository.getUrl(id);
             pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(id), url, "vgs-repository", "gs/rms", "gs/gss");
             pb.redirectErrorStream(true);
             try {
@@ -157,10 +150,10 @@ public class SimulationLauncher implements Runnable {
         // Create RM nodes
         URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
         Path rmRepositoryFilePath = Paths.get(urlRM.toURI());
-        repoRM = Repository.fromFile(rmRepositoryFilePath);
+        resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
-        for (int id : repoRM.ids()) {
-            String url = repoRM.getUrl(id);
+        for (int id : resourceManagerRepository.ids()) {
+            String url = resourceManagerRepository.getUrl(id);
             pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", url, Integer.toString(id), "vgs-repository", "rm/gs-clients");
             pb.redirectErrorStream(true);
             try {
@@ -226,14 +219,14 @@ public class SimulationLauncher implements Runnable {
                     restart = true;
                     System.out.println("LET'S RESTART");
                     IRemoteShutdown driver;
-                    driver = (IRemoteShutdown) Naming.lookup(repoRM.getUrl(0));
+                    driver = (IRemoteShutdown) Naming.lookup(resourceManagerRepository.getUrl(0));
                     driver.shutDown();
 
                     // This shouldn't be needed to done manually...
                     rmProcesses.get(0).destroy();
                     rmProcesses.remove(0);
                     Thread.sleep(7000);
-                    String url = repoRM.getUrl(0);
+                    String url = resourceManagerRepository.getUrl(0);
                     int id = 0;
                     ProcessBuilder pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", url, Integer.toString(id), "vgs-repository",
                             "rm/gs-clients");
@@ -287,14 +280,13 @@ public class SimulationLauncher implements Runnable {
                 Thread.sleep(4000);
                 System.out.println("");
                 gsArray[0].checkConnections(); // check status
-                gsArray[0].getClient().checkConnections();
             } catch (InterruptedException e) {
             }
 
             if (!restart) { // restart the node
                 restart = true;
                 try {
-                    EagerResourceManager rmImpl = new EagerResourceManager(0, 10000, server, urlRM0, repoGSClients);
+                    EagerResourceManager rmImpl = new EagerResourceManager(0, 10000, server, urlRM0, gridSchedulerRepository);
                     server.register(urlRM0, rmImpl);
                     System.out.println(urlRM0 + " restarted");
                 } catch (Exception e) {

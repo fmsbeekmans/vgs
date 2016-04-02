@@ -7,7 +7,7 @@ import java.rmi.RemoteException;
 import santiagoAndFerdy.vgs.discovery.IAddressable;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
-import santiagoAndFerdy.vgs.messages.UserRequest;
+import santiagoAndFerdy.vgs.model.Job;
 
 /**
  * Created by Fydio on 3/19/16.
@@ -34,10 +34,10 @@ public interface IGridScheduler extends IAddressable {
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere
      * 
-     * @param userRequest
+     * @param job
      *            to schedule somewhere else
      */
-    void offload(UserRequest userRequest) throws RemoteException;
+    void offload(Job job) throws RemoteException;
 
     /**
      * A job has finished. All the reserved resources can be released.

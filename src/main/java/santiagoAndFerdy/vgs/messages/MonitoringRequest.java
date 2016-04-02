@@ -9,20 +9,20 @@ import java.io.Serializable;
  * Created by Fydio on 3/30/16.
  */
 public class MonitoringRequest implements Serializable {
-    private @NotNull String sourceClientUrl;
-    private @NotNull Job jobToBackUp;
+    private @NotNull int sourceResourceManagerId;
+    private @NotNull Job jobToMonitor;
 
-    public MonitoringRequest(String sourceClientUrl, Job jobToBackUp) {
-        this.sourceClientUrl = sourceClientUrl;
-        this.jobToBackUp = jobToBackUp;
+    public MonitoringRequest(int sourceResourceManagerId, Job jobToBackUp) {
+        this.sourceResourceManagerId = sourceResourceManagerId;
+        this.jobToMonitor = jobToBackUp;
     }
 
-    public String getSourceClientUrl() {
-        return sourceClientUrl;
+    public int getSourceResourceManagerId() {
+        return sourceResourceManagerId;
     }
 
     public Job getJobToMonitor() {
-        return jobToBackUp;
+        return jobToMonitor;
     }
 
     @Override
@@ -32,16 +32,15 @@ public class MonitoringRequest implements Serializable {
 
         MonitoringRequest that = (MonitoringRequest) o;
 
-        if (sourceClientUrl != null ? !sourceClientUrl.equals(that.sourceClientUrl) : that.sourceClientUrl != null)
-            return false;
-        return jobToBackUp != null ? jobToBackUp.equals(that.jobToBackUp) : that.jobToBackUp == null;
+        if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
+        return jobToMonitor != null ? jobToMonitor.equals(that.jobToMonitor) : that.jobToMonitor == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = sourceClientUrl != null ? sourceClientUrl.hashCode() : 0;
-        result = 31 * result + (jobToBackUp != null ? jobToBackUp.hashCode() : 0);
+        int result = sourceResourceManagerId;
+        result = 31 * result + (jobToMonitor != null ? jobToMonitor.hashCode() : 0);
         return result;
     }
 }

@@ -22,9 +22,9 @@ public class UserMain {
         RmiServer rmiServer = new RmiServer(1099);
         URL url = UserMain.class.getClassLoader().getResource("user/rms");
         Path rmRepositoryFilePath = Paths.get(url.toURI());
-        IRepository<IResourceManager> repo = Repository.fromFile(rmRepositoryFilePath);
+        IRepository<IResourceManager> resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
-        User u = new User(rmiServer, "localhost/proxy", repo);
+        User u = new User(resourceManagerRepository, "user");
 
         System.out.println("I'm done.");
     }

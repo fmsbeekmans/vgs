@@ -1,8 +1,6 @@
 package santiagoAndFerdy.vgs.messages;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerResourceManagerClient;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.io.Serializable;
@@ -11,16 +9,16 @@ import java.io.Serializable;
  * Created by Fydio on 3/30/16.
  */
 public class BackUpRequest implements Serializable {
-    private String sourceUrl;
+    private int sourceGridSchedulerId;
     private @NotNull Job jobToBackUp;
 
-    public BackUpRequest(String sourceUrl, Job jobToBackUp) {
-        this.sourceUrl = sourceUrl;
+    public BackUpRequest(int sourceResourceManagerId, Job jobToBackUp) {
+        this.sourceGridSchedulerId = sourceResourceManagerId;
         this.jobToBackUp = jobToBackUp;
     }
 
-    public String getSourceUrl() {
-        return sourceUrl;
+    public int getSourceGridSchedulerId() {
+        return sourceGridSchedulerId;
     }
 
     public Job getJobToBackUp() {
@@ -34,14 +32,14 @@ public class BackUpRequest implements Serializable {
 
         BackUpRequest that = (BackUpRequest) o;
 
-        if (sourceUrl != null ? !sourceUrl.equals(that.sourceUrl) : that.sourceUrl != null) return false;
+        if (sourceGridSchedulerId != that.sourceGridSchedulerId) return false;
         return jobToBackUp != null ? jobToBackUp.equals(that.jobToBackUp) : that.jobToBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = sourceUrl != null ? sourceUrl.hashCode() : 0;
+        int result = sourceGridSchedulerId;
         result = 31 * result + (jobToBackUp != null ? jobToBackUp.hashCode() : 0);
         return result;
     }

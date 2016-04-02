@@ -15,8 +15,8 @@ import com.amazonaws.services.s3.model.S3Object;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
-import santiagoAndFerdy.vgs.gridScheduler.IGridSchedulerGridSchedulerClient;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerGridSchedulerClient;
+import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 /**
@@ -49,8 +49,8 @@ public class GridSchedulerMain {
         S3Object resourceManagerListing = s3Client.getObject(new GetObjectRequest(bucketName, resourceManagerListingFileName));
         S3Object gridSchedulerListing = s3Client.getObject(new GetObjectRequest(bucketName, resourceManagerListingFileName));
 
-        IRepository<IResourceManagerGridSchedulerClient> resourceManagerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
-        IRepository<IGridSchedulerGridSchedulerClient> gridSchedulerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
+        IRepository<IResourceManager> resourceManagerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
+        IRepository<IGridScheduler> gridSchedulerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
         RmiServer server = new RmiServer(1099);
 
         GridScheduler gs = new GridScheduler(server, resourceManagerClientRepository, gridSchedulerClientRepository, url, id);
@@ -58,7 +58,6 @@ public class GridSchedulerMain {
         while(true){
             Thread.sleep(2000);
             gs.checkConnections();
-            gs.getClient().checkConnections();
             System.out.println("");
         }
     }
