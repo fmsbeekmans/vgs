@@ -1,10 +1,7 @@
 package santiagoAndFerdy.vgs.discovery;
 
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerDriver;
-import santiagoAndFerdy.vgs.model.cluster.IResourceManagerUserClient;
-
 import java.io.IOException;
-import java.io.Serializable;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -98,6 +95,17 @@ public class Repository<T extends Remote> implements IRepository<T> {
             urls.put(id, url);
         }
 
+        return new Repository<T>(urls);
+    }
+    
+    public static <T extends Remote> IRepository<T> fromS3(InputStream input) throws IOException {
+        Scanner s = new Scanner(input);
+        Map<Integer, String> urls = new HashMap<>();
+        while(s.hasNext()) {
+            int id = s.nextInt();
+            String url = s.next();
+            urls.put(id, url);
+        }
         return new Repository<T>(urls);
     }
 }
