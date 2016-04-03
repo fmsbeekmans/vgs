@@ -7,6 +7,7 @@ import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.model.Job;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 
 /**
  * Created by Fydio on 3/19/16.
@@ -51,4 +52,18 @@ public interface IGridScheduler extends ICrashable {
      * @throws RemoteException
      */
     void releaseBackUp(WorkRequest workRequest) throws RemoteException;
+
+    /**
+     * a resource manager has woken up and announces it's presence
+     * @param from
+     * @throws RemoteException
+     */
+    void receiveResourceManagerWakeUpAnnouncement(int from) throws RemoteException;
+
+    /**
+     * a grid scheduler has woken up and announces it's presence
+     * @param from
+     * @throws RemoteException
+     */
+    void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException;
 }

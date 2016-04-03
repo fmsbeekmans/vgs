@@ -2,6 +2,7 @@ package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.ICrashable;
+import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 
 import java.net.MalformedURLException;
@@ -33,4 +34,11 @@ public interface IResourceManager extends ICrashable {
      * @throws RemoteException
      */
     void finish(Node node, WorkRequest finished) throws RemoteException;
+
+    /**
+     * a grid scheduler has woken up and announces it's presence
+     * @param from
+     * @throws RemoteException
+     */
+    void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException;
 }

@@ -5,6 +5,7 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
 
+import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
@@ -179,18 +180,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     @Override
-    public synchronized void shutDown() throws RemoteException {
-        jobQueue = null;
-        idleNodes = null;
-
-        monitoredBy = null;
-        backedUpAt = null;
-
-        timer.shutdownNow();
-        engine.shutdown();
-    }
-
-    @Override
     public synchronized void start() throws RemoteException {
         jobQueue = new LinkedBlockingQueue<>();
         idleNodes = new ArrayBlockingQueue<>(nNodes);
@@ -210,6 +199,23 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         }
 
         running = true;
+    }
+
+    @Override
+    public synchronized void shutDown() throws RemoteException {
+        jobQueue = null;
+        idleNodes = null;
+
+        monitoredBy = null;
+        backedUpAt = null;
+
+        timer.shutdownNow();
+        engine.shutdown();
+    }
+
+    @Override
+    public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
+        gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override

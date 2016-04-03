@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
@@ -87,6 +88,15 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
+    public void start() throws RemoteException {
+        running = true;
+        monitoredJobs = new PriorityQueue<>();
+        backUpMonitoredJobs = new PriorityQueue<>();
+
+        // TODO annouche wakeup
+    }
+
+    @Override
     public void shutDown() throws RemoteException {
         running = false;
         monitoredJobs = null;
@@ -94,12 +104,13 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public void start() throws RemoteException {
-        running = true;
-        monitoredJobs = new PriorityQueue<>();
-        backUpMonitoredJobs = new PriorityQueue<>();
+    public void receiveResourceManagerWakeUpAnnouncement(int from) throws RemoteException {
+        resourceManagerRepository.setLastKnownStatus(from, Status.ONLINE);
+    }
 
-        // TODO annouche wakeup
+    @Override
+    public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
+        gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
