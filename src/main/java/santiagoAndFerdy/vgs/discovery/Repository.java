@@ -22,8 +22,6 @@ public class Repository<T extends Remote> implements IRepository<T> {
     protected String[]        urls;
     protected Status[]        statuses;
 
-    Map<Integer, String>      memoizedUrls;
-
     public Repository(Map<Integer, String> urls) {
         int n = urls.keySet().stream().max(Comparator.naturalOrder()).map(max -> max + 1).orElse(0);
         this.urls = new String[n];
@@ -37,8 +35,18 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException {
-        return (T) Naming.lookup(urls[id]);
+    public Optional<T> getEntity(int id) {
+        try {
+            T result = (T) Naming.lookup(urls[id]);
+            setLastKnownStatus(id, Status.ONLINE);
+
+            return Optional.of(result);
+        } catch (RemoteException | NotBoundException | MalformedURLException e) {
+            e.printStackTrace();
+            setLastKnownStatus(id, Status.OFFLINE);
+
+            return Optional.empty();
+        }
     }
 
     @Override
