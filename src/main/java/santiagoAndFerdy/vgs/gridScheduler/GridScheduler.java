@@ -25,6 +25,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Queue<MonitoringRequest>      monitoredJobs;
     private Queue<BackUpRequest>          backUpMonitoredJobs;
 
+    private boolean running;
+
     public GridScheduler(
             RmiServer rmiServer,
             int id,
@@ -37,35 +39,44 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         this.resourceManagerRepository = resourceManagerRepository;
         this.gridSchedulerRepository = gridSchedulerRepository;
 
-        monitoredJobs = new PriorityQueue<>();
-        backUpMonitoredJobs = new PriorityQueue<>();
+        start();
     }
 
     @Override
     public synchronized void monitor(MonitoringRequest monitorRequest) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
         monitoredJobs.add(monitorRequest);
     }
 
     @Override
     public void backUp(BackUpRequest backUpRequest) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("Received backup request from " + backUpRequest.getSourceGridSchedulerId() + " at cluster " + id);
         backUpMonitoredJobs.add(backUpRequest);
     }
 
     @Override
-    public void offload(Job userRequest) {
+    public void offLoad(WorkRequest workRequest) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
 
     }
 
     @Override
-    public void releaseMonitored(WorkRequest request) {
+    public void releaseMonitored(WorkRequest request) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("Stop monitoring " + request.getJob().getJobId() + " at cluster " + id);
         monitoredJobs.remove(request);
     }
 
     @Override
     public void releaseBackUp(WorkRequest workRequest) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("Releasing back-up of workRequest " + workRequest.getJob().getJobId() + " at cluster " + id);
         backUpMonitoredJobs.remove(workRequest);
     }
@@ -73,6 +84,22 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     @Override
     public void iAmAlive(Heartbeat h) throws RemoteException {
 
+    }
+
+    @Override
+    public void shutDown() throws RemoteException {
+        running = false;
+        monitoredJobs = null;
+        backUpMonitoredJobs = null;
+    }
+
+    @Override
+    public void start() throws RemoteException {
+        running = true;
+        monitoredJobs = new PriorityQueue<>();
+        backUpMonitoredJobs = new PriorityQueue<>();
+
+        // TODO annouche wakeup
     }
 
     @Override

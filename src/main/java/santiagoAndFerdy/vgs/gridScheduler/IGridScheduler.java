@@ -1,10 +1,8 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
-import santiagoAndFerdy.vgs.discovery.IAddressable;
+import santiagoAndFerdy.vgs.discovery.ICrashable;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
@@ -13,7 +11,7 @@ import santiagoAndFerdy.vgs.model.Job;
 /**
  * Created by Fydio on 3/19/16.
  */
-public interface IGridScheduler extends IAddressable {
+public interface IGridScheduler extends ICrashable {
     /**
      * Request this grid scheduler to monitor the life-cycle for this job
      * 
@@ -35,10 +33,10 @@ public interface IGridScheduler extends IAddressable {
     /**
      * For a resource manager to request a job to be scheduled elsewhere
      * 
-     * @param job
+     * @param workRequest
      *            to schedule somewhere else
      */
-    void offload(Job job) throws RemoteException;
+    void offLoad(WorkRequest workRequest) throws RemoteException;
 
     /**
      * A job has finished. All the reserved resources can be released.

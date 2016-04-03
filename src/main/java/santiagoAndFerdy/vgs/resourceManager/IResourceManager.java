@@ -1,7 +1,7 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.discovery.IAddressable;
+import santiagoAndFerdy.vgs.discovery.ICrashable;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 
 import java.net.MalformedURLException;
@@ -11,7 +11,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/19/16.
  */
-public interface IResourceManager extends IAddressable {
+public interface IResourceManager extends ICrashable {
     /**
      * For users to offer jobs to the resource manager
      * @param req the workload offered to the resource manager

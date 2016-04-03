@@ -43,6 +43,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private ScheduledExecutorService timer;
     private Engine engine;
 
+    private boolean running;
+
     public ResourceManager(
             RmiServer rmiServer,
             int id,
@@ -58,22 +60,9 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         rmiServer.register(resourceManagerRepository.getUrl(id), this);
 
         this.nNodes = nNodes;
-        jobQueue = new LinkedBlockingQueue<>();
-        idleNodes = new ArrayBlockingQueue<>(nNodes);
+        running = false;
 
-        monitoredBy = new HashMap<>();
-        backedUpAt = new HashMap<>();
-
-
-        int numCores = Runtime.getRuntime().availableProcessors();
-        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
-        this.timer = Executors.newSingleThreadScheduledExecutor();
-        engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
-
-        for(int i = 0; i < nNodes; i++) {
-            Node node = new Node(i, this, timer);
-            idleNodes.add(node);
-        }
+        start();
     }
 
     @Override
@@ -187,6 +176,40 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             }
 
         }
+    }
+
+    @Override
+    public synchronized void shutDown() throws RemoteException {
+        jobQueue = null;
+        idleNodes = null;
+
+        monitoredBy = null;
+        backedUpAt = null;
+
+        timer.shutdownNow();
+        engine.shutdown();
+    }
+
+    @Override
+    public synchronized void start() throws RemoteException {
+        jobQueue = new LinkedBlockingQueue<>();
+        idleNodes = new ArrayBlockingQueue<>(nNodes);
+
+        monitoredBy = new HashMap<>();
+        backedUpAt = new HashMap<>();
+
+        int numCores = Runtime.getRuntime().availableProcessors();
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
+        this.timer = Executors.newSingleThreadScheduledExecutor();
+        engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
+
+
+        for(int i = 0; i < nNodes; i++) {
+            Node node = new Node(i, this, timer);
+            idleNodes.add(node);
+        }
+
+        running = true;
     }
 
     @Override
