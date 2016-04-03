@@ -10,19 +10,19 @@ import java.io.Serializable;
  */
 public class BackUpRequest implements Serializable {
     private int sourceGridSchedulerId;
-    private @NotNull Job jobToBackUp;
+    private @NotNull WorkRequest toBackUp;
 
-    public BackUpRequest(int sourceResourceManagerId, Job jobToBackUp) {
-        this.sourceGridSchedulerId = sourceResourceManagerId;
-        this.jobToBackUp = jobToBackUp;
+    public BackUpRequest(int sourceGridSchedulerId, WorkRequest toBackUp) {
+        this.sourceGridSchedulerId = sourceGridSchedulerId;
+        this.toBackUp = toBackUp;
     }
 
     public int getSourceGridSchedulerId() {
         return sourceGridSchedulerId;
     }
 
-    public Job getJobToBackUp() {
-        return jobToBackUp;
+    public WorkRequest getToBackUp() {
+        return toBackUp;
     }
 
     @Override
@@ -33,14 +33,14 @@ public class BackUpRequest implements Serializable {
         BackUpRequest that = (BackUpRequest) o;
 
         if (sourceGridSchedulerId != that.sourceGridSchedulerId) return false;
-        return jobToBackUp != null ? jobToBackUp.equals(that.jobToBackUp) : that.jobToBackUp == null;
+        return toBackUp != null ? toBackUp.equals(that.toBackUp) : that.toBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
         int result = sourceGridSchedulerId;
-        result = 31 * result + (jobToBackUp != null ? jobToBackUp.hashCode() : 0);
+        result = 31 * result + (toBackUp != null ? toBackUp.hashCode() : 0);
         return result;
     }
 }

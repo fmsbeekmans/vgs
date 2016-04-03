@@ -1,7 +1,6 @@
 package santiagoAndFerdy.vgs.messages;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.Job;
 
 import java.io.Serializable;
 
@@ -10,19 +9,19 @@ import java.io.Serializable;
  */
 public class MonitoringRequest implements Serializable {
     private @NotNull int sourceResourceManagerId;
-    private @NotNull Job jobToMonitor;
+    private @NotNull WorkRequest toMonitor;
 
-    public MonitoringRequest(int sourceResourceManagerId, Job jobToBackUp) {
+    public MonitoringRequest(int sourceResourceManagerId, WorkRequest jobToMonitor) {
         this.sourceResourceManagerId = sourceResourceManagerId;
-        this.jobToMonitor = jobToBackUp;
+        this.toMonitor = jobToMonitor;
     }
 
     public int getSourceResourceManagerId() {
         return sourceResourceManagerId;
     }
 
-    public Job getJobToMonitor() {
-        return jobToMonitor;
+    public WorkRequest getToMonitor() {
+        return toMonitor;
     }
 
     @Override
@@ -33,14 +32,14 @@ public class MonitoringRequest implements Serializable {
         MonitoringRequest that = (MonitoringRequest) o;
 
         if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
-        return jobToMonitor != null ? jobToMonitor.equals(that.jobToMonitor) : that.jobToMonitor == null;
+        return toMonitor != null ? toMonitor.equals(that.toMonitor) : that.toMonitor == null;
 
     }
 
     @Override
     public int hashCode() {
         int result = sourceResourceManagerId;
-        result = 31 * result + (jobToMonitor != null ? jobToMonitor.hashCode() : 0);
+        result = 31 * result + (toMonitor != null ? toMonitor.hashCode() : 0);
         return result;
     }
 }

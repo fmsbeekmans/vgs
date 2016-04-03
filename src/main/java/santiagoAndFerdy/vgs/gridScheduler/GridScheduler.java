@@ -64,7 +64,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     @Override
     public synchronized void monitorPrimary(MonitoringRequest request) throws RemoteException, MalformedURLException, NotBoundException {
-        System.out.println("Received job " + request.getJobToMonitor().getJobId() + " to monitor ");
+        System.out.println("Received job " + request.getToMonitor().getJob().getJobId() + " to monitor ");
         monitoredJobs.add(request);
         IGridScheduler backUp = selectBackUp();
     }
@@ -78,7 +78,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     @Override
     public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException {
         backUpMonitoredJobs.add(backUpRequest);
-        IGridScheduler client = gridSchedulerRepository.getEntity(backUpRequest.getSourceGridSchedulerId());
     }
 
     @Override

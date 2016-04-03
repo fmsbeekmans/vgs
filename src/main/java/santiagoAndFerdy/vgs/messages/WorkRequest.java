@@ -19,7 +19,7 @@ public class WorkRequest {
         return userUrl;
     }
 
-    public Job getToExecute() {
+    public Job getJob() {
         return toExecute;
     }
 

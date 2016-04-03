@@ -3,7 +3,6 @@ package santiagoAndFerdy.vgs.resourceManager;
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.promise.Promise;
 import com.sun.istack.internal.NotNull;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 
@@ -96,17 +95,17 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
 
     @Override
     public synchronized void offerWork(WorkRequest req) throws RemoteException, MalformedURLException, NotBoundException {
-        System.out.println("Received job " + req.getToExecute().getJobId());
+        System.out.println("Received job " + req.getJob().getJobId());
 
         Task<Void> queueFlow = Task
                 // send to GS first
-                .action(() -> requestMonitoring(req.getToExecute()))
+                .action(() -> requestMonitoring(req))
                 // then schedule
                 .andThen(monitored -> jobQueue.add(req))
                 // and process the queue again
                 .andThen(queue -> processQueue());
         engine.run(queueFlow);
-        load += req.getToExecute().getDuration();
+        load += req.getJob().getDuration();
     }
 
     @Override
@@ -116,8 +115,8 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         processQueue();
     }
 
-    public void requestMonitoring(Job jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
-        System.out.println("Requesting monitoring for job " + jobToMonitor.getJobId());
+    public void requestMonitoring(WorkRequest jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
+        System.out.println("Requesting monitoring for job " + jobToMonitor.getJob().getJobId());
 
         IGridScheduler backUpTarget = selectResourceManagerForBackUp();
         backUpTarget.monitorPrimary(new MonitoringRequest(id, jobToMonitor));
@@ -130,11 +129,11 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     @Override
     public void finish(Node node, WorkRequest toFinish) throws RemoteException, MalformedURLException, NotBoundException {
         IUser user = (IUser) Naming.lookup(toFinish.getUserUrl());
-        user.acceptResult(toFinish.getToExecute());
+        user.acceptResult(toFinish.getJob());
     }
 
-    private synchronized void release(Job toRelease) {
-        load -= toRelease.getDuration();
+    private synchronized void release(WorkRequest toRelease) {
+        load -= toRelease.getJob().getDuration();
     }
 
     // should be run after any change in node state or job queue
@@ -142,7 +141,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         while (!jobQueue.isEmpty() && !idleNodes.isEmpty()) {
             Node allocatedNode = idleNodes.poll();
             WorkRequest toRun = jobQueue.poll();
-            System.out.println("Running job " + toRun.getToExecute().getJobId());
+            System.out.println("Running job " + toRun.getJob().getJobId());
 
             Task<Void> run = Task.action(() -> allocatedNode.handle(toRun));
             engine.run(run);

@@ -2,12 +2,10 @@ package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
-import santiagoAndFerdy.vgs.model.Job;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -44,7 +42,7 @@ public class Node {
                         e.printStackTrace();
                     }
                 },
-                toExecute.getToExecute().getDuration(), TimeUnit.MILLISECONDS);
+                toExecute.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
     public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
