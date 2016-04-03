@@ -93,7 +93,26 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         monitoredJobs = new PriorityQueue<>();
         backUpMonitoredJobs = new PriorityQueue<>();
 
-        // TODO annouche wakeup
+        for (int gridSchedulerId : gridSchedulerRepository.ids()) {
+            gridSchedulerRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
+                try {
+                    gs.receiveResourceManagerWakeUpAnnouncement(id);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    // Can be offline. that's okay.
+                }
+            });
+        }
+
+        for(int resourceManagerId : resourceManagerRepository.ids()) {
+            resourceManagerRepository.getEntity(resourceManagerId).ifPresent(rm -> {
+                try {
+                    rm.receiveGridSchedulerWakeUpAnnouncement(id);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
     @Override

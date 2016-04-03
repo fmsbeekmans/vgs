@@ -199,6 +199,17 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         }
 
         running = true;
+
+        for (int gridSchedulerId : gridSchedulerRepository.ids()) {
+            gridSchedulerRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
+                try {
+                    gs.receiveResourceManagerWakeUpAnnouncement(id);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                    // Can be offline. that's okay.
+                }
+            });
+        }
     }
 
     @Override
