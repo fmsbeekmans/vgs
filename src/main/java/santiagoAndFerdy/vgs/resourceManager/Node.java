@@ -1,12 +1,12 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.Request;
+import santiagoAndFerdy.vgs.messages.WorkRequest;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -14,30 +14,26 @@ import java.util.concurrent.TimeUnit;
  */
 public class Node {
     private int id;
-    private Request request;
-    private IResourceManagerDriver rm;
+    private WorkRequest current;
+    private IResourceManager resourceManager;
+    private ScheduledExecutorService timer;
 
-
-    public Node(int id, @NotNull IResourceManagerDriver rm) {
+    public Node(int id, @NotNull IResourceManager rm, ScheduledExecutorService timer) {
         this.id = id;
-        this.rm = rm;
+        this.resourceManager = rm;
+        this.timer = timer;
     }
 
     public int getId() {
         return id;
     }
 
-    public Optional<Request> getRequest() {
-        return Optional.ofNullable(request);
-    }
+    public synchronized void handle(@NotNull WorkRequest toExecute) throws RemoteException, MalformedURLException, NotBoundException {
+        this.current = toExecute;
 
-    public synchronized void handle(@NotNull Request request) throws RemoteException, MalformedURLException, NotBoundException {
-        this.request = request;
-
-        this.rm.executorService()
-                .schedule(() -> {
+        this.timer.schedule(() -> {
                     try {
-                        this.rm.finish(this, request);
+                        this.resourceManager.finish(this, toExecute);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     } catch (MalformedURLException e) {
@@ -46,15 +42,15 @@ public class Node {
                         e.printStackTrace();
                     }
                 },
-                request.getJob().getDuration(), TimeUnit.MILLISECONDS);
+                toExecute.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
     public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
-        this.request = null;
+        this.current = null;
     }
 
-    public IResourceManagerDriver getRm() {
-        return rm;
+    public IResourceManager getResourceManager() {
+        return resourceManager;
     }
 
     @Override
@@ -65,14 +61,14 @@ public class Node {
         Node node = (Node) o;
 
         if (id != node.id) return false;
-        return rm.equals(node.rm);
+        return resourceManager.equals(node.resourceManager);
 
     }
 
     @Override
     public int hashCode() {
         int result = id;
-        result = 31 * result + rm.hashCode();
+        result = 31 * result + resourceManager.hashCode();
         return result;
     }
 }

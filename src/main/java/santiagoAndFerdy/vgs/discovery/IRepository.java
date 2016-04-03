@@ -1,7 +1,10 @@
 package santiagoAndFerdy.vgs.discovery;
 
 import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.rmi.NotBoundException;
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,8 +15,9 @@ import java.util.Optional;
 public interface IRepository<T extends Remote> extends Serializable {
 
     // for user
-    Optional<T> getEntity(int id);
-    Optional<Status> getLastKnownStatus(int id);
+    T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException;
+    String getUrl(int id);
+    Status getLastKnownStatus(int id);
 
     /**
      * Updates the last known status of an RM
@@ -24,5 +28,4 @@ public interface IRepository<T extends Remote> extends Serializable {
     boolean setLastKnownStatus(int id, Status newStatus);
 
     List<Integer> ids();
-    Map<Integer, String> urls();
 }

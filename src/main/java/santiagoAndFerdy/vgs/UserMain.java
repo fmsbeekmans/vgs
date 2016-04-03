@@ -2,7 +2,7 @@ package santiagoAndFerdy.vgs;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManagerDriver;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
@@ -19,12 +19,12 @@ import java.rmi.NotBoundException;
 public class UserMain {
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
         System.out.println("I'm a user");
-        RmiServer rmiServer = new RmiServer(1089);
+        RmiServer rmiServer = new RmiServer(1099);
         URL url = UserMain.class.getClassLoader().getResource("user/rms");
         Path rmRepositoryFilePath = Paths.get(url.toURI());
-        IRepository<IResourceManagerDriver> repo = Repository.fromFile(rmRepositoryFilePath);
+        IRepository<IResourceManager> resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
-        User u = new User(rmiServer, "localhost/proxy", repo);
+        User u = new User(resourceManagerRepository, "user");
 
         System.out.println("I'm done.");
     }

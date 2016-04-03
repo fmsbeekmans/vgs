@@ -13,33 +13,26 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-
-import santiagoAndFerdy.vgs.discovery.IHeartbeatReceiver;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
+import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
+import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 public class SimulationLauncher implements Runnable {
 
-    RmiServer                       server;
-    Map<Integer, String>            rmUrls;
-    Map<Integer, String>            gsUrls;
-    IRepository<IHeartbeatReceiver> repoGS;
-    GridScheduler[]                 gsArray;
+    RmiServer                                        server;
+    IRepository<IResourceManager> resourceManagerRepository;
+    IRepository<IGridScheduler> gridSchedulerRepository;
+    String                                           urlRM0;
+    GridScheduler[]                            gsArray;
     //
-    final ArrayList<Process>        gsProcesses = new ArrayList<Process>();
-    final ArrayList<Process>        rmProcesses = new ArrayList<Process>();
+    final ArrayList<Process>                         gsProcesses = new ArrayList<Process>();
+    final ArrayList<Process>                         rmProcesses = new ArrayList<Process>();
 
     /**
      * JUST FOR TEST WITHOUT MAIN Test to show that the HB protocol is working properly. It creates two RM and one GS. The simulation method(which in
@@ -48,33 +41,33 @@ public class SimulationLauncher implements Runnable {
      * 
      * @throws IOException
      * @throws URISyntaxException
+     * @throws NotBoundException
      */
-    public SimulationLauncher() throws IOException, URISyntaxException {
+    public SimulationLauncher() throws IOException, URISyntaxException, NotBoundException {
         server = new RmiServer(1099);
 
-        // RM
+        // RM Drivers (RM Component)
         URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
         Path rmRepositoryFilePath = Paths.get(urlRM.toURI());
-        IRepository<IHeartbeatReceiver> repoRM = Repository.fromFile(rmRepositoryFilePath);
-        rmUrls = repoRM.urls();
+        resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
-        // GS
+        // GS Drivers (GS Component)
         URL urlGS = ResourceManagerMain.class.getClassLoader().getResource("gs/gss");
         Path gsRepositoryFilePath = Paths.get(urlGS.toURI());
-        repoGS = Repository.fromFile(gsRepositoryFilePath);
-        Map<Integer, String> gsUrls = repoGS.urls();
-        gsArray = new GridScheduler[gsUrls.size()];
-        for (int id : gsUrls.keySet()) {
-            String url = gsUrls.get(id);
-            GridScheduler gs = new GridScheduler(server, repoRM, url);
-            server.register(url, gs);
+        gridSchedulerRepository = Repository.fromFile(gsRepositoryFilePath);
+
+        gsArray = new GridScheduler[gridSchedulerRepository.ids().size()];
+        for (int id : gridSchedulerRepository.ids()) {
+            String url = gridSchedulerRepository.getUrl(id);
+            GridScheduler gs = new GridScheduler(server, resourceManagerRepository, gridSchedulerRepository, url, id);
             gsArray[id] = gs;
         }
 
-        for (int id : rmUrls.keySet()) {
-            String url2 = rmUrls.get(id);
-            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url2, repoGS);
-
+        for (int id : resourceManagerRepository.ids()) {
+            String url2 = resourceManagerRepository.getUrl(id);
+            if (id == 0) // for the restart in the simulation method
+                urlRM0 = url2;
+            EagerResourceManager rmImpl = new EagerResourceManager(id, 10000, server, url2, gridSchedulerRepository);
             server.register(url2, rmImpl);
 
         }
@@ -120,12 +113,11 @@ public class SimulationLauncher implements Runnable {
         // Create the GS nodes
         URL urlGS = SimulationLauncher.class.getClassLoader().getResource("gs/gss");
         Path gsRepositoryFilePath = Paths.get(urlGS.toURI());
-        repoGS = Repository.fromFile(gsRepositoryFilePath);
-        gsUrls = repoGS.urls();
+        gridSchedulerRepository = Repository.fromFile(gsRepositoryFilePath);
 
-        for (int id : gsUrls.keySet()) {
-            String url = gsUrls.get(id); // the filepath is hardcoded because I was getting exceptions...
-            pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", url, "vgs-repository", "rm/rms");
+        for (int id : gridSchedulerRepository.ids()) {
+            String url = gridSchedulerRepository.getUrl(id);
+            pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(id), url, "vgs-repository", "gs/rms", "gs/gss");
             pb.redirectErrorStream(true);
             try {
                 gsProcesses.add(pb.start());
@@ -158,12 +150,11 @@ public class SimulationLauncher implements Runnable {
         // Create RM nodes
         URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
         Path rmRepositoryFilePath = Paths.get(urlRM.toURI());
-        IRepository<IHeartbeatReceiver> repoRM = Repository.fromFile(rmRepositoryFilePath);
-        rmUrls = repoRM.urls();
+        resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 
-        for (int id : rmUrls.keySet()) {
-            String url = rmUrls.get(id);
-            pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", url, Integer.toString(id), "vgs-repository", "gs/gss");
+        for (int id : resourceManagerRepository.ids()) {
+            String url = resourceManagerRepository.getUrl(id);
+            pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", url, Integer.toString(id), "vgs-repository", "rm/gs-clients");
             pb.redirectErrorStream(true);
             try {
                 rmProcesses.add(pb.start());
@@ -197,7 +188,7 @@ public class SimulationLauncher implements Runnable {
 
     }
 
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
+    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
         new SimulationLauncher(1);
 
     }
@@ -218,7 +209,7 @@ public class SimulationLauncher implements Runnable {
     public void run() {
         boolean restart = false;
         try {
-            // Let all the nodes start... It ake sa long time
+            // Let all the nodes start... It takes a long time
             Thread.sleep(70000);
         } catch (InterruptedException e1) {
         }
@@ -228,16 +219,17 @@ public class SimulationLauncher implements Runnable {
                     restart = true;
                     System.out.println("LET'S RESTART");
                     IRemoteShutdown driver;
-                    driver = (IRemoteShutdown) Naming.lookup(rmUrls.get(0));
+                    driver = (IRemoteShutdown) Naming.lookup(resourceManagerRepository.getUrl(0));
                     driver.shutDown();
+
                     // This shouldn't be needed to done manually...
                     rmProcesses.get(0).destroy();
                     rmProcesses.remove(0);
                     Thread.sleep(7000);
-                    String url = rmUrls.get(0);
+                    String url = resourceManagerRepository.getUrl(0);
                     int id = 0;
                     ProcessBuilder pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", url, Integer.toString(id), "vgs-repository",
-                            "gs/gss");
+                            "rm/gs-clients");
                     pb.redirectErrorStream(true);
                     Process p = pb.start();
                     rmProcesses.add(p);
@@ -276,8 +268,8 @@ public class SimulationLauncher implements Runnable {
             Thread.sleep(1000); // wait a little bit
             gsArray[0].checkConnections(); // check the status
             Thread.sleep(2000);
-            IRemoteShutdown driver;
-            driver = (IRemoteShutdown) Naming.lookup(rmUrls.get(0));
+            IRemoteShutdown driver; // Shutdown the RM 0
+            driver = (IRemoteShutdown) Naming.lookup(urlRM0);
             driver.shutDown();
         } catch (InterruptedException | MalformedURLException | RemoteException | NotBoundException e) {
         }
@@ -294,9 +286,9 @@ public class SimulationLauncher implements Runnable {
             if (!restart) { // restart the node
                 restart = true;
                 try {
-                    EagerResourceManager rmImpl = new EagerResourceManager(0, 10000, server, "//localhost/rm-d0", repoGS);
-                    server.register("//localhost/rm-d0", rmImpl);
-                    System.out.println("Restarted");
+                    EagerResourceManager rmImpl = new EagerResourceManager(0, 10000, server, urlRM0, gridSchedulerRepository);
+                    server.register(urlRM0, rmImpl);
+                    System.out.println(urlRM0 + " restarted");
                 } catch (Exception e) {
                 }
             }

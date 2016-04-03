@@ -18,25 +18,43 @@ import santiagoAndFerdy.vgs.messages.Heartbeat;
 public class HeartbeatHandler {
 
     private HashMap<Integer, Status> status;
-    private Map<Integer, String>     urls;
-    private Engine                   engine; //dunno if we need the Engine here actually
+    private IRepository<?>           repository;
+    private Engine                   engine;        // dunno if we need the Engine here actually
     private ScheduledExecutorService timerScheduler;
+    private int                      id;
+    private boolean                  flag;
 
-    public HeartbeatHandler(IRepository<IHeartbeatReceiver> repo) throws MalformedURLException, RemoteException {
-        status = new HashMap<Integer, Status>();
-        urls = repo.urls();
+    /**
+     * Heartbeat handler which pings periodically the URLs in the repository.
+     * 
+     * @param repository
+     *            - repository containing the id and URLs
+     * @param id
+     *            - id of the component which creates the handler, it's used to avoid pinging itself
+     * @param flag
+     *            - flag indicating whether should check not pinging the same id than the received in the id param or not. The GS needs to ping all
+     *            RMs but not all GS (not itself)
+     * @throws MalformedURLException
+     * @throws RemoteException
+     */
+    public HeartbeatHandler(IRepository<? extends IAddressable> repository, int id, boolean flag) throws MalformedURLException, RemoteException {
+        status = new HashMap<>();
+        this.repository = repository;
+        this.id = id;
+        this.flag = flag;
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
         checkLife();
     }
+
     /**
      * Print the status of the IDs connected to this handler.
      */
     public void getStatus() {
         for (int id : status.keySet()) {
-            System.out.println(urls.get(id) + " is " + status.get(id));
+            System.out.println(repository.getUrl(id) + " is " + status.get(id));
         }
     }
 
@@ -46,16 +64,18 @@ public class HeartbeatHandler {
      */
     public void checkLife() {
         timerScheduler.scheduleAtFixedRate(() -> {
-            for (int id : urls.keySet()) {
-                Heartbeat h = new Heartbeat(urls.get(id));
+            for (int id : repository.ids()) {
+                if (id == this.id && flag) // to not ping himself
+                    continue;
+                Heartbeat h = new Heartbeat(repository.getUrl(id));
                 try {
-                    IHeartbeatReceiver driver;
-                    driver = (IHeartbeatReceiver) Naming.lookup(urls.get(id));
+                    IAddressable driver;
+                    driver = (IAddressable) Naming.lookup(repository.getUrl(id));
                     driver.iAmAlive(h);
                     status.put(id, Status.ONLINE);
                 } catch (Exception e) {
-//                    if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
-//                        e.printStackTrace();
+                    // if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
+                    // e.printStackTrace();
                     status.put(id, Status.OFFLINE);
                 }
             }

@@ -1,0 +1,45 @@
+package santiagoAndFerdy.vgs.messages;
+
+import com.sun.istack.internal.NotNull;
+
+import java.io.Serializable;
+
+/**
+ * Created by Fydio on 3/30/16.
+ */
+public class MonitoringRequest implements Serializable {
+    private @NotNull int sourceResourceManagerId;
+    private @NotNull WorkRequest toMonitor;
+
+    public MonitoringRequest(int sourceResourceManagerId, WorkRequest jobToMonitor) {
+        this.sourceResourceManagerId = sourceResourceManagerId;
+        this.toMonitor = jobToMonitor;
+    }
+
+    public int getSourceResourceManagerId() {
+        return sourceResourceManagerId;
+    }
+
+    public WorkRequest getToMonitor() {
+        return toMonitor;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MonitoringRequest that = (MonitoringRequest) o;
+
+        if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
+        return toMonitor != null ? toMonitor.equals(that.toMonitor) : that.toMonitor == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = sourceResourceManagerId;
+        result = 31 * result + (toMonitor != null ? toMonitor.hashCode() : 0);
+        return result;
+    }
+}
