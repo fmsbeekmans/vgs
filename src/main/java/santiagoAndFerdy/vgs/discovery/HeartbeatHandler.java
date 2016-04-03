@@ -17,7 +17,6 @@ import santiagoAndFerdy.vgs.messages.Heartbeat;
 
 public class HeartbeatHandler {
 
-    private HashMap<Integer, Status> status;
     private IRepository<?>           repository;
     private Engine                   engine;        // dunno if we need the Engine here actually
     private ScheduledExecutorService timerScheduler;
@@ -38,7 +37,6 @@ public class HeartbeatHandler {
      * @throws RemoteException
      */
     public HeartbeatHandler(IRepository<? extends IAddressable> repository, int id, boolean flag) throws MalformedURLException, RemoteException {
-        status = new HashMap<>();
         this.repository = repository;
         this.id = id;
         this.flag = flag;
@@ -50,21 +48,12 @@ public class HeartbeatHandler {
     }
 
     /**
-     * Print the status of the IDs connected to this handler.
-     */
-    public void getStatus() {
-        for (int id : status.keySet()) {
-            System.out.println(repository.getUrl(id) + " is " + status.get(id));
-        }
-    }
-
-    /**
      * This method schedules a task every 5 seconds which is looking for the IDs this handler should have connected and try to ping them. If it
      * success it will update the status to ONLINE otherwise (an exception either NotBoundException or ConnectionException) to OFFLINE.
      */
     public void checkLife() {
         timerScheduler.scheduleAtFixedRate(() -> {
-            for (int id : repository.ids()) {
+            for (int id : repository.onlineIdsExcept()) {
                 if (id == this.id && flag) // to not ping himself
                     continue;
                 Heartbeat h = new Heartbeat(repository.getUrl(id));
@@ -72,11 +61,11 @@ public class HeartbeatHandler {
                     IAddressable driver;
                     driver = (IAddressable) Naming.lookup(repository.getUrl(id));
                     driver.iAmAlive(h);
-                    status.put(id, Status.ONLINE);
+                    repository.setLastKnownStatus(id, Status.ONLINE);
                 } catch (Exception e) {
                     // if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
                     // e.printStackTrace();
-                    status.put(id, Status.OFFLINE);
+                    repository.setLastKnownStatus(id, Status.OFFLINE);
                 }
             }
         } , 0, 5, TimeUnit.SECONDS);

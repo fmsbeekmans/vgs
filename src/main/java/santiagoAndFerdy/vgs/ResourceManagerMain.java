@@ -6,7 +6,6 @@ import java.rmi.NotBoundException;
 
 import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
-import santiagoAndFerdy.vgs.user.Repositories;
 
 /**
  * Created by Fydio on 3/18/16.

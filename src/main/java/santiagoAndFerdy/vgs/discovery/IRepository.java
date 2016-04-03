@@ -29,5 +29,5 @@ public interface IRepository<T extends Remote> extends Serializable {
 
     List<Integer> ids();
 
-    List<Integer> idsExcept(int... except);
+    List<Integer> onlineIdsExcept(int... except);
 }

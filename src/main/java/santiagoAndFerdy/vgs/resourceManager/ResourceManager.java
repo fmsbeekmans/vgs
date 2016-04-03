@@ -131,7 +131,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     public int selectBackUpGridSchedule(int monitorGridScheduleId) {
-        return gridSchedulerRepository.idsExcept(monitorGridScheduleId).get(0);
+        return gridSchedulerRepository.onlineIdsExcept(monitorGridScheduleId).get(0);
     }
 
     @Override

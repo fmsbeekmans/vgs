@@ -73,12 +73,12 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     @Override
-    public List<Integer> idsExcept(int... except) {
+    public List<Integer> onlineIdsExcept(int... except) {
         Set<Integer> exceptions = new HashSet<>();
         for (int exception : except) exceptions.add(exception);
 
         return ids().stream()
-                .filter(i -> !exceptions.contains(i))
+                .filter(i -> !exceptions.contains(i) && getLastKnownStatus(i) == Status.ONLINE)
                 .collect(Collectors.toList());
     }
 

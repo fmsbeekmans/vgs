@@ -1,9 +1,10 @@
-package santiagoAndFerdy.vgs.user;
+package santiagoAndFerdy.vgs;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
+import santiagoAndFerdy.vgs.user.IUser;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

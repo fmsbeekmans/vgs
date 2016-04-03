@@ -1,5 +1,6 @@
 package santiagoAndFerdy.vgs.user;
 
+import santiagoAndFerdy.vgs.discovery.IAddressable;
 import santiagoAndFerdy.vgs.model.Job;
 
 import java.net.MalformedURLException;
