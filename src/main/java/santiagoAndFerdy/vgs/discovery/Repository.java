@@ -73,6 +73,16 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     @Override
+    public List<Integer> idsExcept(int... except) {
+        Set<Integer> exceptions = new HashSet<>();
+        for (int exception : except) exceptions.add(exception);
+
+        return ids().stream()
+                .filter(i -> !exceptions.contains(i))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public String getUrl(int id) {
         return urls[id];
     }

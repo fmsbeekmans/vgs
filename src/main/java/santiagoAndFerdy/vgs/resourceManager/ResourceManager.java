@@ -1,13 +1,20 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
+import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.EngineBuilder;
+import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
 
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.*;
@@ -30,7 +37,11 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private Queue<Node> idleNodes;
     private int nNodes;
 
+    private Map<WorkRequest, Integer> monitoredBy;
+    private Map<WorkRequest, Integer> backedUpAt;
+
     private ScheduledExecutorService timer;
+    private Engine engine;
 
     public ResourceManager(
             RmiServer rmiServer,
@@ -48,9 +59,16 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         this.nNodes = nNodes;
         jobQueue = new LinkedBlockingQueue<>();
-        idleNodes = new ArrayBlockingQueue<Node>(nNodes);
+        idleNodes = new ArrayBlockingQueue<>(nNodes);
 
+        monitoredBy = new HashMap<>();
+        backedUpAt = new HashMap<>();
+
+
+        int numCores = Runtime.getRuntime().availableProcessors();
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         this.timer = Executors.newSingleThreadScheduledExecutor();
+        engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
 
         for(int i = 0; i < nNodes; i++) {
             Node node = new Node(i, this, timer);
@@ -63,8 +81,44 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if (needToOffload()) {
             // TODO send to GS to offload
         } else {
-            schedule(req);
-            processQueue();
+            int monitorGridSchedulerId = selectMonitorGridSchedule();
+            int backUpGridSchedulerId = selectBackUpGridSchedule(monitorGridSchedulerId);
+
+            Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
+            Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
+
+            if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
+                // request monitoring and backup in parallel
+                Task<Void> monitorTask = Task.action(() -> {
+                    System.out.println("Requesting monitoring for " + req.getJob().getJobId());
+                    MonitoringRequest monitoringRequest = new MonitoringRequest(id, req);
+                    monitorGridScheduler.get().monitor(monitoringRequest);
+                    monitoredBy.put(req, monitorGridSchedulerId);
+                });
+
+                Task<Void> backUpTask = Task.action(() -> {
+                    System.out.println("Requesting back-up for " + req.getJob().getJobId());
+                    BackUpRequest backUpRequest = new BackUpRequest(id, req);
+                    backUpGridScheduler.get().backUp(backUpRequest);
+                    backedUpAt.put(req, backUpGridSchedulerId);
+                });
+
+                Task<?> await = Task.par(monitorTask, backUpTask);
+                engine.run(monitorTask);
+                engine.run(backUpTask);
+                engine.run(await); // needed?
+                try {
+                    await.await();
+
+                    schedule(req);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
+                }
+            } else {
+                throw new RemoteException("no monitoring and backup grid scheduler available");
+            }
+
         }
     }
 
@@ -72,10 +126,19 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         return false;
     }
 
+    public int selectMonitorGridSchedule() {
+        return gridSchedulerRepository.ids().get(0);
+    }
+
+    public int selectBackUpGridSchedule(int monitorGridScheduleId) {
+        return gridSchedulerRepository.idsExcept(monitorGridScheduleId).get(0);
+    }
+
     @Override
     public void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
         System.out.println("Scheduling job " + toSchedule.getJob().getJobId());
         jobQueue.offer(toSchedule);
+        processQueue();
     }
 
     @Override
@@ -95,6 +158,15 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     public void release(WorkRequest req) throws RemoteException {
+        int monitorGridSchedulerId = monitoredBy.get(req);
+        int backUpGridSchedulerId = backedUpAt.get(req);
+        Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
+        Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
+
+        if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
+            monitorGridScheduler.get().releaseMonitored(req);
+            backUpGridScheduler.get().releaseBackUp(req);
+        }
 
     }
 

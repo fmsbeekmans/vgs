@@ -11,16 +11,16 @@ import java.io.Serializable;
 public class BackUpRequest implements Serializable {
 
     private static final long serialVersionUID = 6319488637758447075L;
-    private int sourceResourceManagerId;
+    private int sourceGridSchedulerId;
     private @NotNull WorkRequest toBackUp;
 
-    public BackUpRequest(int sourceResourceManagerId, WorkRequest toBackUp) {
-        this.sourceResourceManagerId = sourceResourceManagerId;
+    public BackUpRequest(int sourceGridSchedulerId, WorkRequest toBackUp) {
+        this.sourceGridSchedulerId = sourceGridSchedulerId;
         this.toBackUp = toBackUp;
     }
 
-    public int getResourceManagerId() {
-        return sourceResourceManagerId;
+    public int getSourceGridSchedulerId() {
+        return sourceGridSchedulerId;
     }
 
     public WorkRequest getToBackUp() {
@@ -34,14 +34,14 @@ public class BackUpRequest implements Serializable {
 
         BackUpRequest that = (BackUpRequest) o;
 
-        if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
+        if (sourceGridSchedulerId != that.sourceGridSchedulerId) return false;
         return toBackUp != null ? toBackUp.equals(that.toBackUp) : that.toBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = sourceResourceManagerId;
+        int result = sourceGridSchedulerId;
         result = 31 * result + (toBackUp != null ? toBackUp.hashCode() : 0);
         return result;
     }

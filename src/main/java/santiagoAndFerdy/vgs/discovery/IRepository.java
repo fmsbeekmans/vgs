@@ -28,4 +28,6 @@ public interface IRepository<T extends Remote> extends Serializable {
     boolean setLastKnownStatus(int id, Status newStatus);
 
     List<Integer> ids();
+
+    List<Integer> idsExcept(int... except);
 }

@@ -29,7 +29,7 @@ public class UserMain {
                 rmiServer,
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY,
-                id).createJobs(0, 10);
+                id).createJobs(0, 1);
 
 
     }

@@ -34,7 +34,7 @@ public class User extends UnicastRemoteObject implements IUser {
             RmiServer rmiServer,
             IRepository<IUser> userRepository,
             IRepository<IResourceManager> resourceManagerRepository,
-            int id) throws MalformedURLException, RemoteException {
+            int id) throws RemoteException {
 
         this.rmiServer = rmiServer;
         this.id = id;
