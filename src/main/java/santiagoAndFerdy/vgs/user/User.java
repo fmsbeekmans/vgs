@@ -19,20 +19,33 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 /**
  * Created by Fydio on 3/20/16.
  */
-public class User extends UnicastRemoteObject implements IUser, Runnable {
+public class User extends UnicastRemoteObject implements IUser {
 
     private static final long serialVersionUID = 4963157568070156360L;
-    private String                        url;
-    private RmiServer                     server;
+
+    private RmiServer rmiServer;
+    private int id;
+    private String url;
+    private IRepository<IUser> userRepository;
     private IRepository<IResourceManager> resourceManagerRepository;
     private Set<Job>                      pendingJobs;
-    private Thread                        pollThread;
 
-    public User(IRepository<IResourceManager> resourceManagerRepository, String url, RmiServer server) throws MalformedURLException, RemoteException {
-        this.url = url;
+    public User(
+            RmiServer rmiServer,
+            IRepository<IUser> userRepository,
+            IRepository<IResourceManager> resourceManagerRepository,
+            int id) throws MalformedURLException, RemoteException {
+
+        this.rmiServer = rmiServer;
+        this.id = id;
+        this.userRepository = userRepository;
         this.resourceManagerRepository = resourceManagerRepository;
+
+        this.url = userRepository.getUrl(id);
         pendingJobs = new HashSet<>();
-        this.server = server;
+
+        // register self
+        rmiServer.register(url, this);
     }
 
     /**
@@ -47,18 +60,21 @@ public class User extends UnicastRemoteObject implements IUser, Runnable {
      * @throws MalformedURLException
      */
     public void createJobs(int rmId, int numJobs) throws RemoteException, NotBoundException, MalformedURLException {
-
-
         for (long i = 0; i < numJobs; i++) {
             final Job j = new Job(1000, IDGen.getNewId(), rmId);
-            IResourceManager resourceManager = resourceManagerRepository.getEntity(rmId);
-            pendingJobs.add(j);
-            if (this.pollThread == null) {
-                pollThread = new Thread(this);
-                pollThread.start();
-            }
-            WorkRequest req = new WorkRequest(url, j);
-            resourceManager.offerWork(req);
+            resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
+                pendingJobs.add(j);
+                WorkRequest req = new WorkRequest(url, j);
+                try {
+                    resourceManager.offerWork(req);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (NotBoundException e) {
+                    e.printStackTrace();
+                }
+            });
         }
     }
 
@@ -66,25 +82,5 @@ public class User extends UnicastRemoteObject implements IUser, Runnable {
     public void acceptResult(Job j) throws RemoteException {
         System.out.println("Job " + j.getJobId() + " finished execution");
         pendingJobs.remove(j);
-    }
-
-    @Override
-    public void run() {
-        while (!pendingJobs.isEmpty()) {
-//            try {
-//                Thread.sleep(5000);
-//            } catch (InterruptedException e) {
-//                // TODO Auto-generated catch block
-//                e.printStackTrace();
-//            }
-        }
-        // shutting down client
-        try {
-            server.unRegister(url);
-            UnicastRemoteObject.unexportObject(this, true);
-            pollThread.join();
-        } catch (InterruptedException | NoSuchObjectException e) {
-            e.printStackTrace();
-        }
     }
 }

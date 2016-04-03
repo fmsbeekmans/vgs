@@ -1,17 +1,11 @@
 package santiagoAndFerdy.vgs;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -19,7 +13,6 @@ import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
-import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.resourceManager.EagerResourceManager;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -55,7 +48,7 @@ public class SimulationLauncher implements Runnable {
             String url = gridSchedulerRepository.getUrl(id);
             URL urlGSConnections = GridSchedulerMain.class.getClassLoader().getResource("gs/gs"+id+"/gss");
             IRepository<IGridScheduler> repoGSBack = Repository.fromFile(Paths.get(urlGSConnections.toURI()));
-            URL urlRMConnections = GridSchedulerMain.class.getClassLoader().getResource("gs/gs"+id+"/rms");
+            URL urlRMConnections = GridSchedulerMain.class.getClassLoader().getResource("gs/gs"+id+ "/resource-managers");
             IRepository<IResourceManager> repoRM = Repository.fromFile(Paths.get(urlRMConnections.toURI()));
             GridScheduler gs = new GridScheduler(server, repoRM, repoGSBack, url, id);
             
@@ -115,7 +108,7 @@ public class SimulationLauncher implements Runnable {
 //
 //        for (int id : gridSchedulerRepository.ids()) {
 //            String url = gridSchedulerRepository.getUrl(id);
-//            pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(id), url, "vgs-repository", "gs/rms", "gs/gss");
+//            pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(id), url, "vgs-repository", "gs/resource-managers", "gs/gss");
 //            pb.redirectErrorStream(true);
 //            try {
 //                gsProcesses.add(pb.start());
@@ -146,7 +139,7 @@ public class SimulationLauncher implements Runnable {
 //        }
 //
 //        // Create RM nodes
-//        URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/rms");
+//        URL urlRM = ResourceManagerMain.class.getClassLoader().getResource("rm/resource-managers");
 //        Path rmRepositoryFilePath = Paths.get(urlRM.toURI());
 //        resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
 //
