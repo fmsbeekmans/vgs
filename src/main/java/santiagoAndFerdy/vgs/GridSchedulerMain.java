@@ -47,18 +47,20 @@ public class GridSchedulerMain {
 
         s3Client = new AmazonS3Client(new ProfileCredentialsProvider());
         S3Object resourceManagerListing = s3Client.getObject(new GetObjectRequest(bucketName, resourceManagerListingFileName));
-        S3Object gridSchedulerListing = s3Client.getObject(new GetObjectRequest(bucketName, resourceManagerListingFileName));
+        S3Object gridSchedulerListing = s3Client.getObject(new GetObjectRequest(bucketName, gridSchedulerListingFileName));
 
-        IRepository<IResourceManager> resourceManagerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
+        IRepository<IResourceManager> resourceManagerClientRepository = Repository.fromS3(resourceManagerListing.getObjectContent());
         IRepository<IGridScheduler> gridSchedulerClientRepository = Repository.fromS3(gridSchedulerListing.getObjectContent());
         RmiServer server = new RmiServer(1099);
 
         GridScheduler gs = new GridScheduler(server, resourceManagerClientRepository, gridSchedulerClientRepository, url, id);
         server.register(url, gs);
-        while(true){
-            Thread.sleep(2000);
-            gs.checkConnections();
-            System.out.println("");
+        while(true){ //just print connections of GS number 0
+            if(id == 0){
+                Thread.sleep(2000);
+                gs.checkConnections();
+                System.out.println("");
+            }
         }
     }
 }

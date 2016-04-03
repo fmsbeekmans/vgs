@@ -1,15 +1,21 @@
 package santiagoAndFerdy.vgs.messages;
 
+import java.io.Serializable;
+
 import santiagoAndFerdy.vgs.model.Job;
 
 /**
  * Created by Fydio on 4/3/16.
  */
-public class WorkRequest {
+public class WorkRequest implements Serializable{
+    private static final long serialVersionUID = -1673621408938958506L;
+
     private String userUrl;
 
     private Job toExecute;
-
+    public WorkRequest(){
+        
+    }
     public WorkRequest(String userUrl, Job toExecute) {
         this.userUrl = userUrl;
         this.toExecute = toExecute;

@@ -8,6 +8,7 @@ import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -22,27 +23,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class GridScheduler extends UnicastRemoteObject implements IGridScheduler, IRemoteShutdown {
-    private static final long                                serialVersionUID = -5694724140595312739L;
+public class GridScheduler extends UnicastRemoteObject implements IGridScheduler, IRemoteShutdown, Runnable {
+    private static final long             serialVersionUID = -5694724140595312739L;
 
     private IRepository<IResourceManager> resourceManagerRepository;
-    private IRepository<IGridScheduler> gridSchedulerRepository;
+    private IRepository<IGridScheduler>   gridSchedulerRepository;
 
-    private Queue<MonitoringRequest>                         monitoredJobs;
-    private Queue<BackUpRequest>                             backUpMonitoredJobs;
+    private Queue<MonitoringRequest>      monitoredJobs;
+    private Queue<BackUpRequest>          backUpMonitoredJobs;
 
-    private RmiServer                                        rmiServer;
-    private int                                              id;
-    private String                                           url;
-
-    private HeartbeatHandler                                 heartbeatHandler;
-    private ScheduledExecutorService                         timerScheduler;
-    private Engine                                           engine;
-
-    public GridScheduler(RmiServer rmiServer,
-                         IRepository<IResourceManager> rmRepository,
-                         IRepository<IGridScheduler> gsRepository,
-                         String url, int id) throws RemoteException, MalformedURLException {
+    private RmiServer                     rmiServer;
+    private int                           id;
+    private String                        url;
+    private HeartbeatHandler              heartbeatHandlerGS;
+    private HeartbeatHandler              heartbeatHandlerRM;
+    private ScheduledExecutorService      timerScheduler;
+    private Engine                        engine;
+    private boolean running;
+    private Thread pollingThread;
+    public GridScheduler(RmiServer rmiServer, IRepository<IResourceManager> rmRepository, IRepository<IGridScheduler> gsRepository, String url,
+            int id) throws RemoteException, MalformedURLException {
         this.rmiServer = rmiServer;
         this.url = url;
         this.id = id;
@@ -58,25 +58,20 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
-        heartbeatHandler = new HeartbeatHandler(rmRepository, id, false);
+        heartbeatHandlerRM = new HeartbeatHandler(resourceManagerRepository, id, false);
+        heartbeatHandlerGS = new HeartbeatHandler(gridSchedulerRepository, id, true);
         wakeUp();
     }
 
     @Override
     public synchronized void monitorPrimary(MonitoringRequest request) throws RemoteException, MalformedURLException, NotBoundException {
-        System.out.println("Received job " + request.getToMonitor().getJob().getJobId() + " to monitor ");
+        System.out.println("Received job " + request.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
         monitoredJobs.add(request);
-        IGridScheduler backUp = selectBackUp();
-    }
-
-    public IGridScheduler selectBackUp() {
-        // TODO
-
-        return null;
     }
 
     @Override
     public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException {
+        System.out.println("Received backup request from: RM" + backUpRequest.getResourceManagerId() + " at cluster " + id);
         backUpMonitoredJobs.add(backUpRequest);
     }
 
@@ -86,18 +81,24 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public void releaseResources(int requestId) {
-
+    public void releaseResources(MonitoringRequest request) {
+        if (!this.monitoredJobs.remove(request))
+            System.err.println("There was an error releasing resources in cluster " + id);
+        else
+            System.out.println("Resources released for job " + request.getToMonitor().getJob().getJobId() + "at cluster " + id);
     }
 
     public void wakeUp() throws MalformedURLException, RemoteException {
         rmiServer.register(url, this);
-
+        pollingThread = new Thread(this, "GS"+id);
+        running = true;
+        pollingThread.start();
         // TODO + broadcast wakeup!
     }
 
     public void checkConnections() {
-        heartbeatHandler.getStatus();
+        heartbeatHandlerRM.getStatus();
+        heartbeatHandlerGS.getStatus();
     }
 
     @Override
@@ -124,8 +125,28 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         try {
             rmiServer.unRegister(url);
             UnicastRemoteObject.unexportObject(this, true);
+            running = false;
+            pollingThread.join();
+         
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void releaseBackUp(BackUpRequest backUpRequest) throws RemoteException {
+        if (!this.backUpMonitoredJobs.remove(backUpRequest))
+            System.err.println("There was an error releasing backup resources");
+        else
+            System.out.println("Released backup resources for job " + backUpRequest.getToBackUp().getJob().getJobId() + "at cluster " + id);
+
+    }
+
+    @Override
+    public void run() {
+       while(running){
+           
+       }
+        
     }
 }

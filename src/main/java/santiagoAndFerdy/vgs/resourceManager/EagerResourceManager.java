@@ -25,6 +25,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import santiagoAndFerdy.vgs.discovery.HeartbeatHandler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.IRemoteShutdown;
 import santiagoAndFerdy.vgs.user.IUser;
@@ -32,22 +33,27 @@ import santiagoAndFerdy.vgs.user.IUser;
 /**
  * Created by Fydio on 3/19/16.
  */
-public class EagerResourceManager extends UnicastRemoteObject implements IResourceManager, IRemoteShutdown {
-    private static final long                                 serialVersionUID = -4089353922882117112L;
+public class EagerResourceManager extends UnicastRemoteObject implements IResourceManager, IRemoteShutdown, Runnable {
+    private static final long           serialVersionUID = -4089353922882117112L;
 
-    private Queue<WorkRequest>                                jobQueue;
-    private Queue<Node>                                       idleNodes;
+    private Queue<WorkRequest>          jobQueue;
+    private Queue<Node>                 idleNodes;
+    private Queue<Task<Void>>           taskQueue;
+    private RmiServer                   rmiServer;
+    private int                         nNodes;
+    private int                         id;
+    private String                      url;
+    private IGridScheduler              mainGS;
+    private IGridScheduler              backUpGS;
+    private IRepository<IGridScheduler> gridSchedulerRepository;
+    private HeartbeatHandler            hHandler;
+    private long                        load;
+    private ScheduledExecutorService    timerScheduler;
+    private Engine                      engine;
 
-    private RmiServer                                         rmiServer;
-    private int                                               nNodes;
-    private int                                               id;
-    private String                                            url;
-
-    private IRepository<IGridScheduler>  gridSchedulerRepository;
-    private HeartbeatHandler                                  hHandler;
-    private long                                              load;
-    private ScheduledExecutorService                          timerScheduler;
-    private Engine                                            engine;
+    private boolean                     running;
+    private Thread                      pollThread;
+    private final int                   pollingInterval  = 200;
 
     /**
      * Creates a RM
@@ -65,14 +71,14 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
      * @throws RemoteException
      * @throws MalformedURLException
      */
-    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url,
-            IRepository<IGridScheduler> gridSchedulerRepository)
-                    throws RemoteException, MalformedURLException, NotBoundException {
+    public EagerResourceManager(int id, int n, RmiServer rmiServer, String url, IRepository<IGridScheduler> gridSchedulerRepository)
+            throws RemoteException, MalformedURLException, NotBoundException {
         super();
         this.id = id;
         this.url = url;
         this.nNodes = n;
         this.load = 0;
+        taskQueue = new CircularFifoQueue<>();
         // node queues synchronisation need the same mutex anyway. Don't use need to use threadsafe queue
         jobQueue = new LinkedBlockingQueue<>();
         idleNodes = new CircularFifoQueue<>(nNodes);
@@ -80,22 +86,28 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
         this.rmiServer = rmiServer;
         this.gridSchedulerRepository = gridSchedulerRepository;
 
-
-        // I think that the RM should ping the GS not the client that he has... I think we could have the functionality of the client here inside the
-        // RM.
         hHandler = new HeartbeatHandler(gridSchedulerRepository, id, false);
         for (int i = 0; i < nNodes; i++)
             idleNodes.add(new Node(i, this, timerScheduler));
+
         // setup async machinery
         timerScheduler = Executors.newSingleThreadScheduledExecutor();
         int numCores = Runtime.getRuntime().availableProcessors();
         ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
+        pollThread = new Thread(this, "RM"+id);
+        running = true;
+        pollThread.start();
+
     }
 
     @Override
     public synchronized void offerWork(WorkRequest req) throws RemoteException, MalformedURLException, NotBoundException {
-        System.out.println("Received job " + req.getJob().getJobId());
+        if (mainGS == null)
+            mainGS = selectMainGS();
+        if (backUpGS == null)
+            backUpGS = selectBackUpGS();
+        System.out.println("Received job " + req.getJob().getJobId() + " at cluster " + mainGS.getId());
 
         Task<Void> queueFlow = Task
                 // send to GS first
@@ -104,7 +116,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
                 .andThen(monitored -> jobQueue.add(req))
                 // and process the queue again
                 .andThen(queue -> processQueue());
-        engine.run(queueFlow);
+        taskQueue.add(queueFlow);
         load += req.getJob().getDuration();
     }
 
@@ -116,18 +128,41 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     public void requestMonitoring(WorkRequest jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
-        System.out.println("Requesting monitoring for job " + jobToMonitor.getJob().getJobId());
+        //System.out.println("Requesting monitoring for job " + jobToMonitor.getJob().getJobId());
+        mainGS.monitorPrimary(new MonitoringRequest(id, jobToMonitor));
+        backUpGS.monitorBackUp(new BackUpRequest(id, jobToMonitor));
 
-        IGridScheduler backUpTarget = selectResourceManagerForBackUp();
-        backUpTarget.monitorPrimary(new MonitoringRequest(id, jobToMonitor));
     }
 
-    public IGridScheduler selectResourceManagerForBackUp() throws RemoteException, NotBoundException, MalformedURLException {
-        return gridSchedulerRepository.getEntity(0);
+    /**
+     * 
+     * @return First GS on the repository which is the main one
+     * @throws RemoteException
+     * @throws NotBoundException
+     * @throws MalformedURLException
+     */
+    public IGridScheduler selectMainGS() throws RemoteException, NotBoundException, MalformedURLException {
+        return gridSchedulerRepository.getEntity(gridSchedulerRepository.ids().get(0));
+    }
+
+    /**
+     * 
+     * @return Second GS on the repository (the backup)
+     * @throws RemoteException
+     * @throws NotBoundException
+     * @throws MalformedURLException
+     */
+    public IGridScheduler selectBackUpGS() throws RemoteException, NotBoundException, MalformedURLException {
+        return gridSchedulerRepository.getEntity(gridSchedulerRepository.ids().get(1));
     }
 
     @Override
     public void finish(Node node, WorkRequest toFinish) throws RemoteException, MalformedURLException, NotBoundException {
+        release(toFinish);
+        mainGS.releaseResources(new MonitoringRequest(id, toFinish)); // this shouldn't be done like this...
+        backUpGS.releaseBackUp(new BackUpRequest(id, toFinish));
+        node.setIdle();
+        idleNodes.offer(node);
         IUser user = (IUser) Naming.lookup(toFinish.getUserUrl());
         user.acceptResult(toFinish.getJob());
     }
@@ -166,19 +201,6 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     /**
-     * Shutdown method to kill this RM
-     */
-    public void shutdown() {
-        try {
-            rmiServer.unRegister(url);
-            UnicastRemoteObject.unexportObject(this, true);
-            System.out.println("Done");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Method to check if this RM is alive. Nothing is needed
      */
     @Override
@@ -191,11 +213,29 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     @Override
     public void shutDown() {
         try {
+            running = false;
+            pollThread.join();
             rmiServer.unRegister(url);
             UnicastRemoteObject.unexportObject(this, true);
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    public void processTasks(){
+        while(!taskQueue.isEmpty())
+        engine.run(taskQueue.poll());
+    }
+    @Override
+    public void run() {
+        while (running) {
+            try {
+                Thread.sleep(pollingInterval);
+                processTasks();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
 }

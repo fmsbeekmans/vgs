@@ -17,15 +17,18 @@ import java.rmi.NotBoundException;
  * Created by Fydio on 3/18/16.
  */
 public class UserMain {
+    final static String urlUser = "//localhost/user";
+    
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
-        System.out.println("I'm a user");
+        
         RmiServer rmiServer = new RmiServer(1099);
         URL url = UserMain.class.getClassLoader().getResource("user/rms");
         Path rmRepositoryFilePath = Paths.get(url.toURI());
         IRepository<IResourceManager> resourceManagerRepository = Repository.fromFile(rmRepositoryFilePath);
-
-        User u = new User(resourceManagerRepository, "user");
-
-        System.out.println("I'm done.");
+        User u = new User(resourceManagerRepository, urlUser, rmiServer);
+        rmiServer.register(urlUser, u);
+        u.createJobs(0,1);
+       // u.createJobs(2,2);
+       // u.createJobs(5,2);
     }
 }

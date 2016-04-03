@@ -9,16 +9,18 @@ import java.io.Serializable;
  * Created by Fydio on 3/30/16.
  */
 public class BackUpRequest implements Serializable {
-    private int sourceGridSchedulerId;
+
+    private static final long serialVersionUID = 6319488637758447075L;
+    private int sourceResourceManagerId;
     private @NotNull WorkRequest toBackUp;
 
-    public BackUpRequest(int sourceGridSchedulerId, WorkRequest toBackUp) {
-        this.sourceGridSchedulerId = sourceGridSchedulerId;
+    public BackUpRequest(int sourceResourceManagerId, WorkRequest toBackUp) {
+        this.sourceResourceManagerId = sourceResourceManagerId;
         this.toBackUp = toBackUp;
     }
 
-    public int getSourceGridSchedulerId() {
-        return sourceGridSchedulerId;
+    public int getResourceManagerId() {
+        return sourceResourceManagerId;
     }
 
     public WorkRequest getToBackUp() {
@@ -32,14 +34,14 @@ public class BackUpRequest implements Serializable {
 
         BackUpRequest that = (BackUpRequest) o;
 
-        if (sourceGridSchedulerId != that.sourceGridSchedulerId) return false;
+        if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
         return toBackUp != null ? toBackUp.equals(that.toBackUp) : that.toBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = sourceGridSchedulerId;
+        int result = sourceResourceManagerId;
         result = 31 * result + (toBackUp != null ? toBackUp.hashCode() : 0);
         return result;
     }

@@ -7,6 +7,7 @@ import java.rmi.RemoteException;
 import santiagoAndFerdy.vgs.discovery.IAddressable;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.model.Job;
 
 /**
@@ -32,7 +33,7 @@ public interface IGridScheduler extends IAddressable {
     void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException;
 
     /**
-     * For a resource manager to userRequest a job to be scheduled elsewhere
+     * For a resource manager to request a job to be scheduled elsewhere
      * 
      * @param job
      *            to schedule somewhere else
@@ -42,7 +43,9 @@ public interface IGridScheduler extends IAddressable {
     /**
      * A job has finished. All the reserved resources can be released.
      * 
-     * @param requestId
+     * @param workRequest - the workRequest
      */
-    void releaseResources(int requestId) throws RemoteException;
+    void releaseResources(MonitoringRequest request) throws RemoteException;
+    
+    void releaseBackUp(BackUpRequest backUpRequest) throws RemoteException;
 }

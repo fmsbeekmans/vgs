@@ -8,6 +8,8 @@ import java.io.Serializable;
  * Created by Fydio on 3/30/16.
  */
 public class MonitoringRequest implements Serializable {
+
+    private static final long serialVersionUID = 1531240896670545486L;
     private @NotNull int sourceResourceManagerId;
     private @NotNull WorkRequest toMonitor;
 

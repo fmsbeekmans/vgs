@@ -28,9 +28,10 @@ public class Node {
         return id;
     }
 
-    public synchronized void handle(@NotNull WorkRequest toExecute) throws RemoteException, MalformedURLException, NotBoundException {
+    public synchronized void handle(@NotNull WorkRequest toExecute) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException {
         this.current = toExecute;
-
+       // Thread.sleep(toExecute.getJob().getDuration());
+       // this.resourceManager.finish(this, toExecute);
         this.timer.schedule(() -> {
                     try {
                         this.resourceManager.finish(this, toExecute);

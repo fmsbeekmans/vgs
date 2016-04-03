@@ -1,12 +1,13 @@
 package santiagoAndFerdy.vgs.model;
 
 import java.io.Serializable;
-import java.util.Arrays;
 
 /**
  * Created by Fydio on 3/3/16.
  */
 public class Job implements Serializable {
+
+    private static final long serialVersionUID = 666864530383448502L;
     private int duration;
     private long jobId;
     private long initialResourceManagerId;
