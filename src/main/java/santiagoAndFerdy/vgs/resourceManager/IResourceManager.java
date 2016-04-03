@@ -18,7 +18,7 @@ public interface IResourceManager extends IAddressable {
      * For users to offer jobs to the resource manager
      * @param req the workload offered to the resource manager
      */
-    void offerWork(WorkRequest req) throws RemoteException, MalformedURLException, NotBoundException;
+    void offerWork(WorkRequest req) throws RemoteException;
 
     /**
      * For a grid scheduler to schedule a job on the cluster managed by this resource maneger
@@ -27,7 +27,7 @@ public interface IResourceManager extends IAddressable {
      * @throws MalformedURLException
      * @throws NotBoundException
      */
-    void schedule(@NotNull WorkRequest toSchedule) throws RemoteException, MalformedURLException, NotBoundException;
+    void schedule(@NotNull WorkRequest toSchedule) throws RemoteException;
 
     /**
      * For a node to signal that the processing of a job is finished

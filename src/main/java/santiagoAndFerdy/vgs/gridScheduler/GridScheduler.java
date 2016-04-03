@@ -16,6 +16,7 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -63,20 +64,25 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public synchronized void monitorPrimary(MonitoringRequest request) throws RemoteException, MalformedURLException, NotBoundException {
+    public synchronized void monitorPrimary(MonitoringRequest request) throws RemoteException {
         System.out.println("Received job " + request.getToMonitor().getJob().getJobId() + " to monitor ");
         monitoredJobs.add(request);
-        IGridScheduler backUp = selectBackUp();
+        Optional<IGridScheduler> backUpTarget = selectBackUp();
+        if(backUpTarget.isPresent()) {
+            BackUpRequest backUpRequest = new BackUpRequest(id, request.getToMonitor());
+            backUpTarget.get().monitorBackUp(backUpRequest);
+        } else {
+            // TODO error handling. Can't reach backup gs.
+        }
+
     }
 
-    public IGridScheduler selectBackUp() {
-        // TODO
-
-        return null;
+    public Optional<IGridScheduler> selectBackUp() {
+        return gridSchedulerRepository.getEntity(0);
     }
 
     @Override
-    public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException {
+    public void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException {
         backUpMonitoredJobs.add(backUpRequest);
     }
 
@@ -101,7 +107,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException {
+    public void iAmAlive(Heartbeat h) throws RemoteException {
 
     }
 

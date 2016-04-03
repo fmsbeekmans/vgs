@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface IRepository<T extends Remote> extends Serializable {
 
     // for user
-    T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException;
+    Optional<T> getEntity(int id);
     String getUrl(int id);
     Status getLastKnownStatus(int id);
 

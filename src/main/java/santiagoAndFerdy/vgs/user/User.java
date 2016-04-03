@@ -34,7 +34,7 @@ public class User extends UnicastRemoteObject implements IUser {
     public void start(int rmId) throws RemoteException, NotBoundException, MalformedURLException {
         for(long i = 0; i < 1; i++) {
             final Job j = new Job(10000, i, rmId);
-            IResourceManager resourceManager = resourceManagerRepository.getEntity(rmId);
+            IResourceManager resourceManager = resourceManagerRepository.getEntity(rmId).get();
             pendingJobs.add(j);
             resourceManager.offerWork(new WorkRequest(url, j));
         }

@@ -17,6 +17,7 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -94,7 +95,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public synchronized void offerWork(WorkRequest req) throws RemoteException, MalformedURLException, NotBoundException {
+    public synchronized void offerWork(WorkRequest req) throws RemoteException {
         System.out.println("Received job " + req.getJob().getJobId());
 
         Task<Void> queueFlow = Task
@@ -109,20 +110,26 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     @Override
-    public void schedule(@NotNull WorkRequest toSchedule) throws RemoteException, MalformedURLException, NotBoundException {
+    public void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
         // Assume a job is already monitored if it's scheduled directly from a grid scheduler.
         jobQueue.add(toSchedule);
         processQueue();
     }
 
-    public void requestMonitoring(WorkRequest jobToMonitor) throws RemoteException, NotBoundException, MalformedURLException, InterruptedException {
+    public void requestMonitoring(WorkRequest jobToMonitor) throws RemoteException {
         System.out.println("Requesting monitoring for job " + jobToMonitor.getJob().getJobId());
 
-        IGridScheduler backUpTarget = selectResourceManagerForBackUp();
-        backUpTarget.monitorPrimary(new MonitoringRequest(id, jobToMonitor));
+        Optional<IGridScheduler> backUpTarget = selectResourceManagerForBackUp();
+
+        if(backUpTarget.isPresent()) {
+            backUpTarget.get().monitorPrimary(new MonitoringRequest(id, jobToMonitor));
+        } else {
+            // TODO error handling
+            // maybe custom exception
+        }
     }
 
-    public IGridScheduler selectResourceManagerForBackUp() throws RemoteException, NotBoundException, MalformedURLException {
+    public Optional<IGridScheduler> selectResourceManagerForBackUp() throws RemoteException {
         return gridSchedulerRepository.getEntity(0);
     }
 
@@ -137,7 +144,7 @@ public class EagerResourceManager extends UnicastRemoteObject implements IResour
     }
 
     // should be run after any change in node state or job queue
-    protected synchronized void processQueue() throws RemoteException, MalformedURLException, NotBoundException {
+    protected synchronized void processQueue() throws RemoteException {
         while (!jobQueue.isEmpty() && !idleNodes.isEmpty()) {
             Node allocatedNode = idleNodes.poll();
             WorkRequest toRun = jobQueue.poll();
