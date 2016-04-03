@@ -64,14 +64,10 @@ public class User extends UnicastRemoteObject implements IUser {
             final Job j = new Job(1000, IDGen.getNewId(), rmId);
             resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
                 pendingJobs.add(j);
-                WorkRequest req = new WorkRequest(url, j);
+                WorkRequest req = new WorkRequest(id, j);
                 try {
                     resourceManager.offerWork(req);
                 } catch (RemoteException e) {
-                    e.printStackTrace();
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                } catch (NotBoundException e) {
                     e.printStackTrace();
                 }
             });

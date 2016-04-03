@@ -18,18 +18,19 @@ import java.rmi.NotBoundException;
  * Created by Fydio on 3/18/16.
  */
 public class UserMain {
-    final static String urlUser = "//localhost/user";
-    
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
 
-        int id = Integer.parseInt(args[0]);
+        int id = 0;
+//        int id = Integer.parseInt(args[0]);
 
         RmiServer rmiServer = new RmiServer(1099);
 
-        User u = new User(
+        new User(
                 rmiServer,
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY,
-                id);
+                id).createJobs(0, 10);
+
+
     }
 }

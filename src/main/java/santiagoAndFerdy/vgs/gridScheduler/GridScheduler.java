@@ -111,11 +111,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         return id;
     }
 
-    @Override
-    public String getUrl() {
-        return url;
-    }
-
     /**
      * This method is called by the Simulation Launcher to kill the node. However it is also needed to kill the process, so we will have to implement
      * a mechanisim to kill all the nodes in a clean way, probably with Threads

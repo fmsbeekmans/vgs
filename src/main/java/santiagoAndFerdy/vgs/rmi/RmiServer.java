@@ -22,13 +22,16 @@ public class RmiServer {
         }
     }
 
-    public void register(String url, Remote impl) throws MalformedURLException, RemoteException {
-//        System.setProperty("java.security.policy", "file:./my.policy");
-//        if (System.getSecurityManager() == null) {
-//            System.setSecurityManager(new SecurityManager());
-//        }
-        Naming.rebind(url, impl);
-        System.out.println("Registered object at " + url);
+    public boolean register(String url, Remote impl) {
+        try {
+            Naming.rebind(url, impl);
+            System.out.println("Registered object at " + url);
+
+            return true;
+        } catch (RemoteException | MalformedURLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public void unRegister(String url) {

@@ -10,23 +10,20 @@ import santiagoAndFerdy.vgs.model.Job;
 public class WorkRequest implements Serializable{
     private static final long serialVersionUID = -1673621408938958506L;
 
-    private String userUrl;
+    private int userId;
+    private Job job;
 
-    private Job toExecute;
-    public WorkRequest(){
-        
-    }
-    public WorkRequest(String userUrl, Job toExecute) {
-        this.userUrl = userUrl;
-        this.toExecute = toExecute;
+    public WorkRequest(int userId, Job toExecute) {
+        this.userId = userId;
+        this.job = toExecute;
     }
 
-    public String getUserUrl() {
-        return userUrl;
+    public int getUserId() {
+        return userId;
     }
 
     public Job getJob() {
-        return toExecute;
+        return job;
     }
 
     @Override
@@ -36,15 +33,15 @@ public class WorkRequest implements Serializable{
 
         WorkRequest that = (WorkRequest) o;
 
-        if (userUrl != null ? !userUrl.equals(that.userUrl) : that.userUrl != null) return false;
-        return toExecute != null ? toExecute.equals(that.toExecute) : that.toExecute == null;
+        if (userId != that.userId) return false;
+        return job != null ? job.equals(that.job) : that.job == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = userUrl != null ? userUrl.hashCode() : 0;
-        result = 31 * result + (toExecute != null ? toExecute.hashCode() : 0);
+        int result = userId;
+        result = 31 * result + (job != null ? job.hashCode() : 0);
         return result;
     }
 }

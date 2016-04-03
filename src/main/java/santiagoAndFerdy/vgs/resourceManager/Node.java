@@ -28,30 +28,23 @@ public class Node {
         return id;
     }
 
-    public synchronized void handle(@NotNull WorkRequest toExecute) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException {
+    public synchronized void handle(@NotNull WorkRequest toExecute) {
         this.current = toExecute;
        // Thread.sleep(toExecute.getJob().getDuration());
        // this.resourceManager.finish(this, toExecute);
         this.timer.schedule(() -> {
                     try {
                         this.resourceManager.finish(this, toExecute);
+                        // TODO IResourceManagerRemote
                     } catch (RemoteException e) {
-                        e.printStackTrace();
-                    } catch (MalformedURLException e) {
-                        e.printStackTrace();
-                    } catch (NotBoundException e) {
                         e.printStackTrace();
                     }
                 },
                 toExecute.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
-    public void setIdle() throws RemoteException, MalformedURLException, NotBoundException {
+    public void setIdle() {
         this.current = null;
-    }
-
-    public IResourceManager getResourceManager() {
-        return resourceManager;
     }
 
     @Override

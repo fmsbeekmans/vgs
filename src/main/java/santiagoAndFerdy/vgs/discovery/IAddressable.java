@@ -9,7 +9,6 @@ import java.rmi.RemoteException;
 
 public interface IAddressable extends Remote {
     int getId() throws RemoteException;
-    String getUrl() throws RemoteException;
 
     void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException;
 }
