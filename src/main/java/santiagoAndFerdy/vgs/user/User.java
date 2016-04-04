@@ -60,8 +60,8 @@ public class User extends UnicastRemoteObject implements IUser {
      * @throws MalformedURLException
      */
     public void createJobs(int rmId, int numJobs) throws RemoteException {
-        for (long i = 0; i < numJobs; i++) {
-            final Job j = new Job(1000, IDGen.getNewId(), rmId);
+        for (int i = 0; i < numJobs; i++) {
+            final Job j = new Job(1000, i, rmId);
             resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
                 pendingJobs.add(j);
                 WorkRequest req = new WorkRequest(id, j);

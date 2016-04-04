@@ -7,7 +7,7 @@ import santiagoAndFerdy.vgs.model.Job;
 /**
  * Created by Fydio on 4/3/16.
  */
-public class WorkRequest implements Serializable{
+public class WorkRequest implements Serializable, Comparable<WorkRequest>{
     private static final long serialVersionUID = -1673621408938958506L;
 
     private int userId;
@@ -24,6 +24,11 @@ public class WorkRequest implements Serializable{
 
     public Job getJob() {
         return job;
+    }
+
+    @Override
+    public int compareTo(WorkRequest o) {
+        return job.compareTo(o.job);
     }
 
     @Override

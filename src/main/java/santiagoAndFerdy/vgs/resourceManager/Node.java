@@ -12,9 +12,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Fydio on 3/19/16.
  */
-public class Node {
+public class Node implements Comparable<Node> {
     private int id;
-    private WorkRequest current;
     private IResourceManager resourceManager;
     private ScheduledExecutorService timer;
 
@@ -29,22 +28,22 @@ public class Node {
     }
 
     public synchronized void handle(@NotNull WorkRequest toExecute) {
-        this.current = toExecute;
        // Thread.sleep(toExecute.getJob().getDuration());
        // this.resourceManager.finish(this, toExecute);
         this.timer.schedule(() -> {
-                    try {
-                        this.resourceManager.finish(this, toExecute);
-                        // TODO IResourceManagerRemote
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                },
-                toExecute.getJob().getDuration(), TimeUnit.MILLISECONDS);
+                try {
+                    this.resourceManager.finish(this, toExecute);
+                    // TODO IResourceManagerRemote
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            },
+            toExecute.getJob().getDuration(), TimeUnit.MILLISECONDS);
     }
 
-    public void setIdle() {
-        this.current = null;
+    @Override
+    public int compareTo(Node o) {
+        return id - o.id;
     }
 
     @Override

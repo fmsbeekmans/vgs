@@ -1,19 +1,20 @@
 package santiagoAndFerdy.vgs.model;
 
 import java.io.Serializable;
+import java.util.Comparator;
 
 /**
  * Created by Fydio on 3/3/16.
  */
-public class Job implements Serializable {
+public class Job implements Serializable, Comparable<Job> {
 
     private static final long serialVersionUID = 666864530383448502L;
     private int duration;
-    private long jobId;
-    private long initialResourceManagerId;
+    private int jobId;
+    private int initialResourceManagerId;
     private int[] additionalResourceManagerIds;
 
-    public Job(int duration, long jobId, long initialResourceManagerId) {
+    public Job(int duration, int jobId, int initialResourceManagerId) {
         this.duration = duration;
         this.jobId = jobId;
         this.initialResourceManagerId = initialResourceManagerId;
@@ -23,11 +24,11 @@ public class Job implements Serializable {
         return duration;
     }
 
-    public long getJobId() {
+    public int getJobId() {
         return jobId;
     }
 
-    public long getInitialResourceManagerId() {
+    public int getInitialResourceManagerId() {
         return initialResourceManagerId;
     }
 
@@ -49,6 +50,11 @@ public class Job implements Serializable {
 
             additionalResourceManagerIds = swap;
         }
+    }
+
+    @Override
+    public int compareTo(Job o) {
+        return jobId - o.getJobId();
     }
 
     @Override
