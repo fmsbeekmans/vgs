@@ -38,6 +38,6 @@ public class SimulationLauncher {
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY);
 
-        u0.createJobs(0, 100);
+        u0.createJobs(0, 50);
     }
 }

@@ -18,10 +18,10 @@ public class JobTest {
     public void hopTest() {
         Job j = new Job(1, 2, 3);
 
-        j.addResourceManagerIds(4);
+        j.addResourceManagerId(4);
         assertArrayEquals(new int[] {4}, j.getAdditionalResourceManagerIds());
 
-        j.addResourceManagerIds(5);
+        j.addResourceManagerId(5);
         assertArrayEquals(new int[] {4, 5}, j.getAdditionalResourceManagerIds());
     }
 }

@@ -69,7 +69,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     @Override
-    public void offerWork(WorkRequest req) throws RemoteException {
+    public synchronized void offerWork(WorkRequest req) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
         if (needToOffload()) {
@@ -100,13 +100,11 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                     backedUpAt.get(backUpGridSchedulerId).add(req);
                 });
 
-                monitorTask.addListener(m -> System.out.println("Monitered"));
-                backUpTask.addListener(m -> System.out.println("BackUpped"));
-
                 Task<?> await = Task.par(monitorTask, backUpTask);
                 engine.run(monitorTask);
                 engine.run(backUpTask);
                 engine.run(await);
+
                 try {
                     await.await();
 
@@ -206,7 +204,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             backedUpAt.put(gsId, new HashSet<>());
         });
 
-        ExecutorService taskScheduler = Executors.newFixedThreadPool(1);
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(4);
         this.timer = Executors.newSingleThreadScheduledExecutor();
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
 

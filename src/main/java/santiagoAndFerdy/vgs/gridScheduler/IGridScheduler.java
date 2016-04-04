@@ -1,3 +1,4 @@
+
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import java.rmi.RemoteException;
@@ -15,7 +16,7 @@ import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 public interface IGridScheduler extends ICrashable {
     /**
      * Request this grid scheduler to monitor the life-cycle for this job
-     * 
+     *
      * @param monitorRequest
      *            the request to watch
      * @throws RemoteException
@@ -24,7 +25,7 @@ public interface IGridScheduler extends ICrashable {
 
     /**
      * Request this grid scheduler to also watch a job in case the primary grid scheduler crashes
-     * 
+     *
      * @param backUpRequest
      *            the userRequest to watch
      * @throws RemoteException
@@ -40,7 +41,7 @@ public interface IGridScheduler extends ICrashable {
 
     /**
      * For a resource manager to request a job to be scheduled elsewhere
-     * 
+     *
      * @param workRequest
      *            to schedule somewhere else
      */
@@ -48,7 +49,7 @@ public interface IGridScheduler extends ICrashable {
 
     /**
      * A job has finished. All the reserved resources can be released.
-     * 
+     *
      * @param workRequest - the workRequest
      */
     void releaseMonitored(WorkRequest workRequest) throws RemoteException;
