@@ -32,11 +32,12 @@ public interface IGridScheduler extends ICrashable {
     void backUp(BackUpRequest backUpRequest) throws RemoteException;
 
     /**
-     * Become the monitor insteadd of back up for this workRequest
-     * @param workRequest
+     * Become the monitor instead of back up for this MonitoringRequest
+     * 
+     * @param req
      * @throws RemoteException
      */
-    void promote(WorkRequest workRequest) throws RemoteException;
+    void promote(MonitoringRequest req) throws RemoteException;
 
     /**
      * For a resource manager to request a job to be scheduled elsewhere
@@ -49,19 +50,23 @@ public interface IGridScheduler extends ICrashable {
     /**
      * A job has finished. All the reserved resources can be released.
      * 
-     * @param workRequest - the workRequest
+     * @param workRequest
+     *            - the workRequest
      */
     void releaseMonitored(WorkRequest workRequest) throws RemoteException;
 
     /**
      * A job has finished. No need to watch as back-up anymore.
-     * @param workRequest to release
+     * 
+     * @param workRequest
+     *            to release
      * @throws RemoteException
      */
     void releaseBackUp(WorkRequest workRequest) throws RemoteException;
 
     /**
      * a resource manager has woken up and announces it's presence
+     * 
      * @param from
      * @throws RemoteException
      */
@@ -69,8 +74,18 @@ public interface IGridScheduler extends ICrashable {
 
     /**
      * a grid scheduler has woken up and announces it's presence
+     * 
      * @param from
      * @throws RemoteException
      */
     void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException;
+
+    /**
+     * a resource manager has crashed, all the jobs that were monitored at the backUp need to be updated with the new resource manager
+     * 
+     * @param origiRm
+     * @param newRm
+     * @throws RemoteException
+     */
+    void modificateBackUp(int origiRm, int newRm) throws RemoteException;
 }

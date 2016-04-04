@@ -1,9 +1,9 @@
 package santiagoAndFerdy.vgs.messages;
 
 public class IDGen {
-    private static long ID = 0;
+    private static int ID = 0;
 
-    public static long getNewId(){
+    public static int getNewId(){
         return ID++;
     }
 }

@@ -33,4 +33,6 @@ public interface IRepository<T extends Remote> extends Serializable {
     void onOffline(Function<Integer, Void> doWithOfflineId);
 
     void onOnline(Function<Integer, Void> doWithOnlineId);
+    
+    Optional<T> getEntityExceptId(int id);
 }

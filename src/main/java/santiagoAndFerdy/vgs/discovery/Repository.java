@@ -10,6 +10,7 @@ import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -18,10 +19,10 @@ import java.util.stream.IntStream;
  * Created by Fydio on 3/24/16.
  */
 public class Repository<T extends Remote> implements IRepository<T> {
-    private static final long serialVersionUID = 1619009373620002568L;
+    private static final long             serialVersionUID = 1619009373620002568L;
 
-    protected String[]        urls;
-    protected Status[]        statuses;
+    protected String[]                    urls;
+    protected Status[]                    statuses;
 
     private List<Function<Integer, Void>> offlineCallbacks;
     private List<Function<Integer, Void>> onlineCallbacks;
@@ -64,10 +65,12 @@ public class Repository<T extends Remote> implements IRepository<T> {
     public boolean setLastKnownStatus(int id, Status newStatus) {
         if (statuses[id] != null) {
             Status oldStatus = getLastKnownStatus(id);
-            if(oldStatus != newStatus) {
+            if (oldStatus != newStatus) {
 
-                if(newStatus == Status.ONLINE) executeOnlineCallbacks(id);
-                if(newStatus == Status.OFFLINE) executeOfflineCallbacks(id);
+                if (newStatus == Status.ONLINE)
+                    executeOnlineCallbacks(id);
+                if (newStatus == Status.OFFLINE)
+                    executeOfflineCallbacks(id);
 
                 statuses[id] = newStatus;
             }
@@ -89,21 +92,19 @@ public class Repository<T extends Remote> implements IRepository<T> {
     @Override
     public List<Integer> idsExcept(int... except) {
         Set<Integer> exceptions = new HashSet<>();
-        for (int exception : except) exceptions.add(exception);
+        for (int exception : except)
+            exceptions.add(exception);
 
-        return ids().stream()
-                .filter(i -> !exceptions.contains(i))
-                .collect(Collectors.toList());
+        return ids().stream().filter(i -> !exceptions.contains(i)).collect(Collectors.toList());
     }
 
     @Override
     public List<Integer> onlineIdsExcept(int... except) {
         Set<Integer> exceptions = new HashSet<>();
-        for (int exception : except) exceptions.add(exception);
+        for (int exception : except)
+            exceptions.add(exception);
 
-        return ids().stream()
-                .filter(i -> !exceptions.contains(i) && getLastKnownStatus(i) == Status.ONLINE)
-                .collect(Collectors.toList());
+        return ids().stream().filter(i -> !exceptions.contains(i) && getLastKnownStatus(i) == Status.ONLINE).collect(Collectors.toList());
     }
 
     @Override
@@ -148,7 +149,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
         return new Repository<T>(urls);
     }
 
-    public static <T extends Remote> IRepository<T> fromS3(InputStream input) throws IOException {
+    public static <T extends Remote> IRepository<T> fromStream(InputStream input) throws IOException {
         Scanner s = new Scanner(input);
         Map<Integer, String> urls = new HashMap<>();
         while (s.hasNext()) {
@@ -158,5 +159,19 @@ public class Repository<T extends Remote> implements IRepository<T> {
         }
         s.close();
         return new Repository<T>(urls);
+    }
+
+    @Override
+    public Optional<T> getEntityExceptId(int id) {
+        setLastKnownStatus(id, Status.OFFLINE);
+        try {
+            List<String> l = Arrays.asList(urls);
+            l.remove(urls[id]);
+            int i = ThreadLocalRandom.current().nextInt(0, l.size() - 1);
+            T result = (T) Naming.lookup(urls[i]);
+            return Optional.of(result);
+        } catch (RemoteException | NotBoundException | MalformedURLException e) {
+            return Optional.empty();
+        }
     }
 }

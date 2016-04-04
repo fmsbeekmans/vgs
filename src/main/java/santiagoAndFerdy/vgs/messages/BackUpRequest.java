@@ -1,26 +1,25 @@
 package santiagoAndFerdy.vgs.messages;
 
-import com.sun.istack.internal.NotNull;
-import santiagoAndFerdy.vgs.model.Job;
-
 import java.io.Serializable;
+
+import com.sun.istack.internal.NotNull;
 
 /**
  * Created by Fydio on 3/30/16.
  */
-public class BackUpRequest implements Serializable {
+public class BackUpRequest implements Serializable, Comparable<BackUpRequest>{
 
     private static final long serialVersionUID = 6319488637758447075L;
-    private int sourceGridSchedulerId;
+    private int sourceResourceManagerId;
     private @NotNull WorkRequest toBackUp;
 
-    public BackUpRequest(int sourceGridSchedulerId, WorkRequest toBackUp) {
-        this.sourceGridSchedulerId = sourceGridSchedulerId;
+    public BackUpRequest(int sourceResourceManagerId, WorkRequest toBackUp) {
+        this.sourceResourceManagerId = sourceResourceManagerId;
         this.toBackUp = toBackUp;
     }
 
-    public int getSourceGridSchedulerId() {
-        return sourceGridSchedulerId;
+    public int getSourceResourceManagerId() {
+        return sourceResourceManagerId;
     }
 
     public WorkRequest getToBackUp() {
@@ -34,15 +33,20 @@ public class BackUpRequest implements Serializable {
 
         BackUpRequest that = (BackUpRequest) o;
 
-        if (sourceGridSchedulerId != that.sourceGridSchedulerId) return false;
+        if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
         return toBackUp != null ? toBackUp.equals(that.toBackUp) : that.toBackUp == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = sourceGridSchedulerId;
+        int result = sourceResourceManagerId;
         result = 31 * result + (toBackUp != null ? toBackUp.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int compareTo(BackUpRequest o) {
+        return toBackUp.compareTo(o.getToBackUp());
     }
 }

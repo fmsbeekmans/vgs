@@ -61,7 +61,7 @@ public class User extends UnicastRemoteObject implements IUser {
      */
     public void createJobs(int rmId, int numJobs) throws RemoteException {
         for (int i = 0; i < numJobs; i++) {
-            final Job j = new Job(1000, i, rmId);
+            final Job j = new Job(1000, IDGen.getNewId(), rmId);
             resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
                 pendingJobs.add(j);
                 WorkRequest req = new WorkRequest(id, j);

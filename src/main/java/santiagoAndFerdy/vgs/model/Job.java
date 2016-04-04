@@ -1,7 +1,6 @@
 package santiagoAndFerdy.vgs.model;
 
 import java.io.Serializable;
-import java.util.Comparator;
 
 /**
  * Created by Fydio on 3/3/16.
@@ -9,15 +8,18 @@ import java.util.Comparator;
 public class Job implements Serializable, Comparable<Job> {
 
     private static final long serialVersionUID = 666864530383448502L;
-    private int duration;
-    private int jobId;
-    private int initialResourceManagerId;
-    private int[] additionalResourceManagerIds;
+    private int               duration;
+    private int               jobId;
+    private int               initialResourceManagerId;
+    private int[]             additionalResourceManagerIds;
+    private int               size;
+    private int               currentResourceManagerId;
 
     public Job(int duration, int jobId, int initialResourceManagerId) {
         this.duration = duration;
         this.jobId = jobId;
         this.initialResourceManagerId = initialResourceManagerId;
+        currentResourceManagerId = initialResourceManagerId;
     }
 
     public int getDuration() {
@@ -36,20 +38,32 @@ public class Job implements Serializable, Comparable<Job> {
         return (additionalResourceManagerIds != null) ? additionalResourceManagerIds : new int[0];
     }
 
-    public void addResourceManagerIds(int newResourceManagerId) {
+    public void addResourceManagerId(int newResourceManagerId) {
         if (additionalResourceManagerIds == null) {
-            additionalResourceManagerIds = new int[] { newResourceManagerId };
+            additionalResourceManagerIds = new int[5];
+            additionalResourceManagerIds[0] = newResourceManagerId;
+            size = 1;
+        } else {
+            if (size == additionalResourceManagerIds.length) {
+                int n = additionalResourceManagerIds.length;
+                int[] swap = new int[n * 2];
+                for (int i = 0; i < n; i++)
+                    swap[i] = additionalResourceManagerIds[i];
+
+                swap[n] = newResourceManagerId;
+
+                additionalResourceManagerIds = swap;
+                size++;
+            } else {
+                additionalResourceManagerIds[size] = newResourceManagerId;
+                size++;
+            }
+            currentResourceManagerId = newResourceManagerId;
         }
-        else {
-            int n = additionalResourceManagerIds.length;
-            int[] swap = new int[n + 1];
+    }
 
-            for(int i = 0; i < n; i++) swap[i] = additionalResourceManagerIds[i];
-
-            swap[n] = newResourceManagerId;
-
-            additionalResourceManagerIds = swap;
-        }
+    public int getCurrentResourceManagerId() {
+        return currentResourceManagerId;
     }
 
     @Override
@@ -59,12 +73,15 @@ public class Job implements Serializable, Comparable<Job> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         Job job = (Job) o;
 
-        if (jobId != job.jobId) return false;
+        if (jobId != job.jobId)
+            return false;
         return initialResourceManagerId == job.initialResourceManagerId;
     }
 

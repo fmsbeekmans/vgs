@@ -14,16 +14,11 @@ public class UserMain {
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
 
         int id = 0;
-//        int id = Integer.parseInt(args[0]);
+        // int id = Integer.parseInt(args[0]);
 
         RmiServer rmiServer = new RmiServer(1099);
 
-        new User(
-                rmiServer,
-                id,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY).createJobs(0, 10);
-
+        new User(rmiServer, id, Repositories.USER_REPOSITORY, Repositories.RESOURCE_MANAGER_REPOSITORY).createJobs(0, 8);
 
     }
 }

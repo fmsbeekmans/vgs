@@ -7,6 +7,7 @@ import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.user.IUser;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -24,34 +25,28 @@ public class Repositories {
         ClassLoader classLoader = Repositories.class.getClassLoader();
 
         try {
-            URL usersUrl = classLoader.getResource("users");
-            Path userRepositoryFilePath = Paths.get(usersUrl.toURI());
+            InputStream usersStream = classLoader.getResourceAsStream("users");
+            //Path userRepositoryFilePath = Paths.get(usersUrl.);
 
-            USER_REPOSITORY = Repository.fromFile(userRepositoryFilePath);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+            USER_REPOSITORY = Repository.fromStream(usersStream);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
-            URL resourceManagerUrl = classLoader.getResource("resource-managers");
-            Path resourceManagerRepositoryFilePath = Paths.get(resourceManagerUrl.toURI());
+            InputStream resourceManagerStream = classLoader.getResourceAsStream("resource-managers");
+            //Path resourceManagerRepositoryFilePath = Paths.get(resourceManagerUrl.toURI());
 
-            RESOURCE_MANAGER_REPOSITORY = Repository.fromFile(resourceManagerRepositoryFilePath);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+            RESOURCE_MANAGER_REPOSITORY = Repository.fromStream(resourceManagerStream);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         try {
-            URL gridSchedulersUrl = classLoader.getResource("grid-schedulers");
-            Path gridSchedulersFilePath = Paths.get(gridSchedulersUrl.toURI());
+            InputStream gridSchedulersStream = classLoader.getResourceAsStream("grid-schedulers");
+            //Path gridSchedulersFilePath = Paths.get(gridSchedulersUrl.toURI());
 
-            GRID_SCHEDULER_REPOSITORY = Repository.fromFile(gridSchedulersFilePath);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+            GRID_SCHEDULER_REPOSITORY = Repository.fromStream(gridSchedulersStream);
         } catch (IOException e) {
             e.printStackTrace();
         }
