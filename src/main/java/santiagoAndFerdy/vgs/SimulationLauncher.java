@@ -31,6 +31,13 @@ public class SimulationLauncher {
                 Repositories.RESOURCE_MANAGER_REPOSITORY,
                 Repositories.GRID_SCHEDULER_REPOSITORY,
                 4);
+        IResourceManager rm1 = new ResourceManager(
+                rmiServer,
+                1,
+                Repositories.USER_REPOSITORY,
+                Repositories.RESOURCE_MANAGER_REPOSITORY,
+                Repositories.GRID_SCHEDULER_REPOSITORY,
+                4);
 
         User u0 = new User(
                 rmiServer,
@@ -38,6 +45,15 @@ public class SimulationLauncher {
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY);
 
-        u0.createJobs(0, 50);
+        User u1 = new User(
+                rmiServer,
+                1,
+                Repositories.USER_REPOSITORY,
+                Repositories.RESOURCE_MANAGER_REPOSITORY);
+
+        u0.createJobs(0, 100);
+        u0.createJobs(1, 100);
+        u1.createJobs(0, 100);
+        u1.createJobs(1, 100);
     }
 }
