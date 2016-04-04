@@ -52,7 +52,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public synchronized void monitor(MonitoringRequest monitorRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
+        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
         monitoredJobs.add(monitorRequest.getToMonitor());
     }
 
@@ -60,7 +60,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void backUp(BackUpRequest backUpRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("Received backup request from " + backUpRequest.getSourceGridSchedulerId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceGridSchedulerId() + " at cluster " + id);
         backUpMonitoredJobs.add(backUpRequest.getToBackUp());
     }
 
@@ -68,7 +68,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void promote(WorkRequest workRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("Promoting to primary for job " + workRequest.getJob() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Promoting to primary for job " + workRequest.getJob() + " at cluster " + id);
         backUpMonitoredJobs.remove(workRequest);
         monitoredJobs.add(workRequest);
     }
@@ -85,7 +85,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         monitoredJobs.remove(request);
-        System.out.println("Stop monitoring " + request.getJob().getJobId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Stop monitoring " + request.getJob().getJobId() + " at cluster " + id);
     }
 
     @Override
@@ -93,7 +93,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         backUpMonitoredJobs.remove(workRequest);
-        System.out.println("Releasing back-up of workRequest " + workRequest.getJob().getJobId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId() + " at cluster " + id);
     }
 
     @Override
@@ -130,6 +130,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
         gridSchedulerPinger.start();
         resourceManagerPinger.start();
+
+        System.out.println("[GS\t" + id + "] Online");
     }
 
     @Override
@@ -140,13 +142,15 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
         gridSchedulerPinger.stop();
         resourceManagerPinger.stop();
+
+        System.out.println("[GS\t" + id + "] Offline");
     }
 
     @Override
     public void receiveResourceManagerWakeUpAnnouncement(int from) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("RM " + from + " awake");
+        System.out.println("[GS\t" + id + "] RM " + from + " awake");
         resourceManagerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
@@ -154,7 +158,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("GS " + from + " awake");
+        System.out.println("[GS\t" + id + "] GS " + from + " awake");
         gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 

@@ -62,31 +62,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         rmiServer.register(resourceManagerRepository.getUrl(id), this);
         gridSchedulerPinger = new Pinger(gridSchedulerRepository);
 
-        gridSchedulerRepository.onOffline(gsId -> {
-            synchronized (monitoredAt) {
-                Set<WorkRequest> needNewPrimary = monitoredAt.get(gsId);
-                monitoredAt.put(gsId, new HashSet());
-
-                needNewPrimary.forEach(req -> {
-                    int backUpId = backedUpBy.get(req);
-                    Optional<IGridScheduler> newMonitor = gridSchedulerRepository.getEntity(backUpId);
-
-                    if(newMonitor.isPresent()) {
-                        try {
-                            newMonitor.get().promote(req);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                            // TODO: Error
-                        }
-                    } else {
-                        // TODO: Error, find yet another?
-                    }
-                });
-            }
-
-            return null;
-        });
-
         this.nNodes = nNodes;
         running = false;
 
@@ -97,51 +72,53 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public void offerWork(WorkRequest req) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        engine.run(Task.action(() -> {
-            if (needToOffload()) {
-                // TODO send to GS to offload
-            } else {
-                int monitorGridSchedulerId = selectMonitorGridSchedule();
-                int backUpGridSchedulerId = selectBackUpGridSchedule(monitorGridSchedulerId);
+        if (needToOffload()) {
+            // TODO send to GS to offload
+        } else {
+            int monitorGridSchedulerId = selectMonitorGridSchedule();
+            int backUpGridSchedulerId = selectBackUpGridSchedule(monitorGridSchedulerId);
 
-                Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
-                Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
+            Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
+            Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
 
-                if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
-                    // request monitoring and backup in parallel
-                    Task<Void> monitorTask = Task.action(() -> {
-                        System.out.println("Requesting monitoring for " + req.getJob().getJobId());
-                        MonitoringRequest monitoringRequest = new MonitoringRequest(id, req);
-                        monitorGridScheduler.get().monitor(monitoringRequest);
-                        monitoredBy.put(req, monitorGridSchedulerId);
-                        monitoredAt.get(monitorGridSchedulerId).add(req);
-                    });
+            if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
+                System.out.println("[RM\t" + id + "] do redundancy thingies");
+                // request monitoring and backup in parallel
+                Task<Void> monitorTask = Task.action(() -> {
+                    System.out.println("[RM\t" + id + "] Requesting monitoring for " + req.getJob().getJobId());
+                    MonitoringRequest monitoringRequest = new MonitoringRequest(id, req);
+                    monitorGridScheduler.get().monitor(monitoringRequest);
+                    monitoredBy.put(req, monitorGridSchedulerId);
+                    monitoredAt.get(monitorGridSchedulerId).add(req);
+                });
 
-                    Task<Void> backUpTask = Task.action(() -> {
-                        System.out.println("Requesting back-up for " + req.getJob().getJobId());
-                        BackUpRequest backUpRequest = new BackUpRequest(id, req);
-                        backUpGridScheduler.get().backUp(backUpRequest);
-                        backedUpBy.put(req, backUpGridSchedulerId);
-                        backedUpAt.get(backUpGridSchedulerId).add(req);
-                    });
+                Task<Void> backUpTask = Task.action(() -> {
+                    System.out.println("[RM\t" + id + "] Requesting back-up for " + req.getJob().getJobId());
+                    BackUpRequest backUpRequest = new BackUpRequest(id, req);
+                    backUpGridScheduler.get().backUp(backUpRequest);
+                    backedUpBy.put(req, backUpGridSchedulerId);
+                    backedUpAt.get(backUpGridSchedulerId).add(req);
+                });
 
-                    Task<?> await = Task.par(monitorTask, backUpTask);
-                    engine.run(monitorTask);
-                    engine.run(backUpTask);
-                    engine.run(await); // needed?
-                    try {
-                        await.await();
+                monitorTask.addListener(m -> System.out.println("Monitered"));
+                backUpTask.addListener(m -> System.out.println("BackUpped"));
 
-                        schedule(req);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
-                    }
-                } else {
-                    throw new RemoteException("no monitoring and backup grid scheduler available");
+                Task<?> await = Task.par(monitorTask, backUpTask);
+                engine.run(monitorTask);
+                engine.run(backUpTask);
+                engine.run(await);
+                try {
+                    await.await();
+
+                    schedule(req);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
                 }
+            } else {
+                throw new RemoteException("no monitoring and backup grid scheduler available");
             }
-        }));
+        }
     }
 
     protected boolean needToOffload() {
@@ -157,7 +134,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     protected void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
-        System.out.println("Scheduling job " + toSchedule.getJob().getJobId());
+        System.out.println("[RM\t" + id + "] Scheduling job " + toSchedule.getJob().getJobId());
         jobQueue.offer(toSchedule);
         engine.run(Task.action(() -> processQueue()));
     }
@@ -168,7 +145,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         Optional<IUser> maybeUser = userRepository.getEntity(finished.getUserId());
 
-        System.out.println("Finished running job " + finished.getJob().getJobId());
+        System.out.println("[RM\t" + id + "] Finished running job " + finished.getJob().getJobId());
 
         if(maybeUser.isPresent()) {
             maybeUser.get().acceptResult(finished.getJob());
@@ -201,7 +178,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             if(node != null) {
                 WorkRequest work = jobQueue.poll();
                 if(work != null) {
-                    System.out.println("Executing job " + work.getJob().getJobId());
+                    System.out.println("[RM\t" + id + "] Executing job " + work.getJob().getJobId());
                     node.handle(work);
                 }
                 else {
@@ -229,8 +206,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             backedUpAt.put(gsId, new HashSet<>());
         });
 
-        int numCores = Runtime.getRuntime().availableProcessors();
-        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(1);
         this.timer = Executors.newSingleThreadScheduledExecutor();
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
 
@@ -253,6 +229,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         }
 
         gridSchedulerPinger.start();
+
+        System.out.println("[RM\t" + id + "] Online");
     }
 
     @Override
@@ -267,13 +245,15 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         timer.shutdownNow();
         engine.shutdown();
+
+        System.out.println("[RM\t" + id + "] Offline");
     }
 
     @Override
     public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("GS " + from + " awake");
+        System.out.println("[RM\t" + id + "] GS " + from + " awake");
         gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 

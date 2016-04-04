@@ -10,7 +10,7 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
 public class SimulationLauncher {
-    public static void main(String[] args) throws RemoteException {
+    public static void main(String[] args) throws RemoteException, InterruptedException {
         RmiServer rmiServer = new RmiServer(1099);
 
         IGridScheduler gs0 = new GridScheduler(
@@ -30,7 +30,7 @@ public class SimulationLauncher {
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY,
                 Repositories.GRID_SCHEDULER_REPOSITORY,
-                1);
+                4);
 
         User u0 = new User(
                 rmiServer,
@@ -38,6 +38,6 @@ public class SimulationLauncher {
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY);
 
-        u0.createJobs(0, 5);
+        u0.createJobs(0, 100);
     }
 }

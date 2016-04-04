@@ -66,6 +66,7 @@ public class User extends UnicastRemoteObject implements IUser {
                 pendingJobs.add(j);
                 WorkRequest req = new WorkRequest(id, j);
                 try {
+                    System.out.println("[U\t" + id + "] Offering job " + j.getJobId() + " to rm " + rmId);
                     resourceManager.offerWork(req);
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -76,7 +77,7 @@ public class User extends UnicastRemoteObject implements IUser {
 
     @Override
     public void acceptResult(Job j) throws RemoteException {
-        System.out.println("Job " + j.getJobId() + " finished execution");
+        System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
         pendingJobs.remove(j);
     }
 }

@@ -23,7 +23,5 @@ public class UserMain {
                 id,
                 Repositories.USER_REPOSITORY,
                 Repositories.RESOURCE_MANAGER_REPOSITORY).createJobs(0, 10);
-
-
     }
 }
