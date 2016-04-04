@@ -32,9 +32,9 @@ public class User extends UnicastRemoteObject implements IUser {
 
     public User(
             RmiServer rmiServer,
+            int id,
             IRepository<IUser> userRepository,
-            IRepository<IResourceManager> resourceManagerRepository,
-            int id) throws RemoteException {
+            IRepository<IResourceManager> resourceManagerRepository) throws RemoteException {
 
         this.rmiServer = rmiServer;
         this.id = id;
@@ -59,7 +59,7 @@ public class User extends UnicastRemoteObject implements IUser {
      * @throws NotBoundException
      * @throws MalformedURLException
      */
-    public void createJobs(int rmId, int numJobs) throws RemoteException, NotBoundException, MalformedURLException {
+    public void createJobs(int rmId, int numJobs) throws RemoteException {
         for (long i = 0; i < numJobs; i++) {
             final Job j = new Job(1000, IDGen.getNewId(), rmId);
             resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
