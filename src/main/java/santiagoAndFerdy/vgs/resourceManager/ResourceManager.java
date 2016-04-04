@@ -109,34 +109,34 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
                 if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
                     // request monitoring and backup in parallel
-//                    Task<Void> monitorTask = Task.action(() -> {
+                    Task<Void> monitorTask = Task.action(() -> {
                         System.out.println("Requesting monitoring for " + req.getJob().getJobId());
                         MonitoringRequest monitoringRequest = new MonitoringRequest(id, req);
                         monitorGridScheduler.get().monitor(monitoringRequest);
                         monitoredBy.put(req, monitorGridSchedulerId);
                         monitoredAt.get(monitorGridSchedulerId).add(req);
-//                    });
+                    });
 
-//                    Task<Void> backUpTask = Task.action(() -> {
+                    Task<Void> backUpTask = Task.action(() -> {
                         System.out.println("Requesting back-up for " + req.getJob().getJobId());
                         BackUpRequest backUpRequest = new BackUpRequest(id, req);
                         backUpGridScheduler.get().backUp(backUpRequest);
                         backedUpBy.put(req, backUpGridSchedulerId);
                         backedUpAt.get(backUpGridSchedulerId).add(req);
-//                    });
+                    });
 
-//                    Task<?> await = Task.par(monitorTask, backUpTask);
-//                    engine.run(monitorTask);
-//                    engine.run(backUpTask);
-//                    engine.run(await); // needed?
-//                    try {
-//                        await.await();
+                    Task<?> await = Task.par(monitorTask, backUpTask);
+                    engine.run(monitorTask);
+                    engine.run(backUpTask);
+                    engine.run(await); // needed?
+                    try {
+                        await.await();
 
                         schedule(req);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                        throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
-//                    }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
+                    }
                 } else {
                     throw new RemoteException("no monitoring and backup grid scheduler available");
                 }
