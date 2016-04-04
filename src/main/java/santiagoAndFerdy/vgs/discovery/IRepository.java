@@ -1,13 +1,10 @@
 package santiagoAndFerdy.vgs.discovery;
 
 import java.io.Serializable;
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
 import java.rmi.Remote;
-import java.rmi.RemoteException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Created by Fydio on 3/24/16.
@@ -32,4 +29,8 @@ public interface IRepository<T extends Remote> extends Serializable {
     List<Integer> onlineIdsExcept(int... except);
 
     List<Integer> idsExcept(int... except);
+
+    void onOffline(Function<Integer, Void> doWithOfflineId);
+
+    void onOnline(Function<Integer, Void> doWithOnlineId);
 }

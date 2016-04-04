@@ -160,7 +160,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             monitorGridScheduler.get().releaseMonitored(req);
             backUpGridScheduler.get().releaseBackUp(req);
         }
-
     }
 
     protected void processQueue() {
@@ -178,7 +177,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             } else {
                 break;
             }
-
         }
     }
 

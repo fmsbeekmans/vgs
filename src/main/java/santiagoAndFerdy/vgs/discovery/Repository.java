@@ -10,6 +10,7 @@ import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -22,6 +23,9 @@ public class Repository<T extends Remote> implements IRepository<T> {
     protected String[]        urls;
     protected Status[]        statuses;
 
+    private List<Function<Integer, Void>> offlineCallbacks;
+    private List<Function<Integer, Void>> onlineCallbacks;
+
     public Repository(Map<Integer, String> urls) {
         int n = urls.keySet().stream().max(Comparator.naturalOrder()).map(max -> max + 1).orElse(0);
         this.urls = new String[n];
@@ -31,6 +35,9 @@ public class Repository<T extends Remote> implements IRepository<T> {
             this.urls[k] = urls.get(k);
             this.statuses[k] = Status.OFFLINE;
         }
+
+        offlineCallbacks = new LinkedList<>();
+        onlineCallbacks = new LinkedList<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -56,7 +63,15 @@ public class Repository<T extends Remote> implements IRepository<T> {
     @Override
     public boolean setLastKnownStatus(int id, Status newStatus) {
         if (statuses[id] != null) {
-            statuses[id] = newStatus;
+            Status oldStatus = getLastKnownStatus(id);
+            if(oldStatus != newStatus) {
+
+                if(newStatus == Status.ONLINE) executeOnlineCallbacks(id);
+                if(newStatus == Status.OFFLINE) executeOfflineCallbacks(id);
+
+                statuses[id] = newStatus;
+            }
+
             return true;
         } else {
             return false;
@@ -89,6 +104,28 @@ public class Repository<T extends Remote> implements IRepository<T> {
         return ids().stream()
                 .filter(i -> !exceptions.contains(i) && getLastKnownStatus(i) == Status.ONLINE)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void onOffline(Function<Integer, Void> doWithOfflineId) {
+        offlineCallbacks.add(doWithOfflineId);
+    }
+
+    @Override
+    public void onOnline(Function<Integer, Void> doWithOnlineId) {
+        onlineCallbacks.add(doWithOnlineId);
+    }
+
+    public void executeOnlineCallbacks(int onlineId) {
+        for (Function<Integer, Void> onlineCallback : onlineCallbacks) {
+            onlineCallback.apply(onlineId);
+        }
+    }
+
+    public void executeOfflineCallbacks(int onlineId) {
+        for (Function<Integer, Void> offlineCallback : onlineCallbacks) {
+            offlineCallback.apply(onlineId);
+        }
     }
 
     @Override
