@@ -1,12 +1,12 @@
 package santiagoAndFerdy.vgs.gridScheduler;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
-import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -22,6 +22,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private int                           id;
     private IRepository<IResourceManager> resourceManagerRepository;
     private IRepository<IGridScheduler>   gridSchedulerRepository;
+    private Pinger<IResourceManager> resourceManagerPinger;
+    private Pinger<IGridScheduler> gridSchedulerPinger;
+
 
     private Queue<MonitoringRequest>      monitoredJobs;
     private Queue<BackUpRequest>          backUpMonitoredJobs;
@@ -39,6 +42,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
         this.resourceManagerRepository = resourceManagerRepository;
         this.gridSchedulerRepository = gridSchedulerRepository;
+        gridSchedulerPinger = new Pinger(gridSchedulerRepository, id);
+        resourceManagerPinger = new Pinger(resourceManagerRepository);
 
         start();
     }
@@ -93,10 +98,10 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         monitoredJobs = new PriorityQueue<>();
         backUpMonitoredJobs = new PriorityQueue<>();
 
-        for (int gridSchedulerId : gridSchedulerRepository.ids()) {
+        for (int gridSchedulerId : gridSchedulerRepository.idsExcept(id)) {
             gridSchedulerRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
                 try {
-                    gs.receiveResourceManagerWakeUpAnnouncement(id);
+                    gs.receiveGridSchedulerWakeUpAnnouncement(id);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                     // Can be offline. that's okay.
@@ -113,6 +118,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 }
             });
         }
+
+        gridSchedulerPinger.start();
+        resourceManagerPinger.start();
     }
 
     @Override
@@ -120,15 +128,20 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         running = false;
         monitoredJobs = null;
         backUpMonitoredJobs = null;
+
+        gridSchedulerPinger.stop();
+        resourceManagerPinger.stop();
     }
 
     @Override
     public void receiveResourceManagerWakeUpAnnouncement(int from) throws RemoteException {
+        System.out.println("RM " + from + " awake");
         resourceManagerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
     public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
+        System.out.println("GS " + from + " awake");
         gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 

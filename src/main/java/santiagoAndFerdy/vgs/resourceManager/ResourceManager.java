@@ -5,6 +5,7 @@ import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.sun.istack.internal.NotNull;
 
+import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
@@ -33,6 +34,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private IRepository<IUser> userRepository;
     private IRepository<IResourceManager> resourceManagerRepository;
     private IRepository<IGridScheduler> gridSchedulerRepository;
+    private Pinger<IGridScheduler> gridSchedulerPinger;
 
     private Queue<WorkRequest> jobQueue;
     private Queue<Node> idleNodes;
@@ -59,6 +61,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         this.resourceManagerRepository = resourceManagerRepository;
         this.gridSchedulerRepository = gridSchedulerRepository;
         rmiServer.register(resourceManagerRepository.getUrl(id), this);
+        gridSchedulerPinger = new Pinger(gridSchedulerRepository);
 
         this.nNodes = nNodes;
         running = false;
@@ -210,6 +213,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                 }
             });
         }
+
+        gridSchedulerPinger.start();
     }
 
     @Override
@@ -226,6 +231,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     @Override
     public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
+        System.out.println("GS " + from + " awake");
         gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 

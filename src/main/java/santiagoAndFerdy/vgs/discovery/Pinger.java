@@ -3,48 +3,44 @@ package santiagoAndFerdy.vgs.discovery;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 
 import santiagoAndFerdy.vgs.messages.Heartbeat;
 
-public class HeartbeatHandler {
+public class Pinger<T extends IAddressable> {
 
-    private IRepository<?>           repository;
-    private Engine                   engine;        // dunno if we need the Engine here actually
-    private ScheduledExecutorService timerScheduler;
-    private int                      id;
-    private boolean                  flag;
+    private IRepository<T>           repository;
+    private int[]                      idsToIgnore;
+
+    private ScheduledExecutorService timer;
 
     /**
      * Heartbeat handler which pings periodically the URLs in the repository.
-     * 
+     *
      * @param repository
      *            - repository containing the id and URLs
-     * @param id
-     *            - id of the component which creates the handler, it's used to avoid pinging itself
-     * @param flag
-     *            - flag indicating whether should check not pinging the same id than the received in the id param or not. The GS needs to ping all
-     *            RMs but not all GS (not itself)
+     * @param idsToIgnore
      * @throws MalformedURLException
      * @throws RemoteException
      */
-    public HeartbeatHandler(IRepository<? extends IAddressable> repository, int id, boolean flag) throws MalformedURLException, RemoteException {
+    public Pinger(IRepository<T> repository, int... idsToIgnore) {
         this.repository = repository;
-        this.id = id;
-        this.flag = flag;
-        timerScheduler = Executors.newSingleThreadScheduledExecutor();
-        int numCores = Runtime.getRuntime().availableProcessors();
-        ExecutorService taskScheduler = Executors.newFixedThreadPool(numCores + 1);
-        engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timerScheduler).build();
+        this.idsToIgnore = idsToIgnore;
+
+        timer = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    public void start() {
         checkLife();
+    }
+
+    public void stop() {
+        timer.shutdownNow();
     }
 
     /**
@@ -52,10 +48,8 @@ public class HeartbeatHandler {
      * success it will update the status to ONLINE otherwise (an exception either NotBoundException or ConnectionException) to OFFLINE.
      */
     public void checkLife() {
-        timerScheduler.scheduleAtFixedRate(() -> {
-            for (int id : repository.onlineIdsExcept()) {
-                if (id == this.id && flag) // to not ping himself
-                    continue;
+        timer.scheduleAtFixedRate(() -> {
+            for (int id : repository.onlineIdsExcept(idsToIgnore)) {
                 Heartbeat h = new Heartbeat(repository.getUrl(id));
                 try {
                     IAddressable driver;
@@ -69,6 +63,5 @@ public class HeartbeatHandler {
                 }
             }
         } , 0, 5, TimeUnit.SECONDS);
-
     }
 }

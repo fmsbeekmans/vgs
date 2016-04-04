@@ -42,7 +42,6 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
             return Optional.of(result);
         } catch (RemoteException | NotBoundException | MalformedURLException e) {
-            e.printStackTrace();
             setLastKnownStatus(id, Status.OFFLINE);
 
             return Optional.empty();
@@ -70,6 +69,16 @@ public class Repository<T extends Remote> implements IRepository<T> {
             return new LinkedList<>();
 
         return IntStream.range(0, urls.length).filter(i -> urls[i] != null).mapToObj(i -> new Integer(i)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Integer> idsExcept(int... except) {
+        Set<Integer> exceptions = new HashSet<>();
+        for (int exception : except) exceptions.add(exception);
+
+        return ids().stream()
+                .filter(i -> !exceptions.contains(i))
+                .collect(Collectors.toList());
     }
 
     @Override
