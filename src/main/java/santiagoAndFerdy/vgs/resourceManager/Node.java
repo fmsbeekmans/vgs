@@ -34,11 +34,7 @@ public class Node {
         this.timer.schedule(() -> {
                     try {
                         this.resourceManager.finish(this, toExecute);
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    } catch (MalformedURLException e) {
-                        e.printStackTrace();
-                    } catch (NotBoundException e) {
+                    } catch (RemoteException | MalformedURLException | NotBoundException e) {
                         e.printStackTrace();
                     }
                 },

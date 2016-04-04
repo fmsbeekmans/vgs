@@ -20,7 +20,7 @@ public interface IGridScheduler extends IAddressable {
      *            the request to watch
      * @throws RemoteException
      */
-    void monitorPrimary(MonitoringRequest monitorRequest) throws RemoteException, MalformedURLException, NotBoundException;
+    void monitorPrimary(MonitoringRequest monitorRequest) throws RemoteException;
 
     /**
      * Request this grid scheduler to also watch a job in case the primary grid scheduler crashes
@@ -29,7 +29,7 @@ public interface IGridScheduler extends IAddressable {
      *            the userRequest to watch
      * @throws RemoteException
      */
-    void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException, MalformedURLException, NotBoundException;
+    void monitorBackUp(BackUpRequest backUpRequest) throws RemoteException;
 
     /**
      * For a resource manager to userRequest a job to be scheduled elsewhere

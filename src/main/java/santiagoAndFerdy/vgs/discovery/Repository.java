@@ -37,8 +37,18 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public T getEntity(int id) throws RemoteException, NotBoundException, MalformedURLException {
-        return (T) Naming.lookup(urls[id]);
+    public Optional<T> getEntity(int id) {
+        try {
+            T result = (T) Naming.lookup(urls[id]);
+            setLastKnownStatus(id, Status.ONLINE);
+
+            return Optional.of(result);
+        } catch (NotBoundException | MalformedURLException | RemoteException e) {
+            e.printStackTrace();
+            setLastKnownStatus(id, Status.OFFLINE);
+
+            return Optional.empty();
+        }
     }
 
     @Override
