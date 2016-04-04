@@ -1,12 +1,8 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
-import com.sun.istack.internal.NotNull;
 import santiagoAndFerdy.vgs.discovery.ICrashable;
-import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 
-import java.net.MalformedURLException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
 /**
@@ -18,15 +14,6 @@ public interface IResourceManager extends ICrashable {
      * @param req the workload offered to the resource manager
      */
     void offerWork(WorkRequest req) throws RemoteException;
-
-    /**
-     * For a grid scheduler to schedule a job on the cluster managed by this resource maneger
-     * @param toSchedule
-     * @throws RemoteException
-     * @throws MalformedURLException
-     * @throws NotBoundException
-     */
-    void schedule(@NotNull WorkRequest toSchedule) throws RemoteException;
 
     /**
      * For a node to signal that the processing of a job is finished

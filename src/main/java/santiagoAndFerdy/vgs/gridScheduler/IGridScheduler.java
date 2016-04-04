@@ -32,6 +32,13 @@ public interface IGridScheduler extends ICrashable {
     void backUp(BackUpRequest backUpRequest) throws RemoteException;
 
     /**
+     * Become the monitor insteadd of back up for this workRequest
+     * @param workRequest
+     * @throws RemoteException
+     */
+    void promote(WorkRequest workRequest) throws RemoteException;
+
+    /**
      * For a resource manager to request a job to be scheduled elsewhere
      * 
      * @param workRequest

@@ -26,8 +26,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Pinger<IGridScheduler> gridSchedulerPinger;
 
 
-    private Queue<MonitoringRequest>      monitoredJobs;
-    private Queue<BackUpRequest>          backUpMonitoredJobs;
+    private Queue<WorkRequest>      monitoredJobs;
+    private Queue<WorkRequest>          backUpMonitoredJobs;
 
     private boolean running;
 
@@ -53,7 +53,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
-        monitoredJobs.add(monitorRequest);
+        monitoredJobs.add(monitorRequest.getToMonitor());
     }
 
     @Override
@@ -61,7 +61,16 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("Received backup request from " + backUpRequest.getSourceGridSchedulerId() + " at cluster " + id);
-        backUpMonitoredJobs.add(backUpRequest);
+        backUpMonitoredJobs.add(backUpRequest.getToBackUp());
+    }
+
+    @Override
+    public void promote(WorkRequest workRequest) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
+        System.out.println("Promoting to primary for job " + workRequest.getJob() + " at cluster " + id);
+        backUpMonitoredJobs.remove(workRequest);
+        monitoredJobs.add(workRequest);
     }
 
     @Override
@@ -89,7 +98,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     @Override
     public void iAmAlive(Heartbeat h) throws RemoteException {
-
+        if(!running) throw new RemoteException("I am offline");
     }
 
     @Override
@@ -135,18 +144,24 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     @Override
     public void receiveResourceManagerWakeUpAnnouncement(int from) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("RM " + from + " awake");
         resourceManagerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
     public void receiveGridSchedulerWakeUpAnnouncement(int from) throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         System.out.println("GS " + from + " awake");
         gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
-    public int getId() {
+    public int getId() throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
         return id;
     }
 }
