@@ -150,22 +150,24 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void setUpReSchedule() {
         rmRepository.onOffline(rmId -> {
             if (running) {
-                monitoredJobs.get(rmId).forEach(monitored -> {
-                    System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId());
+                synchronized (monitoredJobs.get(rmId)) {
+                    monitoredJobs.get(rmId).forEach(monitored -> {
+                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + rmId);
 
-                    WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
+                        WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
-                    Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
-                    Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
-                            .flatMap(newRmId -> rmRepository.getEntity(newRmId));
-                    newRm.ifPresent(rm -> {
-                        try {
-                            rm.orderWork(reScheduleOrder);
-                        } catch (RemoteException e) {
-                            e.printStackTrace();
-                        }
+                        Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
+                        Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
+                                .flatMap(newRmId -> rmRepository.getEntity(newRmId));
+                        newRm.ifPresent(rm -> {
+                            try {
+                                rm.orderWork(reScheduleOrder);
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        });
                     });
-                });
+                }
             }
 
             return null;

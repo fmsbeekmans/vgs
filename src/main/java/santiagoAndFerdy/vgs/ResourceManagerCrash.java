@@ -36,14 +36,14 @@ public class ResourceManagerCrash {
                 IRepository.Repositories.userRepository,
                 IRepository.Repositories.resourceManagerRepository,
                 IRepository.Repositories.gridSchedulerRepository,
-                4);
+                1);
         IResourceManager rm1 = new ResourceManager(
                 rmiServer,
                 1,
                 IRepository.Repositories.userRepository,
                 IRepository.Repositories.resourceManagerRepository,
                 IRepository.Repositories.gridSchedulerRepository,
-                4);
+                1);
 
         User u0 = new User(
                 rmiServer,
@@ -57,7 +57,7 @@ public class ResourceManagerCrash {
                 IRepository.Repositories.userRepository,
                 IRepository.Repositories.resourceManagerRepository);
 
-        u0.createJobs(0, 5, 5000);
+        u0.createJobs(0, 3, 5000);
 
         Thread.sleep(1000);
 
