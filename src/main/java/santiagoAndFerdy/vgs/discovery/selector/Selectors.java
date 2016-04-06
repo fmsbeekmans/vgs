@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.discovery.loadBalance;
+package santiagoAndFerdy.vgs.discovery.selector;
 
 /**
  * Created by Fydio on 4/5/16.

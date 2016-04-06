@@ -2,6 +2,7 @@ package santiagoAndFerdy.vgs;
 
 import java.rmi.RemoteException;
 
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
@@ -16,44 +17,44 @@ public class SimulationLauncher {
         IGridScheduler gs0 = new GridScheduler(
                 rmiServer,
                 0,
-                Repositories.RESOURCE_MANAGER_REPOSITORY,
-                Repositories.GRID_SCHEDULER_REPOSITORY);
+                IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository);
         IGridScheduler gs1 = new GridScheduler(
                 rmiServer,
                 1,
-                Repositories.RESOURCE_MANAGER_REPOSITORY,
-                Repositories.GRID_SCHEDULER_REPOSITORY);
+                IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository);
 
         IResourceManager rm0 = new ResourceManager(
                 rmiServer,
                 0,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY,
-                Repositories.GRID_SCHEDULER_REPOSITORY,
+                IRepository.Repositories.userRepository,
+                IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository,
                 4);
         IResourceManager rm1 = new ResourceManager(
                 rmiServer,
                 1,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY,
-                Repositories.GRID_SCHEDULER_REPOSITORY,
+                IRepository.Repositories.userRepository,
+                IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository,
                 4);
 
         User u0 = new User(
                 rmiServer,
                 0,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY);
+                IRepository.Repositories.userRepository,
+                IRepository.Repositories.resourceManagerRepository);
 
         User u1 = new User(
                 rmiServer,
                 1,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY);
+                IRepository.Repositories.userRepository,
+                IRepository.Repositories.resourceManagerRepository);
 
-        u0.createJobs(0, 100);
-        u0.createJobs(1, 100);
-        u1.createJobs(0, 100);
-        u1.createJobs(1, 100);
+        u0.createJobs(0, 50);
+        u0.createJobs(1, 50);
+        u1.createJobs(0, 50);
+        u1.createJobs(1, 50);
     }
 }

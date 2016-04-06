@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs.discovery.loadBalance;
+package santiagoAndFerdy.vgs.discovery.selector;
 
 import java.util.Map;
 import java.util.Optional;
@@ -13,14 +13,14 @@ public class LowestWeightSelector implements ISelector {
     }
 
     @Override
-    public Optional<Integer> getRandomIndex(Map<Integer, Integer> weights) {
+    public Optional<Integer> getRandomIndex(Map<Integer, Long> weights) {
         if(weights.isEmpty()) return Optional.empty();
 
-        int minWeight = Integer.MAX_VALUE;
+        long minWeight = Long.MAX_VALUE;
         int minKey = 0;
 
         for(int k : weights.keySet()) {
-            int weight = weights.get(k);
+            long weight = weights.get(k);
 
             if(weight < minWeight) {
                 minWeight = weight;

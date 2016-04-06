@@ -1,51 +1,49 @@
-package santiagoAndFerdy.vgs.discovery.loadBalance;
+package santiagoAndFerdy.vgs.discovery.selector;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Created by Fydio on 4/5/16.
  */
 public class WeighedRandomSelector implements ISelector {
     public static WeighedRandomSelector instance = new WeighedRandomSelector();
+    public ThreadLocalRandom rng;
 
     public WeighedRandomSelector() {
+        rng = ThreadLocalRandom.current();
     }
 
     @Override
-    public Optional<Integer> getRandomIndex(Map<Integer, Integer> weights) {
-        int sum = weights.values().stream().reduce(0, (a, b) -> a + b);
+    public Optional<Integer> getRandomIndex(Map<Integer, Long> weights) {
+        long n = weights.values().stream().reduce(0L, (a, b) -> a + b);
+        n += weights.size();
 
         Random rng = new Random();
-
-        int random = -1;
-        int bound = bits(sum);
+        long random = -1;
 
         // keep generating a random number until a suitable one is found.
         while (random == -1) {
-            int randomTry = rng.nextInt(sum);
-            if(randomTry <= sum) random = randomTry;
+            long randomTry = new Double(Math.floor(rng.nextDouble() * n)).longValue();
+            if(randomTry <= n) random = randomTry;
         }
 
         int counter = 0;
         Optional<Integer> i = Optional.empty();
 
         for (int key : weights.keySet()) {
-            int weight = weights.get(key);
+            long weight = weights.get(key);
 
-            if(counter <= random && (counter + weight) > random) {
+            if(counter <= random && (counter + weight + 1) > random) {
                 i = Optional.of(key);
                 break;
             };
 
-            counter += weight;
+            counter += weight + 1;
         }
 
         return i;
-    }
-
-    private static int bits(int of) {
-        return new Double(Math.ceil(Math.log(of) / Math.log(2))).intValue();
     }
 }

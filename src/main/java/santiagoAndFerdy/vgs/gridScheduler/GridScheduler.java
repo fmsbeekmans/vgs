@@ -3,7 +3,6 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
-import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
@@ -12,38 +11,38 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.PriorityQueue;
-import java.util.Queue;
+import java.util.*;
 
 public class GridScheduler extends UnicastRemoteObject implements IGridScheduler {
     private static final long             serialVersionUID = -5694724140595312739L;
 
     private RmiServer                     rmiServer;
     private int                           id;
-    private IRepository<IResourceManager> resourceManagerRepository;
-    private IRepository<IGridScheduler>   gridSchedulerRepository;
+    private IRepository<IResourceManager> rmRepository;
+    private IRepository<IGridScheduler> gsRepository;
     private Pinger<IResourceManager> resourceManagerPinger;
     private Pinger<IGridScheduler> gridSchedulerPinger;
 
-
-    private Queue<WorkRequest>      monitoredJobs;
-    private Queue<WorkRequest>          backUpMonitoredJobs;
+    private Map<Integer, Set<WorkRequest>> monitoredJobs;
+    private Map<Integer, Set<WorkRequest>> backUpJobs;
 
     private boolean running;
+
+    private long load;
 
     public GridScheduler(
             RmiServer rmiServer,
             int id,
-            IRepository<IResourceManager> resourceManagerRepository,
-            IRepository<IGridScheduler> gridSchedulerRepository) throws RemoteException {
+            IRepository<IResourceManager> rmRepository,
+            IRepository<IGridScheduler> gsRepository) throws RemoteException {
         this.rmiServer = rmiServer;
         this.id = id;
-        rmiServer.register(gridSchedulerRepository.getUrl(id), this);
+        rmiServer.register(gsRepository.getUrl(id), this);
 
-        this.resourceManagerRepository = resourceManagerRepository;
-        this.gridSchedulerRepository = gridSchedulerRepository;
-        gridSchedulerPinger = new Pinger(gridSchedulerRepository, id);
-        resourceManagerPinger = new Pinger(resourceManagerRepository);
+        this.rmRepository = rmRepository;
+        this.gsRepository = gsRepository;
+        gridSchedulerPinger = new Pinger(gsRepository, id);
+        resourceManagerPinger = new Pinger(rmRepository);
 
         start();
     }
@@ -53,15 +52,15 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
-        monitoredJobs.add(monitorRequest.getToMonitor());
+        monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getToMonitor());
     }
 
     @Override
     public void backUp(BackUpRequest backUpRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceGridSchedulerId() + " at cluster " + id);
-        backUpMonitoredJobs.add(backUpRequest.getToBackUp());
+        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId() + " at cluster " + id);
+        backUpJobs.get(backUpRequest.getSourceResourceManagerId()).add(backUpRequest.getToBackUp());
     }
 
     @Override
@@ -69,8 +68,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("[GS\t" + id + "] Promoting to primary for job " + workRequest.getJob() + " at cluster " + id);
-        backUpMonitoredJobs.remove(workRequest);
-        monitoredJobs.add(workRequest);
+        backUpJobs.remove(workRequest);
+
     }
 
     @Override
@@ -92,23 +91,30 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void releaseBackUp(WorkRequest workRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        backUpMonitoredJobs.remove(workRequest);
+        backUpJobs.remove(workRequest);
         System.out.println("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId() + " at cluster " + id);
-    }
-
-    @Override
-    public void iAmAlive(Heartbeat h) throws RemoteException {
-        if(!running) throw new RemoteException("I am offline");
     }
 
     @Override
     public void start() throws RemoteException {
         running = true;
-        monitoredJobs = new PriorityQueue<>();
-        backUpMonitoredJobs = new PriorityQueue<>();
+        monitoredJobs = new HashMap<>();
+        backUpJobs = new HashMap<>();
 
-        for (int gridSchedulerId : gridSchedulerRepository.idsExcept(id)) {
-            gridSchedulerRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
+        for(int rmId : rmRepository.ids()) {
+            monitoredJobs.put(rmId, new HashSet<>());
+            backUpJobs.put(rmId, new HashSet<>());
+            rmRepository.getEntity(rmId).ifPresent(rm -> {
+                try {
+                    rm.receiveGridSchedulerWakeUpAnnouncement(id);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        for (int gsId : gsRepository.idsExcept(id)) {
+            gsRepository.getEntity(gsId).ifPresent(gs -> {
                 try {
                     gs.receiveGridSchedulerWakeUpAnnouncement(id);
                 } catch (RemoteException e) {
@@ -118,15 +124,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             });
         }
 
-        for(int resourceManagerId : resourceManagerRepository.ids()) {
-            resourceManagerRepository.getEntity(resourceManagerId).ifPresent(rm -> {
-                try {
-                    rm.receiveGridSchedulerWakeUpAnnouncement(id);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            });
-        }
+        load = 1;
 
         gridSchedulerPinger.start();
         resourceManagerPinger.start();
@@ -138,7 +136,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void shutDown() throws RemoteException {
         running = false;
         monitoredJobs = null;
-        backUpMonitoredJobs = null;
+        backUpJobs = null;
 
         gridSchedulerPinger.stop();
         resourceManagerPinger.stop();
@@ -151,7 +149,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("[GS\t" + id + "] RM " + from + " awake");
-        resourceManagerRepository.setLastKnownStatus(from, Status.ONLINE);
+        rmRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
@@ -159,7 +157,14 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("[GS\t" + id + "] GS " + from + " awake");
-        gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
+        gsRepository.setLastKnownStatus(from, Status.ONLINE);
+    }
+
+    @Override
+    public long ping() throws RemoteException {
+        if(!running) throw new RemoteException("I am offline");
+
+        return load;
     }
 
     @Override

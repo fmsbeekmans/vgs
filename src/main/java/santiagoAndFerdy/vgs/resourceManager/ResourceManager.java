@@ -7,19 +7,20 @@ import com.sun.istack.internal.NotNull;
 
 import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
+import santiagoAndFerdy.vgs.discovery.selector.Selectors;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.util.concurrent.*;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
-import santiagoAndFerdy.vgs.messages.Heartbeat;
 import santiagoAndFerdy.vgs.user.IUser;
 
 /**
@@ -29,8 +30,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private RmiServer rmiServer;
     private int id;
     private IRepository<IUser> userRepository;
-    private IRepository<IResourceManager> resourceManagerRepository;
-    private IRepository<IGridScheduler> gridSchedulerRepository;
+    private IRepository<IResourceManager> rmRepository;
+    private IRepository<IGridScheduler> gsRepository;
     private Pinger<IGridScheduler> gridSchedulerPinger;
 
     private Queue<WorkRequest> jobQueue;
@@ -45,22 +46,24 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private ScheduledExecutorService timer;
     private Engine engine;
 
+    private int load;
+
     private boolean running;
 
     public ResourceManager(
             RmiServer rmiServer,
             int id,
             IRepository<IUser> userRepository, // TODO use appendable user repository.
-            IRepository<IResourceManager> resourceManagerRepository,
-            IRepository<IGridScheduler> gridSchedulerRepository,
+            IRepository<IResourceManager> rmRepository,
+            IRepository<IGridScheduler> gsRepository,
             int nNodes) throws RemoteException {
         this.rmiServer = rmiServer;
         this.id = id;
         this.userRepository = userRepository;
-        this.resourceManagerRepository = resourceManagerRepository;
-        this.gridSchedulerRepository = gridSchedulerRepository;
-        rmiServer.register(resourceManagerRepository.getUrl(id), this);
-        gridSchedulerPinger = new Pinger(gridSchedulerRepository);
+        this.rmRepository = rmRepository;
+        this.gsRepository = gsRepository;
+        rmiServer.register(rmRepository.getUrl(id), this);
+        gridSchedulerPinger = new Pinger(gsRepository);
 
         this.nNodes = nNodes;
         running = false;
@@ -75,46 +78,19 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if (needToOffload()) {
             // TODO send to GS to offload
         } else {
-            int monitorGridSchedulerId = selectMonitorGridSchedule();
-            int backUpGridSchedulerId = selectBackUpGridSchedule(monitorGridSchedulerId);
-
-            Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
-            Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
-
-            if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
-                System.out.println("[RM\t" + id + "] do redundancy thingies");
-                // request monitoring and backup in parallel
-                Task<Void> monitorTask = Task.action(() -> {
-                    System.out.println("[RM\t" + id + "] Requesting monitoring for " + req.getJob().getJobId());
-                    MonitoringRequest monitoringRequest = new MonitoringRequest(id, req);
-                    monitorGridScheduler.get().monitor(monitoringRequest);
-                    monitoredBy.put(req, monitorGridSchedulerId);
-                    monitoredAt.get(monitorGridSchedulerId).add(req);
-                });
-
-                Task<Void> backUpTask = Task.action(() -> {
-                    System.out.println("[RM\t" + id + "] Requesting back-up for " + req.getJob().getJobId());
-                    BackUpRequest backUpRequest = new BackUpRequest(id, req);
-                    backUpGridScheduler.get().backUp(backUpRequest);
-                    backedUpBy.put(req, backUpGridSchedulerId);
-                    backedUpAt.get(backUpGridSchedulerId).add(req);
-                });
-
-                Task<?> await = Task.par(monitorTask, backUpTask);
-                engine.run(monitorTask);
-                engine.run(backUpTask);
-                engine.run(await);
-
+            Optional<?> setUpRedundancy = requestMonitoring(req).flatMap(monitorId -> {
                 try {
-                    await.await();
-
-                    schedule(req);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    throw new RemoteException("Something went wrong requesting monitoring/backup. retry?");
+                    return requestBackUp(req, monitorId);
+                } catch (RemoteException e) {
+                    return Optional.empty();
                 }
+            });
+
+            if(setUpRedundancy.isPresent()) {
+                schedule(req);
+                engine.run(Task.action(() -> processQueue()));
             } else {
-                throw new RemoteException("no monitoring and backup grid scheduler available");
+                throw new RemoteException("Failed to set up monitoring and backup.");
             }
         }
     }
@@ -123,17 +99,62 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         return false;
     }
 
-    public int selectMonitorGridSchedule() {
-        return gridSchedulerRepository.ids().get(0);
+    protected Optional<Integer> requestMonitoring(WorkRequest req) throws RemoteException {
+        Optional<Integer> monitorId = Selectors.weighedRandom.getRandomIndex(gsRepository.getLastKnownLoads());
+
+        if(!monitorId.isPresent()) return monitorId;
+
+        Optional<IGridScheduler> gs = monitorId.flatMap(gsId -> gsRepository.getEntity(gsId));
+        if(gs.isPresent()) {
+            try {
+                System.out.println("[RM\t" + id + "] Asking RM " + monitorId.get() + " to monitor job " + req.getJob().getJobId());
+                gs.get().monitor(new MonitoringRequest(id, req));
+
+                monitoredBy.put(req, monitorId.get());
+                monitoredAt.get(monitorId.get()).add(req);
+
+                return monitorId;
+            } catch (RemoteException e) {
+                // retry
+                return requestMonitoring(req);
+            }
+        } else {
+            // retry
+            return requestMonitoring(req);
+        }
     }
 
-    public int selectBackUpGridSchedule(int monitorGridScheduleId) {
-        return gridSchedulerRepository.onlineIdsExcept(monitorGridScheduleId).get(0);
+    protected Optional<Integer> requestBackUp(WorkRequest req, int monitorId) throws RemoteException {
+        Map<Integer, Long> loads = gsRepository.getLastKnownLoads();
+        loads.remove(monitorId);
+        Optional<Integer> backUpId = Selectors.weighedRandom.getRandomIndex(loads);
+
+        if(!backUpId.isPresent()) return backUpId;
+
+        Optional<IGridScheduler> gs = backUpId.flatMap(gsId -> gsRepository.getEntity(gsId));
+        if(gs.isPresent()) {
+            try {
+                System.out.println("[RM\t" + id + "] Asking RM " + backUpId.get() + " to back up job " + req.getJob().getJobId());
+                gs.get().backUp(new BackUpRequest(id, req));
+
+                backedUpBy.put(req, backUpId.get());
+                backedUpAt.get(backUpId.get()).add(req);
+
+                return backUpId;
+            } catch (RemoteException e) {
+                // retry
+                return requestBackUp(req, monitorId);
+            }
+        } else {
+            // retry
+            return requestBackUp(req, monitorId);
+        }
     }
 
-    protected void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
+    protected synchronized void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
         System.out.println("[RM\t" + id + "] Scheduling job " + toSchedule.getJob().getJobId());
         jobQueue.offer(toSchedule);
+        load += toSchedule.getJob().getDuration();
         engine.run(Task.action(() -> processQueue()));
     }
 
@@ -149,6 +170,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             maybeUser.get().acceptResult(finished.getJob());
             release(finished);
             idleNodes.offer(node);
+            load -= finished.getJob().getDuration();
             processQueue();
         } else {
             // TODO What to do when the user isn't there to accept the result?
@@ -161,8 +183,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         int monitorGridSchedulerId = monitoredBy.get(req);
         int backUpGridSchedulerId = backedUpBy.get(req);
-        Optional<IGridScheduler> monitorGridScheduler = gridSchedulerRepository.getEntity(monitorGridSchedulerId);
-        Optional<IGridScheduler> backUpGridScheduler = gridSchedulerRepository.getEntity(backUpGridSchedulerId);
+        Optional<IGridScheduler> monitorGridScheduler = gsRepository.getEntity(monitorGridSchedulerId);
+        Optional<IGridScheduler> backUpGridScheduler = gsRepository.getEntity(backUpGridSchedulerId);
 
         if(monitorGridScheduler.isPresent() && backUpGridScheduler.isPresent()) {
             monitorGridScheduler.get().releaseMonitored(req);
@@ -199,10 +221,12 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         monitoredAt = new HashMap<>();
         backedUpAt = new HashMap<>();
 
-        gridSchedulerRepository.ids().forEach(gsId -> {
+        gsRepository.ids().forEach(gsId -> {
             monitoredAt.put(gsId, new HashSet<>());
             backedUpAt.put(gsId, new HashSet<>());
         });
+
+        load = 0;
 
         ExecutorService taskScheduler = Executors.newFixedThreadPool(4);
         this.timer = Executors.newSingleThreadScheduledExecutor();
@@ -215,8 +239,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         running = true;
 
-        for (int gridSchedulerId : gridSchedulerRepository.ids()) {
-            gridSchedulerRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
+        for (int gridSchedulerId : gsRepository.ids()) {
+            gsRepository.getEntity(gridSchedulerId).ifPresent(gs -> {
                 try {
                     gs.receiveResourceManagerWakeUpAnnouncement(id);
                 } catch (RemoteException e) {
@@ -252,7 +276,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if(!running) throw new RemoteException("I am offline");
 
         System.out.println("[RM\t" + id + "] GS " + from + " awake");
-        gridSchedulerRepository.setLastKnownStatus(from, Status.ONLINE);
+        gsRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
     @Override
@@ -263,9 +287,9 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     @Override
-    public void iAmAlive(Heartbeat h) throws RemoteException {
+    public long ping() throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-
+        return load;
     }
 }

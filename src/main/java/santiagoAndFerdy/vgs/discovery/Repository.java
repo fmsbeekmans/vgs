@@ -21,20 +21,22 @@ import java.util.stream.IntStream;
 public class Repository<T extends Remote> implements IRepository<T> {
     private static final long             serialVersionUID = 1619009373620002568L;
 
-    protected String[]                    urls;
-    protected Status[]                    statuses;
+    protected Map<Integer, String> urls;
+    protected Map<Integer, Status> statuses;
+    protected Map<Integer, Long> loads;
+
 
     private List<Function<Integer, Void>> offlineCallbacks;
     private List<Function<Integer, Void>> onlineCallbacks;
 
     public Repository(Map<Integer, String> urls) {
         int n = urls.keySet().stream().max(Comparator.naturalOrder()).map(max -> max + 1).orElse(0);
-        this.urls = new String[n];
-        this.statuses = new Status[n];
-
-        for (int k : urls.keySet()) {
-            this.urls[k] = urls.get(k);
-            this.statuses[k] = Status.OFFLINE;
+        this.urls = urls;
+        this.statuses = new HashMap<>();
+        this.loads = new HashMap<>();
+        for(int id : this.urls.keySet()) {
+            statuses.put(id, Status.OFFLINE);
+            loads.put(id, Long.MAX_VALUE);
         }
 
         offlineCallbacks = new LinkedList<>();
@@ -45,7 +47,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
     @Override
     public Optional<T> getEntity(int id) {
         try {
-            T result = (T) Naming.lookup(urls[id]);
+            T result = (T) Naming.lookup(urls.get(id));
             setLastKnownStatus(id, Status.ONLINE);
 
             return Optional.of(result);
@@ -58,21 +60,23 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @Override
     public Status getLastKnownStatus(int id) {
-        return statuses[id];
+        return statuses.get(id);
     }
 
     @Override
     public boolean setLastKnownStatus(int id, Status newStatus) {
-        if (statuses[id] != null) {
+        if (statuses.get(id) != null) {
             Status oldStatus = getLastKnownStatus(id);
             if (oldStatus != newStatus) {
 
                 if (newStatus == Status.ONLINE)
                     executeOnlineCallbacks(id);
-                if (newStatus == Status.OFFLINE)
+                if (newStatus == Status.OFFLINE) {
+                    loads.remove(id);
                     executeOfflineCallbacks(id);
+                }
 
-                statuses[id] = newStatus;
+                statuses.put(id, newStatus);
             }
 
             return true;
@@ -82,11 +86,27 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     @Override
-    public List<Integer> ids() {
-        if (urls.length == 0)
-            return new LinkedList<>();
+    public Map<Integer, Long> getLastKnownLoads() {
+        Map<Integer, Long> clone = new HashMap<>();
 
-        return IntStream.range(0, urls.length).filter(i -> urls[i] != null).mapToObj(i -> new Integer(i)).collect(Collectors.toList());
+        for (int id : loads.keySet()) clone.put(id, loads.get(id));
+
+        return clone;
+    }
+
+    @Override
+    public long getLastKnownLoad(int id) {
+        return loads.get(id);
+    }
+
+    @Override
+    public void setLastKnownLoad(int id, long load) {
+        loads.put(id, load);
+    }
+
+    @Override
+    public List<Integer> ids() {
+        return urls.keySet().stream().collect(Collectors.toList());
     }
 
     @Override
@@ -131,7 +151,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
 
     @Override
     public String getUrl(int id) {
-        return urls[id];
+        return urls.get(id);
     }
 
     public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {
@@ -165,10 +185,10 @@ public class Repository<T extends Remote> implements IRepository<T> {
     public Optional<T> getEntityExceptId(int id) {
         setLastKnownStatus(id, Status.OFFLINE);
         try {
-            List<String> l = Arrays.asList(urls);
-            l.remove(urls[id]);
+            List<String> l = urls.values().stream().collect(Collectors.toList());
+            l.remove(urls.get(id));
             int i = ThreadLocalRandom.current().nextInt(0, l.size() - 1);
-            T result = (T) Naming.lookup(urls[i]);
+            T result = (T) Naming.lookup(urls.get(i));
             return Optional.of(result);
         } catch (RemoteException | NotBoundException | MalformedURLException e) {
             return Optional.empty();

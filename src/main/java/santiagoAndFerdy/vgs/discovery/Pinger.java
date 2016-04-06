@@ -3,14 +3,9 @@ package santiagoAndFerdy.vgs.discovery;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.RemoteException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import com.linkedin.parseq.EngineBuilder;
-
-import santiagoAndFerdy.vgs.messages.Heartbeat;
 
 public class Pinger<T extends IAddressable> {
 
@@ -50,12 +45,12 @@ public class Pinger<T extends IAddressable> {
     public void checkLife() {
         timer.scheduleAtFixedRate(() -> {
             for (int id : repository.onlineIdsExcept(idsToIgnore)) {
-                Heartbeat h = new Heartbeat(repository.getUrl(id));
                 try {
                     IAddressable driver;
                     driver = (IAddressable) Naming.lookup(repository.getUrl(id));
-                    driver.iAmAlive(h);
+                    long newLoad = driver.ping();
                     repository.setLastKnownStatus(id, Status.ONLINE);
+                    repository.setLastKnownLoad(id, newLoad);
                 } catch (Exception e) {
                     // if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
                     // e.printStackTrace();

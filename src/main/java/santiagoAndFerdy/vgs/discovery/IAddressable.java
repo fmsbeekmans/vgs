@@ -1,7 +1,5 @@
 package santiagoAndFerdy.vgs.discovery;
 
-import santiagoAndFerdy.vgs.messages.Heartbeat;
-
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -10,5 +8,12 @@ import java.rmi.RemoteException;
 public interface IAddressable extends Remote {
     int getId() throws RemoteException;
 
-    void iAmAlive(Heartbeat h) throws MalformedURLException, RemoteException, NotBoundException;
+    /**
+     * See if this adressable unit is still alive, will ACK with it's load.
+     * @return load
+     * @throws MalformedURLException
+     * @throws RemoteException
+     * @throws NotBoundException
+     */
+    long ping() throws RemoteException;
 }

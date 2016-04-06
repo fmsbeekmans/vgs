@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.rmi.NotBoundException;
 
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -21,9 +22,9 @@ public class ResourceManagerMain {
         new ResourceManager(
                 rmiServer,
                 id,
-                Repositories.USER_REPOSITORY,
-                Repositories.RESOURCE_MANAGER_REPOSITORY,
-                Repositories.GRID_SCHEDULER_REPOSITORY,
+                IRepository.Repositories.userRepository,
+                IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository,
                 nNodes);
     }
 }

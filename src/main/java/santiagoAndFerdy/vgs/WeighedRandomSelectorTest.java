@@ -1,5 +1,7 @@
 package santiagoAndFerdy.vgs;
 
+import santiagoAndFerdy.vgs.discovery.selector.Selectors;
+
 import java.util.Map;
 import java.util.HashMap;
 
@@ -8,13 +10,28 @@ import java.util.HashMap;
  */
 public class WeighedRandomSelectorTest {
     public static void main(String[] args) {
-        Map<Integer, Integer> weights = new HashMap<>();
+        Map<Integer, Long> weights = new HashMap<>();
 
-        weights.put(3, 10);
-        weights.put(1, 3);
+        weights.put(1, 3L);
+        weights.put(2, 5L);
+        weights.put(3, 2L);
+        weights.put(4, 10L);
 
-        for (int i = 0; i < 20; i++) {
-            Weig
+        Map<Integer, Integer> results = new HashMap<>();
+
+        results.put(1, 0);
+        results.put(2, 0);
+        results.put(3, 0);
+        results.put(4, 0);
+
+        for (int i = 0; i < 2000; i++) {
+            int key = Selectors.weighedRandom.getRandomIndex(weights).get();
+
+            results.put(key, results.get(key) + 1);
+        }
+
+        for(int key : results.keySet()) {
+            System.out.println(key + ": " + results.get(key));
         }
     }
 }
