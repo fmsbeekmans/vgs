@@ -152,6 +152,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             if (running) {
                 monitoredJobs.get(rmId).forEach(monitored -> {
                     System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId());
+
                     WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
                     Map<Integer, Long> loads = rmRepository.getLastKnownLoads();

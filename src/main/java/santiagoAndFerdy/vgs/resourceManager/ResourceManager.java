@@ -95,10 +95,11 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public synchronized void orderWork(WorkOrder req) throws RemoteException {
         WorkRequest work = req.getWorkRequest();
 
+        req.getWorkRequest().getJob().addResourceManagerId(id);
         Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
 
         if (backUp.isPresent()) {
-            Task.action(() -> schedule(work));
+            engine.run(Task.action(() -> schedule(work)));
         } else {
             throw new RemoteException("Failed to set up backup");
         }
