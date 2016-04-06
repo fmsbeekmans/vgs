@@ -46,7 +46,7 @@
 						</goals>
 					</execution>
 					<execution>
-						<id>build-gridscheduler</id>
+						<id>build-gridScheduler</id>
 						<configuration>
 							<appendAssemblyId>false</appendAssemblyId>
 							<archive>
