@@ -4,8 +4,10 @@
 *.aux
 *.log
 *.pdf
+*.jar
 /bin/
 .settings/
 .project
 .classpath
 .gitignore
+
