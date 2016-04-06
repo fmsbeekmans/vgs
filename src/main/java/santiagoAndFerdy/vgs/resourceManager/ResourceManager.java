@@ -332,6 +332,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     @Override
     public synchronized void shutDown() throws RemoteException {
+        running = false;
+
         jobQueue = null;
         idleNodes = null;
 

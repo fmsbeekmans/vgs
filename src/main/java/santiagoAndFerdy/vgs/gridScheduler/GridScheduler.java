@@ -164,7 +164,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                             e.printStackTrace();
                         }
                     });
-
                 });
             }
 
