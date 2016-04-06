@@ -5,6 +5,7 @@ import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.PromotionRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
@@ -41,7 +42,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
         this.rmRepository = rmRepository;
         this.gsRepository = gsRepository;
-        gridSchedulerPinger = new Pinger(gsRepository, id);
+        gridSchedulerPinger = new Pinger(gsRepository);
         resourceManagerPinger = new Pinger(rmRepository);
 
         start();
@@ -64,11 +65,12 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public void promote(WorkRequest workRequest) throws RemoteException {
+    public void promote(PromotionRequest promotionRequest) throws RemoteException {
         if(!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Promoting to primary for job " + workRequest.getJob() + " at cluster " + id);
-        backUpJobs.remove(workRequest);
+        System.out.println("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob().getJobId() + " at cluster " + id);
+        backUpJobs.get(promotionRequest.getSourceResourceManagerId()).remove(promotionRequest.getToBecomePrimaryFor());
+        monitoredJobs.get(promotionRequest.getSourceResourceManagerId()).add(promotionRequest.getToBecomePrimaryFor());
 
     }
 

@@ -1,16 +1,16 @@
 package santiagoAndFerdy.vgs;
 
-import java.rmi.RemoteException;
-
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
-import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
+import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
-public class SimulationLauncher {
+import java.rmi.RemoteException;
+
+public class GridSchedulerCrash {
     public static void main(String[] args) throws RemoteException, InterruptedException {
         RmiServer rmiServer = new RmiServer(1099);
 
@@ -57,9 +57,10 @@ public class SimulationLauncher {
                 IRepository.Repositories.userRepository,
                 IRepository.Repositories.resourceManagerRepository);
 
-        u0.createJobs(0, 50);
-        u0.createJobs(1, 50);
-        u1.createJobs(0, 50);
-        u1.createJobs(1, 50);
+        u0.createJobs(0, 5);
+
+        Thread.sleep(1000);
+
+        gs0.shutDown();
     }
 }

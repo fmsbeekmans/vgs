@@ -57,6 +57,6 @@ public class Pinger<T extends IAddressable> {
                     repository.setLastKnownStatus(id, Status.OFFLINE);
                 }
             }
-        } , 0, 5, TimeUnit.SECONDS);
+        } , 0, 1, TimeUnit.SECONDS);
     }
 }

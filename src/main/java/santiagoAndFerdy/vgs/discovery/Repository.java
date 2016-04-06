@@ -144,7 +144,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
     }
 
     public void executeOfflineCallbacks(int onlineId) {
-        for (Function<Integer, Void> offlineCallback : onlineCallbacks) {
+        for (Function<Integer, Void> offlineCallback : offlineCallbacks) {
             offlineCallback.apply(onlineId);
         }
     }

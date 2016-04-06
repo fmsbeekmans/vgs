@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import santiagoAndFerdy.vgs.discovery.ICrashable;
 import santiagoAndFerdy.vgs.messages.BackUpRequest;
 import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.PromotionRequest;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.model.Job;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
@@ -34,10 +35,10 @@ public interface IGridScheduler extends ICrashable {
 
     /**
      * Become the monitor insteadd of back up for this workRequest
-     * @param workRequest
+     * @param promotionRequest
      * @throws RemoteException
      */
-    void promote(WorkRequest workRequest) throws RemoteException;
+    void promote(PromotionRequest promotionRequest) throws RemoteException;
 
     /**
      * For a resource manager to request a job to be scheduled elsewhere
