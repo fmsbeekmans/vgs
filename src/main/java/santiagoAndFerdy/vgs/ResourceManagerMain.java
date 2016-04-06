@@ -12,19 +12,14 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
  * Created by Fydio on 3/18/16.
  */
 public class ResourceManagerMain {
-    
+
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
-        int id = 0;
-        //int id = Integer.valueOf(args[1]);
-        //int nNodes = Integer.valueOf(args[1]);
-        int nNodes = 2;
+        //int id = 0;
+         int id = Integer.valueOf(args[0]);
+        // int nNodes = Integer.valueOf(args[1]);
+        int nNodes = 1000;
         RmiServer rmiServer = new RmiServer(1099);
-        new ResourceManager(
-                rmiServer,
-                id,
-                IRepository.Repositories.userRepository,
-                IRepository.Repositories.resourceManagerRepository,
-                IRepository.Repositories.gridSchedulerRepository,
-                nNodes);
+        new ResourceManager(rmiServer, id, IRepository.Repositories.userRepository, IRepository.Repositories.resourceManagerRepository,
+                IRepository.Repositories.gridSchedulerRepository, nNodes);
     }
 }

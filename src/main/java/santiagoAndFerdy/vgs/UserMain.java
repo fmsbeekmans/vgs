@@ -23,6 +23,6 @@ public class UserMain {
                 rmiServer,
                 id,
                 IRepository.Repositories.userRepository,
-                IRepository.Repositories.resourceManagerRepository).createJobs(0, 10);
+                IRepository.Repositories.resourceManagerRepository).createJobs(0, 10, 1000);
     }
 }

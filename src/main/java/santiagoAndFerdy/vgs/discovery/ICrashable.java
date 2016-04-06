@@ -1,6 +1,5 @@
 package santiagoAndFerdy.vgs.discovery;
 
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 /**

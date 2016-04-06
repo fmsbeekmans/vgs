@@ -14,15 +14,11 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 public class GridSchedulerMain {
 
     public static void main(String[] args) throws InterruptedException, NotBoundException, URISyntaxException, IOException {
-        int id = 1;
-//        int id = Integer.parseInt(args[0]);
+        //int id = 1;
+         int id = Integer.parseInt(args[0]);
 
         RmiServer server = new RmiServer(1099);
 
-        new GridScheduler(
-                server,
-                id,
-                IRepository.Repositories.resourceManagerRepository,
-                IRepository.Repositories.gridSchedulerRepository);
+        new GridScheduler(server, id, IRepository.Repositories.resourceManagerRepository, IRepository.Repositories.gridSchedulerRepository);
     }
 }

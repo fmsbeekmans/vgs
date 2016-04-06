@@ -57,9 +57,9 @@ public class GridSchedulerCrash {
                 IRepository.Repositories.userRepository,
                 IRepository.Repositories.resourceManagerRepository);
 
-        u0.createJobs(0, 5);
+        u0.createJobs(0, 5, 5000);
 
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         gs0.shutDown();
     }
