@@ -1,5 +1,6 @@
-package santiagoAndFerdy.vgs.discovery;
+package santiagoAndFerdy.vgs;
 
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
