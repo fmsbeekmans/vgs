@@ -10,10 +10,7 @@ import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.discovery.selector.Selectors;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
-import santiagoAndFerdy.vgs.messages.BackUpRequest;
-import santiagoAndFerdy.vgs.messages.MonitoringRequest;
-import santiagoAndFerdy.vgs.messages.PromotionRequest;
-import santiagoAndFerdy.vgs.messages.WorkRequest;
+import santiagoAndFerdy.vgs.messages.*;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
 import java.rmi.RemoteException;
@@ -95,6 +92,19 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             } else {
                 throw new RemoteException("Failed to set up monitoring and backup.");
             }
+        }
+    }
+
+    @Override
+    public synchronized void orderWork(WorkOrder req) throws RemoteException {
+        WorkRequest work = req.getWorkRequest();
+
+        Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
+
+        if(backUp.isPresent()) {
+            Task.action(() -> schedule(work));
+        } else {
+            throw new RemoteException("Failed to set up backup");
         }
     }
 

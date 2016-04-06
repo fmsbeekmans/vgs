@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
 import santiagoAndFerdy.vgs.discovery.ICrashable;
+import santiagoAndFerdy.vgs.messages.WorkOrder;
 import santiagoAndFerdy.vgs.messages.WorkRequest;
 
 import java.rmi.RemoteException;
@@ -14,6 +15,8 @@ public interface IResourceManager extends ICrashable {
      * @param req the workload offered to the resource manager
      */
     void offerWork(WorkRequest req) throws RemoteException;
+
+    void orderWork(WorkOrder req) throws RemoteException;
 
     /**
      * For a node to signal that the processing of a job is finished

@@ -3,10 +3,8 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
-import santiagoAndFerdy.vgs.messages.BackUpRequest;
-import santiagoAndFerdy.vgs.messages.MonitoringRequest;
-import santiagoAndFerdy.vgs.messages.PromotionRequest;
-import santiagoAndFerdy.vgs.messages.WorkRequest;
+import santiagoAndFerdy.vgs.discovery.selector.Selectors;
+import santiagoAndFerdy.vgs.messages.*;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -46,6 +44,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         resourceManagerPinger = new Pinger(rmRepository);
 
         start();
+        setUpReSchedule();
+        setUpSelfPromote();
     }
 
     @Override
@@ -110,7 +110,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 try {
                     rm.receiveGridSchedulerWakeUpAnnouncement(id);
                 } catch (RemoteException e) {
-                    e.printStackTrace();
                 }
             });
         }
@@ -120,7 +119,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 try {
                     gs.receiveGridSchedulerWakeUpAnnouncement(id);
                 } catch (RemoteException e) {
-                    e.printStackTrace();
                     // Can be offline. that's okay.
                 }
             });
@@ -144,6 +142,35 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         resourceManagerPinger.stop();
 
         System.out.println("[GS\t" + id + "] Offline");
+    }
+
+    public void setUpReSchedule() {
+        rmRepository.onOffline(rmId -> {
+            if (running) {
+                monitoredJobs.get(rmId).forEach(monitored -> {
+                    System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId());
+                    WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
+
+                    Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
+                    Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
+                            .flatMap(newRmId -> rmRepository.getEntity(newRmId));
+                    newRm.ifPresent(rm -> {
+                        try {
+                            rm.orderWork(reScheduleOrder);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    });
+
+                });
+            }
+
+            return null;
+        });
+    }
+
+    public void setUpSelfPromote() {
+
     }
 
     @Override
