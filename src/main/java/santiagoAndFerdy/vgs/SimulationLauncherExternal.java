@@ -6,9 +6,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
-import santiagoAndFerdy.vgs.user.User;
 
 public class SimulationLauncherExternal {
     final static ArrayList<Process> gsProcess = new ArrayList<>();
@@ -20,7 +19,7 @@ public class SimulationLauncherExternal {
         ProcessBuilder pb;
         
         //GSs
-        for (int gsId : IRepository.Repositories.gridSchedulerRepository.ids()) {
+        for (int gsId : Repositories.gridSchedulerRepository.ids()) {
             pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(gsId));
             pb.redirectErrorStream(true);
             gsProcess.add(pb.start());
@@ -46,7 +45,7 @@ public class SimulationLauncherExternal {
         
         
         //RMs
-        for (int rmId : IRepository.Repositories.resourceManagerRepository.ids()) {
+        for (int rmId : Repositories.resourceManagerRepository.ids()) {
             pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", Integer.toString(rmId));
             pb.redirectErrorStream(true);
             rmProcess.add(pb.start());

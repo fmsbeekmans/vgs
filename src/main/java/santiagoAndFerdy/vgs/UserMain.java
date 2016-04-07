@@ -1,6 +1,6 @@
 package santiagoAndFerdy.vgs;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
@@ -25,6 +25,6 @@ public class UserMain {
         
         RmiServer rmiServer = new RmiServer(1099);
 
-        new User(rmiServer, id, IRepository.Repositories.userRepository, IRepository.Repositories.resourceManagerRepository).createJobs(toRM, numJobs, jobDuration);
+        new User(rmiServer, id, Repositories.userRepository, Repositories.resourceManagerRepository).createJobs(toRM, numJobs, jobDuration);
     }
 }

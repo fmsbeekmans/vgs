@@ -2,7 +2,7 @@ package santiagoAndFerdy.vgs;
 
 import java.rmi.RemoteException;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
@@ -15,25 +15,54 @@ public class SimulationLauncher {
 
         RmiServer rmiServer = new RmiServer(1099);
 
-        IGridScheduler gs0 = new GridScheduler(rmiServer, 0, IRepository.Repositories.resourceManagerRepository,
-                IRepository.Repositories.gridSchedulerRepository);
-        IGridScheduler gs1 = new GridScheduler(rmiServer, 1, IRepository.Repositories.resourceManagerRepository,
-                IRepository.Repositories.gridSchedulerRepository);
-        IGridScheduler gs2 = new GridScheduler(rmiServer, 2, IRepository.Repositories.resourceManagerRepository,
-                IRepository.Repositories.gridSchedulerRepository);
+        Repositories.gridSchedulerRepository.ids().forEach(gsId -> {
+            try {
+                new GridScheduler(
+                        rmiServer,
+                        gsId,
+                        Repositories.resourceManagerRepository,
+                        Repositories.gridSchedulerRepository);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
 
-        IResourceManager rm0 = new ResourceManager(rmiServer, 0, IRepository.Repositories.userRepository,
-                IRepository.Repositories.resourceManagerRepository, IRepository.Repositories.gridSchedulerRepository, 100);
-        IResourceManager rm1 = new ResourceManager(rmiServer, 1, IRepository.Repositories.userRepository,
-                IRepository.Repositories.resourceManagerRepository, IRepository.Repositories.gridSchedulerRepository, 100);
+        Repositories.resourceManagerRepository.ids().forEach(rmId -> {
+            try {
+                new ResourceManager(
+                        rmiServer,
+                        rmId,
+                        Repositories.userRepository,
+                        Repositories.resourceManagerRepository,
+                        Repositories.gridSchedulerRepository,
+                        1000);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
 
-        User u0 = new User(rmiServer, 0, IRepository.Repositories.userRepository, IRepository.Repositories.resourceManagerRepository);
+        Repositories.userRepository.ids().forEach(uId -> {
+            try {
+                new User(
+                        rmiServer,
+                        uId,
+                        Repositories.userRepository,
+                        Repositories.resourceManagerRepository);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
 
-        User u1 = new User(rmiServer, 1, IRepository.Repositories.userRepository, IRepository.Repositories.resourceManagerRepository);
-
-        u0.createJobs(0, 1000, 100);
-        // u0.createJobs(1, 1000, 200);
-        u1.createJobs(0, 1000, 50);
-        // u1.createJobs(1, 1000, 10);
+        Repositories.userRepository.ids().forEach(uId -> {
+            Repositories.userRepository.getEntity(uId).ifPresent(u -> {
+                Repositories.resourceManagerRepository.ids().forEach(rmId -> {
+                    try {
+                        u.createJobs(rmId, 1000, 500);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
+            });
+        });
     }
 }
