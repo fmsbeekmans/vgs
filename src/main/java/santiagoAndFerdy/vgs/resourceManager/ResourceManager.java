@@ -25,6 +25,8 @@ import santiagoAndFerdy.vgs.user.IUser;
  * Created by Fydio on 3/19/16.
  */
 public class ResourceManager extends UnicastRemoteObject implements IResourceManager {
+    private static final long serialVersionUID = -5340659478612949546L;
+    
     private RmiServer                      rmiServer;
     private int                            id;
     private IRepository<IUser>             userRepository;
@@ -192,7 +194,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             load -= finished.getJob().getDuration();
             processQueue();
         } else {
-            // TODO What to do when the user isn't there to accept the result?
+            System.err.println("User not present");
         }
 
     }

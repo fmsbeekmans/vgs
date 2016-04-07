@@ -13,16 +13,18 @@ import java.rmi.NotBoundException;
  */
 public class UserMain {
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
-
-        int id = 0;
-//        int id = Integer.parseInt(args[0]);
-
+        if(args.length < 4){
+            System.err.println("Please insert User ID, RM destination, number of jobs and duration of the job (ms)");
+            return;
+        }
+        // int id = 0;
+        int id = Integer.parseInt(args[0]);
+        int toRM = Integer.parseInt(args[1]);
+        int numJobs = Integer.parseInt(args[2]);
+        int jobDuration = Integer.parseInt(args[3]);
+        
         RmiServer rmiServer = new RmiServer(1099);
 
-        new User(
-                rmiServer,
-                id,
-                IRepository.Repositories.userRepository,
-                IRepository.Repositories.resourceManagerRepository).createJobs(0, 10, 1000);
+        new User(rmiServer, id, IRepository.Repositories.userRepository, IRepository.Repositories.resourceManagerRepository).createJobs(toRM, numJobs, jobDuration);
     }
 }

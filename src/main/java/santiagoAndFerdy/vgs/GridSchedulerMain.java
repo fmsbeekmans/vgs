@@ -14,8 +14,11 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 public class GridSchedulerMain {
 
     public static void main(String[] args) throws InterruptedException, NotBoundException, URISyntaxException, IOException {
-        //int id = 1;
-         int id = Integer.parseInt(args[0]);
+        if (args.length < 1) {
+            System.err.println("Please insert this GS ID");
+            return;
+        }
+        int id = Integer.parseInt(args[0]);
 
         RmiServer server = new RmiServer(1099);
 

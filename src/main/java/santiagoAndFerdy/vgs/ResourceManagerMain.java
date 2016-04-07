@@ -14,8 +14,12 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 public class ResourceManagerMain {
 
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
-        //int id = 0;
-         int id = Integer.valueOf(args[0]);
+        if(args.length < 1){
+            System.err.println("Please insert this RM ID");
+            return;
+        }
+        
+        int id = Integer.valueOf(args[0]);
         // int nNodes = Integer.valueOf(args[1]);
         int nNodes = 1000;
         RmiServer rmiServer = new RmiServer(1099);

@@ -5,8 +5,9 @@ import java.io.Serializable;
 /**
  * Created by Fydio on 4/6/16.
  */
-public class PromotionRequest implements Serializable {
+public class PromotionRequest implements Serializable, Comparable<PromotionRequest> {
 
+    private static final long serialVersionUID = 3202785298561944410L;
     private int sourceResourceManagerId;
     private WorkRequest toBecomePrimaryFor;
 
@@ -40,5 +41,10 @@ public class PromotionRequest implements Serializable {
         int result = sourceResourceManagerId;
         result = 31 * result + (toBecomePrimaryFor != null ? toBecomePrimaryFor.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int compareTo(PromotionRequest o) {
+      return this.toBecomePrimaryFor.compareTo(o.toBecomePrimaryFor);
     }
 }
