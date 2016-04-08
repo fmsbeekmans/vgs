@@ -25,7 +25,7 @@ public class WeighedRandomSelectorTest {
         results.put(4, 0);
 
         for (int i = 0; i < 2000; i++) {
-            int key = Selectors.weighedRandom.getRandomIndex(weights).get();
+            int key = Selectors.weighedRandom.selectIndex(weights).get();
 
             results.put(key, results.get(key) + 1);
         }

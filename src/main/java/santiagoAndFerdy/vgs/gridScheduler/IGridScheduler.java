@@ -4,12 +4,7 @@ package santiagoAndFerdy.vgs.gridScheduler;
 import java.rmi.RemoteException;
 
 import santiagoAndFerdy.vgs.discovery.ICrashable;
-import santiagoAndFerdy.vgs.messages.BackUpRequest;
-import santiagoAndFerdy.vgs.messages.MonitoringRequest;
-import santiagoAndFerdy.vgs.messages.PromotionRequest;
-import santiagoAndFerdy.vgs.messages.WorkRequest;
-import santiagoAndFerdy.vgs.model.Job;
-import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
+import santiagoAndFerdy.vgs.messages.*;
 
 /**
  * Created by Fydio on 3/19/16.
@@ -22,7 +17,7 @@ public interface IGridScheduler extends ICrashable {
      *            the request to watch
      * @throws RemoteException
      */
-    void monitor(MonitoringRequest monitorRequest) throws RemoteException;
+    BackUpAck monitor(MonitoringRequest monitorRequest) throws RemoteException;
 
     /**
      * Request this grid scheduler to also watch a job in case the primary grid scheduler crashes
@@ -31,7 +26,7 @@ public interface IGridScheduler extends ICrashable {
      *            the userRequest to watch
      * @throws RemoteException
      */
-    void backUp(BackUpRequest backUpRequest) throws RemoteException;
+    BackUpAck backUp(BackUpRequest backUpRequest) throws RemoteException;
 
     /**
      * Become the monitor insteadd of back up for this workRequest

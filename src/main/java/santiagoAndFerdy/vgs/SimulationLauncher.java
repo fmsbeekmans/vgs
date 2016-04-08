@@ -57,7 +57,7 @@ public class SimulationLauncher {
             Repositories.userRepository.getEntity(uId).ifPresent(u -> {
                 Repositories.resourceManagerRepository.ids().forEach(rmId -> {
                     try {
-                        u.createJobs(rmId, 1000, 500);
+                        u.createJobs(rmId, 1, 1000);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }

@@ -17,7 +17,7 @@ public class WeighedRandomSelector implements ISelector {
     }
 
     @Override
-    public Optional<Integer> getRandomIndex(Map<Integer, Long> weights) {
+    public Optional<Integer> selectIndex(Map<Integer, Long> weights) {
         long n = weights.values().stream().reduce(0L, (a, b) -> a + b);
         n += weights.size();
 

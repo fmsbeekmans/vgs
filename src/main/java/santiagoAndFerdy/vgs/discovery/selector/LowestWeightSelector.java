@@ -13,7 +13,7 @@ public class LowestWeightSelector implements ISelector {
     }
 
     @Override
-    public Optional<Integer> getRandomIndex(Map<Integer, Long> weights) {
+    public Optional<Integer> selectIndex(Map<Integer, Long> weights) {
         if(weights.isEmpty()) return Optional.empty();
 
         long minWeight = Long.MAX_VALUE;

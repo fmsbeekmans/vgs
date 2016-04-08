@@ -1,5 +1,7 @@
 package santiagoAndFerdy.vgs.discovery;
 
+import com.linkedin.parseq.function.Function2;
+import santiagoAndFerdy.vgs.discovery.selector.ISelector;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.user.IUser;
@@ -11,6 +13,7 @@ import java.rmi.Remote;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -46,5 +49,7 @@ public interface IRepository<T extends Remote> extends Serializable {
     void onOnline(Function<Integer, Void> doWithOnlineId);
     
     Optional<T> getEntityExceptId(int id);
+
+    <R> Optional<R> invokeOnEntity(Function2<T, Integer, R> toInvoke, ISelector selector, int... idsToIgnore);
 
 }

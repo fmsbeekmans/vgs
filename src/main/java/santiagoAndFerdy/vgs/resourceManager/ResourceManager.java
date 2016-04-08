@@ -76,13 +76,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if (needToOffload()) {
             // TODO send to GS to offload
         } else {
-            Optional<?> setUpRedundancy = requestMonitoring(req).flatMap(monitorId -> {
-                try {
-                    return requestBackUp(req, monitorId);
-                } catch (RemoteException e) {
-                    return Optional.empty();
-                }
-            });
+            Optional<?> setUpRedundancy = requestMonitoring(req);
 
             if (setUpRedundancy.isPresent()) {
                 schedule(req);
@@ -97,14 +91,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public synchronized void orderWork(WorkOrder req) throws RemoteException {
         WorkRequest work = req.getWorkRequest();
 
-        req.getWorkRequest().getJob().addResourceManagerId(id);
-        Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
-
-        if (backUp.isPresent()) {
-            engine.run(Task.action(() -> schedule(work)));
-        } else {
-            throw new RemoteException("Failed to set up backup");
-        }
+        //TODO
     }
 
     protected boolean needToOffload() {
@@ -124,26 +111,11 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         } , req, new HashSet<>());
     }
 
-    protected Optional<Integer> requestBackUp(WorkRequest req, int monitorId) throws RemoteException {
-        HashSet<Integer> ignore = new HashSet<>();
-        ignore.add(monitorId);
-
-        return invokeOnGridScheduler((gs, gsId) -> {
-            System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to back up job " + req.getJob().getJobId());
-            gs.backUp(new BackUpRequest(id, req));
-
-            backedUpBy.put(req, gsId);
-            backedUpAt.get(gsId).add(req);
-
-            return null;
-        } , req, ignore);
-    }
-
     protected Optional<Integer> invokeOnGridScheduler(Function2<IGridScheduler, Integer, Void> toInvoke, WorkRequest req, Set<Integer> ignore)
             throws RemoteException {
         Map<Integer, Long> loads = gsRepository.getLastKnownLoads();
         ignore.forEach(loads::remove);
-        Optional<Integer> maybeGsId = Selectors.weighedRandom.getRandomIndex(loads);
+        Optional<Integer> maybeGsId = Selectors.weighedRandom.selectIndex(loads);
 
         if (!maybeGsId.isPresent())
             return maybeGsId;
@@ -243,50 +215,50 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     public void setUpReBackUp() {
-        gsRepository.onOffline(gsId -> {
-            if (running) {
-                backedUpAt.get(gsId).forEach(req -> {
-                    engine.run(Task.action(() -> {
-                        System.out.println("[RM\t" + id + "] Requesting new backup of job " + req.getJob().getJobId());
-                        int monitorId = monitoredBy.get(req);
-                        requestBackUp(req, monitorId);
-                        backedUpAt.get(gsId).remove(req);
-                    }));
-
-                });
-            }
-
-            return null;
-        });
+//        gsRepository.onOffline(gsId -> {
+//            if (running) {
+//                backedUpAt.get(gsId).forEach(req -> {
+//                    engine.run(Task.action(() -> {
+//                        System.out.println("[RM\t" + id + "] Requesting new backup of job " + req.getJob().getJobId());
+//                        int monitorId = monitoredBy.get(req);
+//                        requestBackUp(req, monitorId);
+//                        backedUpAt.get(gsId).remove(req);
+//                    }));
+//
+//                });
+//            }
+//
+//            return null;
+//        });
     }
 
     public void setUpPromote() {
-        gsRepository.onOffline(gsId -> {
-            if (running) {
-                monitoredAt.get(gsId).forEach(req -> {
-                    engine.run(Task.action(() -> {
-                        System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
-
-                        int backUpId = backedUpBy.get(req);
-                        gsRepository.getEntity(backUpId).ifPresent(gs -> {
-                            try {
-                                PromotionRequest promotionRequest = new PromotionRequest(id, req);
-                                gs.promote(promotionRequest);
-
-                                monitoredAt.get(backUpId).add(req);
-                                monitoredBy.put(req, backUpId);
-
-                                requestBackUp(req, backUpId);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    }));
-                });
-            }
-            return null;
-
-        });
+//        gsRepository.onOffline(gsId -> {
+//            if (running) {
+//                monitoredAt.get(gsId).forEach(req -> {
+//                    engine.run(Task.action(() -> {
+//                        System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
+//
+//                        int backUpId = backedUpBy.get(req);
+//                        gsRepository.getEntity(backUpId).ifPresent(gs -> {
+//                            try {
+//                                PromotionRequest promotionRequest = new PromotionRequest(id, req);
+//                                gs.promote(promotionRequest);
+//
+//                                monitoredAt.get(backUpId).add(req);
+//                                monitoredBy.put(req, backUpId);
+//
+//                                requestBackUp(req, backUpId);
+//                            } catch (RemoteException e) {
+//                                e.printStackTrace();
+//                            }
+//                        });
+//                    }));
+//                });
+//            }
+//            return null;
+//
+//        });
     }
 
     @Override

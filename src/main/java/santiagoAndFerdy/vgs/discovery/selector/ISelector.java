@@ -12,5 +12,5 @@ public interface ISelector {
      * @param weights id -> weight
      * @return
      */
-    Optional<Integer> getRandomIndex(Map<Integer, Long> weights);
+    Optional<Integer> selectIndex(Map<Integer, Long> weights);
 }

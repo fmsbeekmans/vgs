@@ -22,7 +22,7 @@ public class MonitoringRequest implements Serializable {
         return sourceResourceManagerId;
     }
 
-    public WorkRequest getToMonitor() {
+    public WorkRequest getWorkRequest() {
         return toMonitor;
     }
 

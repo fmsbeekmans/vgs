@@ -46,21 +46,53 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public synchronized void monitor(MonitoringRequest monitorRequest) throws RemoteException {
-        if (!running)
-            throw new RemoteException("I am offline");
+    public synchronized BackUpAck monitor(MonitoringRequest monitorRequest) throws RemoteException {
+        if (!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
-        monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getToMonitor());
+        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getWorkRequest().getJob().getJobId() + " to monitor at cluster " + id);
+
+        monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getWorkRequest());
+
+        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 2);
+        Optional<BackUpAck> backUpAck = gsRepository.invokeOnEntity((gs, gsId) -> {
+            System.out.println("[GS\t" + id + "] Sending backup request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
+            BackUpAck ack = gs.backUp(backUpRequest);
+
+            return ack;
+        }, Selectors.weighedRandom, id);
+
+        if(backUpAck.isPresent()) return backUpAck.get();
+        else throw new RemoteException("Can't back up job " + monitorRequest.getWorkRequest().getJob().getJobId());
     }
 
     @Override
-    public void backUp(BackUpRequest backUpRequest) throws RemoteException {
-        if (!running)
-            throw new RemoteException("I am offline");
+    public BackUpAck backUp(BackUpRequest backUpRequest) throws RemoteException {
+        if (!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId() + " at cluster " + id);
-        backUpJobs.get(backUpRequest.getSourceResourceManagerId()).add(backUpRequest.getToBackUp());
+        System.out.println("[GS\t" + id + "] Received backup request from with trail " + Arrays.toString(backUpRequest.getTrail()) + " and " + backUpRequest.getBackUpsRequested() + " more to go") ;
+
+        if(backUpRequest.getBackUpsRequested() == 0) {
+            // I'm the last, send reply directly
+            return new BackUpAck(
+                    backUpRequest.getWorkRequest(),
+                    backUpRequest.getTrail()
+            ).appendGridSchedulerList(id);
+        } else {
+            // Make more backups
+            BackUpRequest newBackUpRequest = backUpRequest.hop(id);
+            Optional<BackUpAck> ack =  gsRepository.invokeOnEntity((gs, gsId) -> {
+                System.out.println("[GS\t" + id + "] Sending job " + backUpRequest.getWorkRequest().getJob().getJobId() + " to GS " + id + " to make more backups.");
+
+                BackUpAck backUpAck = gs.backUp(newBackUpRequest);
+
+                System.out.println("Return!");
+
+                return backUpAck;
+            }, Selectors.weighedRandom, newBackUpRequest.getTrail());
+
+            if(ack.isPresent()) return ack.get();
+            else throw new RemoteException("Can't backup job " + backUpRequest.getWorkRequest().getJob().getJobId());
+        }
     }
 
     @Override
@@ -157,7 +189,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                         WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
                         Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
-                        Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
+                        Optional<IResourceManager> newRm = Selectors.weighedRandom.selectIndex(loads)
                                 .flatMap(newRmId -> rmRepository.getEntity(newRmId));
                         
                         //shouldn't release the resources of the backup?? 
