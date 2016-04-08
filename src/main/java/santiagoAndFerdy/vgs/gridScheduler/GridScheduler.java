@@ -152,16 +152,19 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             if (running) {
                 synchronized (monitoredJobs.get(rmId)) {
                     monitoredJobs.get(rmId).forEach(monitored -> {
-                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + rmId);
+                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " of RM " + rmId);
 
                         WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
                         Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
                         Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
                                 .flatMap(newRmId -> rmRepository.getEntity(newRmId));
+                        
+                        //shouldn't release the resources of the backup?? 
                         newRm.ifPresent(rm -> {
                             try {
                                 rm.orderWork(reScheduleOrder);
+                                System.out.println("[GS\t" + id + "] Job " + monitored.getJob().getJobId() + "rescheduled in RM " + rm);
                             } catch (RemoteException e) {
                                 e.printStackTrace();
                             }
