@@ -41,8 +41,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         resourceManagerPinger = new Pinger(rmRepository);
 
         start();
-        setUpReSchedule();
-        setUpSelfPromote();
     }
 
     @Override
@@ -57,9 +55,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         Optional<BackUpAck> backUpAck = gsRepository.invokeOnEntity((gs, gsId) -> {
             System.out.println("[GS\t" + id + "] Sending backup request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
             BackUpAck ack = gs.backUp(backUpRequest);
-
+            System.out.println("[GS\t" + id + "] Job " + monitorRequest.getWorkRequest().getJob().getJobId() + " backed up by " + Arrays.toString(ack.getBackUps()));
             return ack;
-        }, Selectors.weighedRandom, id);
+        }, Selectors.invertedWeighedRandom, id);
 
         if(backUpAck.isPresent()) return backUpAck.get();
         else throw new RemoteException("Can't back up job " + monitorRequest.getWorkRequest().getJob().getJobId());
@@ -83,12 +81,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             Optional<BackUpAck> ack =  gsRepository.invokeOnEntity((gs, gsId) -> {
                 System.out.println("[GS\t" + id + "] Sending job " + backUpRequest.getWorkRequest().getJob().getJobId() + " to GS " + id + " to make more backups.");
 
-                BackUpAck backUpAck = gs.backUp(newBackUpRequest);
-
-                System.out.println("Return!");
-
-                return backUpAck;
-            }, Selectors.weighedRandom, newBackUpRequest.getTrail());
+                return gs.backUp(newBackUpRequest);
+            }, Selectors.invertedWeighedRandom, newBackUpRequest.getTrail());
 
             if(ack.isPresent()) return ack.get();
             else throw new RemoteException("Can't backup job " + backUpRequest.getWorkRequest().getJob().getJobId());
@@ -177,40 +171,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         resourceManagerPinger.stop();
 
         System.out.println("[GS\t" + id + "] Offline");
-    }
-
-    public void setUpReSchedule() {
-        rmRepository.onOffline(rmId -> {
-            if (running) {
-                synchronized (monitoredJobs.get(rmId)) {
-                    monitoredJobs.get(rmId).forEach(monitored -> {
-                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " of RM " + rmId);
-
-                        WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
-
-                        Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
-                        Optional<IResourceManager> newRm = Selectors.weighedRandom.selectIndex(loads)
-                                .flatMap(newRmId -> rmRepository.getEntity(newRmId));
-                        
-                        //shouldn't release the resources of the backup?? 
-                        newRm.ifPresent(rm -> {
-                            try {
-                                rm.orderWork(reScheduleOrder);
-                                System.out.println("[GS\t" + id + "] Job " + monitored.getJob().getJobId() + "rescheduled in RM " + rm);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    });
-                }
-            }
-
-            return null;
-        });
-    }
-
-    public void setUpSelfPromote() {
-
     }
 
     @Override

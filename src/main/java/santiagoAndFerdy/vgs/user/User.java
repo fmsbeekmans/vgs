@@ -63,21 +63,23 @@ public class User extends UnicastRemoteObject implements IUser {
         for (int i = 0; i < numJobs; i++) {
             final Job j = new Job(duration, IDGen.getNewId(), rmId);
             resourceManagerRepository.getEntity(rmId).ifPresent(resourceManager -> {
-                pendingJobs.add(j);
-                WorkRequest req = new WorkRequest(id, j);
-                try {
-                    System.out.println("[U\t" + id + "] Offering job " + j.getJobId() + " to rm " + rmId);
-                    resourceManager.offerWork(req);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+//                synchronized (pendingJobs) {
+//                    pendingJobs.add(j);
+                    WorkRequest req = new WorkRequest(id, j);
+                    try {
+                        System.out.println("[U\t" + id + "] Offering job " + j.getJobId() + " to rm " + rmId);
+                        resourceManager.offerWork(req);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+//                }
             });
         }
     }
 
     @Override
-    public void acceptResult(Job j) throws RemoteException {
+    public synchronized void acceptResult(Job j) throws RemoteException {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
-        pendingJobs.remove(j);
+//        pendingJobs.remove(j);
     }
 }
