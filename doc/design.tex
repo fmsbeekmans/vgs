@@ -1,7 +1,16 @@
 \section{System design}
 In this chapter, the design of the system is explained.
 The focus of section 3.1 will be an overview of the first approach implemented, the ring topology. Here, a detailed analysis this architecture and its tradeoffs is presented. Similarly, in section 3.2 there is an analysis of the second approach implemented with full connectivity. Lastly, in section 3.3 we discuss the additional features implemented in the system. \\\\
-All the components of the system have been written using Java 8, to invoke the remote methods they make use of the Java RMI library which provides a high level of abstraction making the development easier. Instead of implementing a message passing system for the coordination among all the components we made use of the ParSeq library [1] which makes asynchronous communication easier. 
+All the components of the system have been written using Java 8.
+To communicate across machines the Java RMI library is used, which
+allows methods on possibly different machines to be invoked as methods
+of native objects with very little alteration.
+For asychronous computing the Linked in Library ParSeq was used.
+ParSeq provides a Task abstraction comparable that of Java's own
+unwieldy Future implementation.
+This abstraction is closer to objects and methods than the
+alternative, threading which is closer to the hardware implementation.
+Therefor it is easier to reason about tasks in a system of objects and methods.
 
 \subsection{Ring topology}
 
