@@ -1,4 +1,17 @@
 \section{Introduction}
-With the passing of the years, distributed computing systems have become more and more complex, spanning multiple organizations and even multiple continents. This evolution has brought new technical challenges, sometimes derived from how users interact with the systems and their expectations towards them. To tackle this new scenario, WantDS BV has the goal of designing a simulated Virtual Grid System (VGS) to study which system topologies help to solve the problems present in this kind of systems and which are their characteristics in scalability, fault tolerance and replication. Moreover, in their aim of studying realistic scenarios they also cover multi-tenancy.
-\\\\
-The distributed system designed consists of multiple clusters that carry out user workloads, consisting on stateless asynchronous jobs a certain duration. Each cluster is controlled by a resource manager which coordinates the scheduling and state of the nodes under its control. Additionally, it communicates with one or more grid schedulers for monitoring and load balancing. In the following Section 2 more information about the application, its requirements and the work flow is given. Subsequently, in Section 3 we compare the two topologies analyzed in our work, main advantages and disadvantages and, the features of the system. Section 4 verses about the experiments conducted. Finally, in Section 5 we discuss about the results obtained.
+With the explosion of data industry has set it's sight on distributed
+computing to tackle their data processing problems.
+
+Yet this is a field with many unsolved, and unsolvable problems.
+However consumers just expect their service to work, distributed or
+not.
+WantDS BV wants to change their grid simulation itself to be
+distributed. 
+This document describes the process of designing, developing and
+evaluating such a system.
+Section 2 details the requirements of the proposed Virtual Grid
+System (VGS).
+Section 3 discusses the considered designs and compares their
+respective merrits and flaws.
+Section 4 shows the results of the experiments conducted to evaluate
+the system.
