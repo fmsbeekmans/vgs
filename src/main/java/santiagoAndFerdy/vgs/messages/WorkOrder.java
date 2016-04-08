@@ -5,7 +5,9 @@ import java.io.Serializable;
 /**
  * Created by Fydio on 4/6/16.
  */
-public class WorkOrder implements Serializable {
+public class WorkOrder implements Serializable, Comparable<WorkOrder> {
+    private static final long serialVersionUID = 9214813329697464666L;
+    
     private int fromGridSchedulerId;
     private WorkRequest workRequest;
 
@@ -39,5 +41,10 @@ public class WorkOrder implements Serializable {
         int result = fromGridSchedulerId;
         result = 31 * result + (workRequest != null ? workRequest.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int compareTo(WorkOrder o) {
+        return this.workRequest.compareTo(o.workRequest);
     }
 }
