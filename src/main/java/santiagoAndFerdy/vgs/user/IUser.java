@@ -13,5 +13,6 @@ import java.rmi.RemoteException;
  */
 public interface IUser extends Remote {
     void acceptResult(Job j) throws RemoteException;
+    void acceptJob(Job j) throws RemoteException;
     void createJobs(int rmId, int n, int ms) throws RemoteException;
 }

@@ -23,7 +23,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Pinger<IGridScheduler>         gridSchedulerPinger;
 
     private Map<Integer, Set<WorkRequest>> monitoredJobs;
-    private Map<Integer, Set<WorkRequest>> backUpJobs;
+    private Map<WorkRequest, MonitorRequest> pendingMonitoringRequests;
+    private Map<Integer, Set<BackUpRequest>> backUpJobs;
+    private Map<WorkRequest, Integer> pendingBackUpRequests;
 
     private boolean                        running;
 
@@ -44,49 +46,103 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public synchronized BackUpAck monitor(MonitoringRequest monitorRequest) throws RemoteException {
+    public void monitor(MonitorRequest monitorRequest) throws RemoteException {
         if (!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getWorkRequest().getJob().getJobId() + " to monitor at cluster " + id);
+        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getWorkRequest().getJob().getJobId() + " to monitor at GS " + id);
 
         monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getWorkRequest());
 
-        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 2);
-        Optional<BackUpAck> backUpAck = gsRepository.invokeOnEntity((gs, gsId) -> {
-            System.out.println("[GS\t" + id + "] Sending backup request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
-            BackUpAck ack = gs.backUp(backUpRequest);
-            System.out.println("[GS\t" + id + "] Job " + monitorRequest.getWorkRequest().getJob().getJobId() + " backed up by " + Arrays.toString(ack.getBackUps()));
-            return ack;
-        }, Selectors.invertedWeighedRandom, id);
+        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 0);
+        backUp(backUpRequest);
+        gsRepository.invokeOnEntity((gs, gsId) -> {
+            System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
+            pendingMonitoringRequests.put(monitorRequest.getWorkRequest(), monitorRequest);
+            gs.backUp(backUpRequest);
 
-        if(backUpAck.isPresent()) return backUpAck.get();
-        else throw new RemoteException("Can't back up job " + monitorRequest.getWorkRequest().getJob().getJobId());
+            return null;
+        }, Selectors.invertedWeighedRandom, id);
     }
 
     @Override
-    public BackUpAck backUp(BackUpRequest backUpRequest) throws RemoteException {
+    public void backUp(BackUpRequest backUpRequest) throws RemoteException {
         if (!running) throw new RemoteException("I am offline");
+        WorkRequest work = backUpRequest.getWorkRequest();
 
-        System.out.println("[GS\t" + id + "] Received backup request from with trail " + Arrays.toString(backUpRequest.getTrail()) + " and " + backUpRequest.getBackUpsRequested() + " more to go") ;
 
         if(backUpRequest.getBackUpsRequested() == 0) {
             // I'm the last, send reply directly
-            return new BackUpAck(
-                    backUpRequest.getWorkRequest(),
-                    backUpRequest.getTrail()
-            ).appendGridSchedulerList(id);
+            BackUpAck ack = new BackUpAck(work, id);
+
+            int ackToId = backUpRequest.getTrail()[backUpRequest.getTrail().length - 1];
+            Optional<IGridScheduler> ackTo = gsRepository.getEntity(ackToId);
+
+            if(ackTo.isPresent()) {
+                ackTo.ifPresent(gs -> {
+                    try {
+                        System.out.println("[GS\t" + id + "] Received backup request from with trail " + Arrays.toString(backUpRequest.getTrail()) + " and " + backUpRequest.getBackUpsRequested());
+                        gs.acceptBackUpAck(ack);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
+            } else {
+
+            }
         } else {
             // Make more backups
             BackUpRequest newBackUpRequest = backUpRequest.hop(id);
             Optional<BackUpAck> ack =  gsRepository.invokeOnEntity((gs, gsId) -> {
-                System.out.println("[GS\t" + id + "] Sending job " + backUpRequest.getWorkRequest().getJob().getJobId() + " to GS " + id + " to make more backups.");
+                System.out.println("[GS\t" + id + "] Sending job " + work.getJob().getJobId() + " to GS " + id + " to make more backups.");
+                pendingBackUpRequests.put(work, backUpRequest.getTrail()[backUpRequest.getTrail().length - 1]);
 
-                return gs.backUp(newBackUpRequest);
+                gs.backUp(newBackUpRequest);
+                // TODO dubble check
+
+                return null;
             }, Selectors.invertedWeighedRandom, newBackUpRequest.getTrail());
-
-            if(ack.isPresent()) return ack.get();
-            else throw new RemoteException("Can't backup job " + backUpRequest.getWorkRequest().getJob().getJobId());
         }
+    }
+
+    @Override
+    public synchronized void acceptBackUpAck(BackUpAck ack) throws RemoteException {
+        WorkRequest work = ack.getWorkRequest();
+        System.out.println("[GS\t" + id + "] Send backup ack for job " + work.getJob().getJobId() + " from " + Arrays.toString(ack.getBackUps()) + " to RM");
+        Optional<MonitorRequest> maybeMonitorRequest = Optional.ofNullable(pendingMonitoringRequests.remove(ack.getWorkRequest()));
+        if(maybeMonitorRequest.isPresent()) {
+            maybeMonitorRequest.ifPresent(monitorRequest -> {
+                Optional<IResourceManager> maybeRm = rmRepository.getEntity(monitorRequest.getSourceResourceManagerId());
+
+                if(maybeRm.isPresent()) {
+                    try {
+                        maybeRm.get().monitorAck(ack.prependGridSchedulerList(id));
+                    } catch (RemoteException e) {
+                        // TODO Reschedule
+                        e.printStackTrace();
+                    }
+                } else {
+                    // TODO Reschedule
+                }
+            });
+        } else {
+            Optional<Integer> maybeGsToAckId = Optional.ofNullable(pendingBackUpRequests.remove(ack.getWorkRequest()));
+
+            if(maybeGsToAckId.isPresent()) {
+                System.out.println("[GS\t" + id + "] Propagate backup ack for job " + work.getJob().getJobId() + " from " + Arrays.toString(ack.getBackUps()));
+                maybeGsToAckId.flatMap(gsRepository::getEntity).ifPresent(gsToAck -> {
+                    try {
+                        gsToAck.acceptBackUpAck(ack.prependGridSchedulerList(id));
+                    } catch (RemoteException e) {
+                        // can't be reached? Then do nothing. first part of the chain will do recovery.
+                        e.printStackTrace();
+                    }
+                });
+            }
+        }
+    }
+
+    public void registerBackUp(BackUpAck ack) {
+
     }
 
     @Override
@@ -130,7 +186,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void start() throws RemoteException {
         running = true;
         monitoredJobs = new HashMap<>();
+        pendingMonitoringRequests = new HashMap<>();
         backUpJobs = new HashMap<>();
+        pendingBackUpRequests = new HashMap<>();
 
         for (int rmId : rmRepository.ids()) {
             monitoredJobs.put(rmId, new HashSet<>());

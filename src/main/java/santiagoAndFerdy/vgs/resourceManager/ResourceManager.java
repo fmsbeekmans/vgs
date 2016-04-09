@@ -64,8 +64,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         running = false;
 
         start();
-        setUpReBackUp();
-        setUpPromote();
     }
 
     @Override
@@ -76,15 +74,32 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if (needToOffload()) {
             // TODO send to GS to offload
         } else {
-            Optional<?> setUpRedundancy = requestMonitoring(req);
+            Optional<Integer> monitoring = requestMonitoring(req);
 
-            if (setUpRedundancy.isPresent()) {
-                schedule(req);
-                engine.run(Task.action(() -> processQueue()));
-            } else {
+            if (!monitoring.isPresent()) {
                 throw new RemoteException("Failed to set up monitoring and backup.");
             }
         }
+    }
+
+    @Override
+    public void monitorAck(BackUpAck ack) throws RemoteException {
+        WorkRequest work = ack.getWorkRequest();
+        System.out.println("[RM\t" + id + "] job " + work.getJob().getJobId() + " backed up at " + Arrays.toString(ack.getBackUps()));
+//        userRepository.getEntity(work.getUserId()).ifPresent(u -> {
+//            try {
+//                u.acceptJob(work.getJob());
+//            } catch (RemoteException e) {
+//                // no user anymore? No problem
+//                e.printStackTrace();
+//            }
+//        });
+//        monitoredAt.get(ack.getBackUps()[0]).add(work);
+//        try {
+//            schedule(work);
+//        } catch (RemoteException e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -100,54 +115,28 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     protected Optional<Integer> requestMonitoring(WorkRequest req) throws RemoteException {
 
-        return invokeOnGridScheduler((gs, gsId) -> {
+        return gsRepository.invokeOnEntity((gs, gsId) -> {
             System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to monitor job " + req.getJob().getJobId());
-            gs.monitor(new MonitoringRequest(id, req));
+            gs.monitor(new MonitorRequest(id, req));
 
             monitoredBy.put(req, gsId);
             monitoredAt.get(gsId).add(req);
 
             return null;
-        } , req, new HashSet<>());
+        }, Selectors.invertedWeighedRandom);
     }
 
-    protected Optional<Integer> invokeOnGridScheduler(Function2<IGridScheduler, Integer, Void> toInvoke, WorkRequest req, Set<Integer> ignore)
-            throws RemoteException {
-        Map<Integer, Long> loads = gsRepository.getLastKnownLoads();
-        ignore.forEach(loads::remove);
-        Optional<Integer> maybeGsId = Selectors.weighedRandom.selectIndex(loads);
-
-        if (!maybeGsId.isPresent())
-            return maybeGsId;
-
-        Optional<IGridScheduler> maybeGs = maybeGsId.flatMap(gsId -> gsRepository.getEntity(gsId));
-        if (maybeGs.isPresent()) {
-            try {
-                int gsId = maybeGsId.get();
-                IGridScheduler gs = maybeGs.get();
-
-                toInvoke.apply(gs, gsId);
-
-                return maybeGsId;
-            } catch (RemoteException e) {
-                // retry
-                return invokeOnGridScheduler(toInvoke, req, ignore);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            // retry
-            return invokeOnGridScheduler(toInvoke, req, ignore);
-        }
-
-        return maybeGsId;
-    }
-
-    protected synchronized void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
+    protected void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
         System.out.println("[RM\t" + id + "] Scheduling job " + toSchedule.getJob().getJobId());
         jobQueue.offer(toSchedule);
         load += toSchedule.getJob().getDuration();
-        engine.run(Task.action(() -> processQueue()));
+        engine.run(Task.action(() -> {
+            try {
+                processQueue();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }));
     }
 
     @Override
@@ -196,7 +185,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         });
     }
 
-    protected synchronized void processQueue() {
+    protected void processQueue() {
         while (true) {
             Node node = idleNodes.poll();
             if (node != null) {
@@ -212,53 +201,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                 break;
             }
         }
-    }
-
-    public void setUpReBackUp() {
-//        gsRepository.onOffline(gsId -> {
-//            if (running) {
-//                backedUpAt.get(gsId).forEach(req -> {
-//                    engine.run(Task.action(() -> {
-//                        System.out.println("[RM\t" + id + "] Requesting new backup of job " + req.getJob().getJobId());
-//                        int monitorId = monitoredBy.get(req);
-//                        requestBackUp(req, monitorId);
-//                        backedUpAt.get(gsId).remove(req);
-//                    }));
-//
-//                });
-//            }
-//
-//            return null;
-//        });
-    }
-
-    public void setUpPromote() {
-//        gsRepository.onOffline(gsId -> {
-//            if (running) {
-//                monitoredAt.get(gsId).forEach(req -> {
-//                    engine.run(Task.action(() -> {
-//                        System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
-//
-//                        int backUpId = backedUpBy.get(req);
-//                        gsRepository.getEntity(backUpId).ifPresent(gs -> {
-//                            try {
-//                                PromotionRequest promotionRequest = new PromotionRequest(id, req);
-//                                gs.promote(promotionRequest);
-//
-//                                monitoredAt.get(backUpId).add(req);
-//                                monitoredBy.put(req, backUpId);
-//
-//                                requestBackUp(req, backUpId);
-//                            } catch (RemoteException e) {
-//                                e.printStackTrace();
-//                            }
-//                        });
-//                    }));
-//                });
-//            }
-//            return null;
-//
-//        });
     }
 
     @Override

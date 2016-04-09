@@ -1,6 +1,7 @@
 package santiagoAndFerdy.vgs.messages;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Created by Fydio on 4/7/16.
@@ -9,7 +10,7 @@ public class BackUpAck implements Serializable {
     private WorkRequest workRequest;
     private int[] backUps;
 
-    public BackUpAck(WorkRequest workRequest, int[] backUps) {
+    public BackUpAck(WorkRequest workRequest, int... backUps) {
         this.workRequest = workRequest;
         this.backUps = backUps;
     }
@@ -22,16 +23,15 @@ public class BackUpAck implements Serializable {
         return backUps;
     }
 
-    public BackUpAck appendGridSchedulerList(int with) {
+    public BackUpAck prependGridSchedulerList(int with) {
         int n = backUps.length;
         int[] newIds = new int[n + 1];
+        newIds[0] = with;
 
-        for (int i = 0; i < n; i++) newIds[i] = backUps[i];
-        newIds[n] = with;
+        for (int i = 0; i < n; i++) newIds[i + 1] = backUps[i];
 
         return new BackUpAck(workRequest, newIds);
     }
-
 
     @Override
     public boolean equals(Object o) {
@@ -40,12 +40,16 @@ public class BackUpAck implements Serializable {
 
         BackUpAck backUpAck = (BackUpAck) o;
 
-        return workRequest != null ? workRequest.equals(backUpAck.workRequest) : backUpAck.workRequest == null;
+        if (workRequest != null ? !workRequest.equals(backUpAck.workRequest) : backUpAck.workRequest != null)
+            return false;
+        return Arrays.equals(backUps, backUpAck.backUps);
 
     }
 
     @Override
     public int hashCode() {
-        return workRequest != null ? workRequest.hashCode() : 0;
+        int result = workRequest != null ? workRequest.hashCode() : 0;
+        result = 31 * result + Arrays.hashCode(backUps);
+        return result;
     }
 }

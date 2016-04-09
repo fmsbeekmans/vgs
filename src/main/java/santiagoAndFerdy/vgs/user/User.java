@@ -78,6 +78,11 @@ public class User extends UnicastRemoteObject implements IUser {
     }
 
     @Override
+    public void acceptJob(Job j) throws RemoteException {
+        System.out.println("[U\t" + id + "] Job " + j.getJobId() + " accepted");
+    }
+
+    @Override
     public synchronized void acceptResult(Job j) throws RemoteException {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
 //        pendingJobs.remove(j);

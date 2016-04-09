@@ -17,7 +17,7 @@ public interface IGridScheduler extends ICrashable {
      *            the request to watch
      * @throws RemoteException
      */
-    BackUpAck monitor(MonitoringRequest monitorRequest) throws RemoteException;
+    void monitor(MonitorRequest monitorRequest) throws RemoteException;
 
     /**
      * Request this grid scheduler to also watch a job in case the primary grid scheduler crashes
@@ -26,8 +26,9 @@ public interface IGridScheduler extends ICrashable {
      *            the userRequest to watch
      * @throws RemoteException
      */
-    BackUpAck backUp(BackUpRequest backUpRequest) throws RemoteException;
+    void backUp(BackUpRequest backUpRequest) throws RemoteException;
 
+    void acceptBackUpAck(BackUpAck ack) throws RemoteException;
     /**
      * Become the monitor insteadd of back up for this workRequest
      * @param promotionRequest

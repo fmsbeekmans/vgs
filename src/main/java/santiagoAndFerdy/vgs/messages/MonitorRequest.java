@@ -7,13 +7,13 @@ import java.io.Serializable;
 /**
  * Created by Fydio on 3/30/16.
  */
-public class MonitoringRequest implements Serializable {
+public class MonitorRequest implements Serializable {
 
     private static final long serialVersionUID = 1531240896670545486L;
     private @NotNull int sourceResourceManagerId;
     private @NotNull WorkRequest toMonitor;
 
-    public MonitoringRequest(int sourceResourceManagerId, WorkRequest jobToMonitor) {
+    public MonitorRequest(int sourceResourceManagerId, WorkRequest jobToMonitor) {
         this.sourceResourceManagerId = sourceResourceManagerId;
         this.toMonitor = jobToMonitor;
     }
@@ -31,7 +31,7 @@ public class MonitoringRequest implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        MonitoringRequest that = (MonitoringRequest) o;
+        MonitorRequest that = (MonitorRequest) o;
 
         if (sourceResourceManagerId != that.sourceResourceManagerId) return false;
         return toMonitor != null ? toMonitor.equals(that.toMonitor) : that.toMonitor == null;
