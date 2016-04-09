@@ -33,8 +33,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Map<Integer, Set<BackUpRequest>> backUpJobs;
     private Map<WorkRequest, Integer> pendingBackUpRequests;
 
-    private Map<WorkRequest, List<Integer>> pendingBackUpPaths;
-    private Map<WorkRequest, List<Integer>> backUpPaths;
+    private Map<WorkRequest, List<Integer>> backUpPathsBefore;
+    private Map<WorkRequest, List<Integer>> backUpPathsAfter;
 
     private ScheduledExecutorService timer;
     private Engine engine;
@@ -72,9 +72,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 try {
                     System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + work.getJob().getJobId());
                     pendingMonitoringRequests.put(work, monitorRequest);
-                    LinkedList trailList = new LinkedList();
-                    trailList.add(id);
-                    backUpPaths.put(work, trailList);
                     gs.backUp(backUpRequest);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -93,7 +90,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
             List<Integer> trailInit = new LinkedList<>();
             Arrays.stream(backUpRequest.getTrail()).forEach(trailInit::add);
-            backUpPaths.put(work, trailInit);
+            backUpPathsBefore.put(work, trailInit);
 
             if(backUpRequest.getBackUpsRequested() == 0) {
                 // I'm the last, send reply directly
@@ -137,15 +134,12 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         engine.run(Task.action(() -> {
             WorkRequest work = ack.getWorkRequest();
 
-            if (ack.getBackUps().length == 1) {
-                backUpPaths.put(work, new LinkedList<>());
-            }
-
             // path admin
-            List<Integer> trail = backUpPaths.get(work);
-            Arrays.stream(ack.getBackUps()).forEach(trail::add);
+            List<Integer> after = new LinkedList<Integer>();
+            Arrays.stream(ack.getBackUps()).forEach(after::add);
+            backUpPathsAfter.put(work, after);
 
-            System.out.println("[GS\t" + id + "] Backup path for job " + work.getJob().getJobId() + " path is " + Arrays.toString(trail.toArray()) + " to RM");
+            System.out.println("[GS\t" + id + "] Backup path for job " + work.getJob().getJobId() + " path is " + Arrays.toString(after.toArray()) + " to RM");
             Optional<MonitorRequest> maybeMonitorRequest = Optional.ofNullable(pendingMonitoringRequests.remove(ack.getWorkRequest()));
             if (maybeMonitorRequest.isPresent()) {
                 maybeMonitorRequest.ifPresent(monitorRequest -> {
@@ -226,7 +220,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         backUpJobs = new HashMap<>();
         pendingBackUpRequests = new HashMap<>();
 
-        backUpPaths = new HashMap<>();
+        backUpPathsBefore = new HashMap<>();
+        backUpPathsAfter = new HashMap<>();
 
         for (int rmId : rmRepository.ids()) {
             monitoredJobs.put(rmId, new HashSet<>());
@@ -269,8 +264,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         pendingMonitoringRequests = null;
         pendingBackUpRequests = null;
 
-        backUpPaths = null;
-
+        backUpPathsBefore = null;
+        backUpPathsAfter = null;
 
         gridSchedulerPinger.stop();
         resourceManagerPinger.stop();
