@@ -52,15 +52,19 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void monitor(MonitorRequest monitorRequest) throws RemoteException {
         if (!running) throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getWorkRequest().getJob().getJobId() + " to monitor at GS " + id);
+        WorkRequest work = monitorRequest.getWorkRequest();
+        System.out.println("[GS\t" + id + "] Received job " + work.getJob().getJobId() + " to monitor at GS " + id);
 
-        monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getWorkRequest());
+        monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(work);
 
-        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 2);
+        BackUpRequest backUpRequest = new BackUpRequest(work, id, 2);
         gsRepository.invokeOnEntity((gs, gsId) -> {
             try {
-                System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
-                pendingMonitoringRequests.put(monitorRequest.getWorkRequest(), monitorRequest);
+                System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + work.getJob().getJobId());
+                pendingMonitoringRequests.put(work, monitorRequest);
+                LinkedList trailList = new LinkedList();
+                trailList.add(id);
+                backUpPaths.put(work, trailList);
                 gs.backUp(backUpRequest);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -71,13 +75,12 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     @Override
     public void backUp(BackUpRequest backUpRequest) throws RemoteException {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         if (!running) throw new RemoteException("I am offline");
         WorkRequest work = backUpRequest.getWorkRequest();
+
+        List<Integer> trailInit = new LinkedList<>();
+        Arrays.stream(backUpRequest.getTrail()).forEach(trailInit::add);
+        backUpPaths.put(work, trailInit);
 
         if(backUpRequest.getBackUpsRequested() == 0) {
             // I'm the last, send reply directly
@@ -114,14 +117,18 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     }
 
     @Override
-    public synchronized void acceptBackUpAck(BackUpAck ack) throws RemoteException {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public void acceptBackUpAck(BackUpAck ack) throws RemoteException {
         WorkRequest work = ack.getWorkRequest();
-        System.out.println("[GS\t" + id + "] Send backup ack for job " + work.getJob().getJobId() + " from " + Arrays.toString(ack.getBackUps()) + " to RM");
+
+        if(ack.getBackUps().length == 1) {
+            backUpPaths.put(work, new LinkedList<>());
+        }
+
+        // path admin
+        List<Integer> trail = backUpPaths.get(work);
+        Arrays.stream(ack.getBackUps()).forEach(trail::add);
+
+        System.out.println("[GS\t" + id + "] Backup path for job " + work.getJob().getJobId() + " path is " + Arrays.toString(trail.toArray()) + " to RM");
         Optional<MonitorRequest> maybeMonitorRequest = Optional.ofNullable(pendingMonitoringRequests.remove(ack.getWorkRequest()));
         if(maybeMonitorRequest.isPresent()) {
             maybeMonitorRequest.ifPresent(monitorRequest -> {
