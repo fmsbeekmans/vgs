@@ -201,8 +201,10 @@ public class Repository<T extends Remote> implements IRepository<T> {
     public <R> Optional<R> invokeOnEntity(Function2<T, Integer, R> toInvoke, ISelector selector, int... idsToIgnore) {
         Map<Integer, Long> weights = getLastKnownLoads();
         Arrays.stream(idsToIgnore).forEach(weights::remove);
+        final boolean[] success = new boolean[1];
+        success[0] = false;
 
-        while(!idsExcept(idsToIgnore).isEmpty()) {
+        while(!success[0]) {
             Optional<Integer> selectedId = selector.selectIndex(weights);
 
             Optional<R> attempt = selectedId.flatMap(id -> {
@@ -212,6 +214,7 @@ public class Repository<T extends Remote> implements IRepository<T> {
                     R result = null;
                     try {
                         result = toInvoke.apply(entity, id);
+                        success[0] = true;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

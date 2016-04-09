@@ -6,6 +6,7 @@
 *.pdf
 *.jar
 /bin/
+/doc/*.out
 .settings/
 .project
 .classpath

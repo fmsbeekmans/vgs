@@ -27,6 +27,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Map<Integer, Set<BackUpRequest>> backUpJobs;
     private Map<WorkRequest, Integer> pendingBackUpRequests;
 
+    private Map<WorkRequest, List<Integer>> pendingBackUpPaths;
+    private Map<WorkRequest, List<Integer>> backUpPaths;
+
     private boolean                        running;
 
     private long                           load;
@@ -53,22 +56,28 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
         monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getWorkRequest());
 
-        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 0);
-        backUp(backUpRequest);
+        BackUpRequest backUpRequest = new BackUpRequest(monitorRequest.getWorkRequest(), id, 2);
         gsRepository.invokeOnEntity((gs, gsId) -> {
-            System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
-            pendingMonitoringRequests.put(monitorRequest.getWorkRequest(), monitorRequest);
-            gs.backUp(backUpRequest);
-
+            try {
+                System.out.println("[GS\t" + id + "] Sending backup monitoring request to GS " + gsId + " for job " + monitorRequest.getWorkRequest().getJob().getJobId());
+                pendingMonitoringRequests.put(monitorRequest.getWorkRequest(), monitorRequest);
+                gs.backUp(backUpRequest);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             return null;
         }, Selectors.invertedWeighedRandom, id);
     }
 
     @Override
     public void backUp(BackUpRequest backUpRequest) throws RemoteException {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         if (!running) throw new RemoteException("I am offline");
         WorkRequest work = backUpRequest.getWorkRequest();
-
 
         if(backUpRequest.getBackUpsRequested() == 0) {
             // I'm the last, send reply directly
@@ -106,6 +115,11 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     @Override
     public synchronized void acceptBackUpAck(BackUpAck ack) throws RemoteException {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         WorkRequest work = ack.getWorkRequest();
         System.out.println("[GS\t" + id + "] Send backup ack for job " + work.getJob().getJobId() + " from " + Arrays.toString(ack.getBackUps()) + " to RM");
         Optional<MonitorRequest> maybeMonitorRequest = Optional.ofNullable(pendingMonitoringRequests.remove(ack.getWorkRequest()));
@@ -132,6 +146,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 maybeGsToAckId.flatMap(gsRepository::getEntity).ifPresent(gsToAck -> {
                     try {
                         gsToAck.acceptBackUpAck(ack.prependGridSchedulerList(id));
+
                     } catch (RemoteException e) {
                         // can't be reached? Then do nothing. first part of the chain will do recovery.
                         e.printStackTrace();
@@ -139,10 +154,6 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                 });
             }
         }
-    }
-
-    public void registerBackUp(BackUpAck ack) {
-
     }
 
     @Override
@@ -190,6 +201,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         backUpJobs = new HashMap<>();
         pendingBackUpRequests = new HashMap<>();
 
+        backUpPaths = new HashMap<>();
+
         for (int rmId : rmRepository.ids()) {
             monitoredJobs.put(rmId, new HashSet<>());
             backUpJobs.put(rmId, new HashSet<>());
@@ -224,6 +237,11 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         running = false;
         monitoredJobs = null;
         backUpJobs = null;
+        pendingMonitoringRequests = null;
+        pendingBackUpRequests = null;
+
+        backUpPaths = null;
+
 
         gridSchedulerPinger.stop();
         resourceManagerPinger.stop();

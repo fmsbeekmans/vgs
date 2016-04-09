@@ -58,4 +58,13 @@ public class BackUpRequest implements Serializable {
 
         return workRequest != null ? workRequest.equals(that.workRequest) : that.workRequest == null;
     }
+
+    @Override
+    public String toString() {
+        return "BackUpRequest{" +
+                "workRequest=" + workRequest +
+                ", trail=" + Arrays.toString(trail) +
+                ", backUpsRequested=" + backUpsRequested +
+                '}';
+    }
 }

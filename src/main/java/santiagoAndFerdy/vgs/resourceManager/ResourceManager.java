@@ -86,20 +86,20 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public void monitorAck(BackUpAck ack) throws RemoteException {
         WorkRequest work = ack.getWorkRequest();
         System.out.println("[RM\t" + id + "] job " + work.getJob().getJobId() + " backed up at " + Arrays.toString(ack.getBackUps()));
-//        userRepository.getEntity(work.getUserId()).ifPresent(u -> {
-//            try {
-//                u.acceptJob(work.getJob());
-//            } catch (RemoteException e) {
-//                // no user anymore? No problem
-//                e.printStackTrace();
-//            }
-//        });
-//        monitoredAt.get(ack.getBackUps()[0]).add(work);
-//        try {
-//            schedule(work);
-//        } catch (RemoteException e) {
-//            e.printStackTrace();
-//        }
+        userRepository.getEntity(work.getUserId()).ifPresent(u -> {
+            try {
+                u.acceptJob(work.getJob());
+            } catch (RemoteException e) {
+                // no user anymore? No problem
+                e.printStackTrace();
+            }
+        });
+        monitoredAt.get(ack.getBackUps()[0]).add(work);
+        try {
+            schedule(work);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -122,7 +122,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             monitoredBy.put(req, gsId);
             monitoredAt.get(gsId).add(req);
 
-            return null;
+            return gsId;
         }, Selectors.invertedWeighedRandom);
     }
 
