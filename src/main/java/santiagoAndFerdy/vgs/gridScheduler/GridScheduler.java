@@ -157,7 +157,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                         WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
                         Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
-                        Optional<IResourceManager> newRm = Selectors.weighedRandom.getRandomIndex(loads)
+                        Optional<IResourceManager> newRm = Selectors.invertedWeighedRandom.selectIndex(loads)
                                 .flatMap(newRmId -> rmRepository.getEntity(newRmId));
                         newRm.ifPresent(rm -> {
                             try {

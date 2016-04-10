@@ -143,7 +143,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             throws RemoteException {
         Map<Integer, Long> loads = gsRepository.getLastKnownLoads();
         ignore.forEach(loads::remove);
-        Optional<Integer> maybeGsId = Selectors.weighedRandom.getRandomIndex(loads);
+        Optional<Integer> maybeGsId = Selectors.invertedWeighedRandom.selectIndex(loads);
 
         if (!maybeGsId.isPresent())
             return maybeGsId;
