@@ -1,5 +1,7 @@
 package santiagoAndFerdy.vgs.discovery;
 
+import com.linkedin.parseq.function.Function2;
+import santiagoAndFerdy.vgs.discovery.selector.ISelector;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
 import santiagoAndFerdy.vgs.resourceManager.IResourceManager;
 import santiagoAndFerdy.vgs.user.IUser;
@@ -11,6 +13,7 @@ import java.rmi.Remote;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -44,47 +47,9 @@ public interface IRepository<T extends Remote> extends Serializable {
     void onOffline(Function<Integer, Void> doWithOfflineId);
 
     void onOnline(Function<Integer, Void> doWithOnlineId);
-    
+
     Optional<T> getEntityExceptId(int id);
 
-    /**
-     * Created by Fydio on 4/3/16.
-     */
-    class Repositories {
-        public static IRepository<IUser> userRepository;
-        public static IRepository<IResourceManager> resourceManagerRepository;
-        public static IRepository<IGridScheduler> gridSchedulerRepository;
+    <R> Optional<R> invokeOnEntity(Function2<T, Integer, R> toInvoke, ISelector selector, int... idsToIgnore);
 
-        static {
-            ClassLoader classLoader = Repositories.class.getClassLoader();
-
-            try {
-                InputStream usersStream = classLoader.getResourceAsStream("users");
-                //Path userRepositoryFilePath = Paths.get(usersUrl.);
-
-                userRepository = Repository.fromStream(usersStream);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                InputStream resourceManagerStream = classLoader.getResourceAsStream("resource-managers");
-                //Path resourceManagerRepositoryFilePath = Paths.get(resourceManagerUrl.toURI());
-
-                resourceManagerRepository = Repository.fromStream(resourceManagerStream);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            try {
-                InputStream gridSchedulersStream = classLoader.getResourceAsStream("grid-schedulers");
-                //Path gridSchedulersFilePath = Paths.get(gridSchedulersUrl.toURI());
-
-                gridSchedulerRepository = Repository.fromStream(gridSchedulersStream);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-        }
-    }
 }

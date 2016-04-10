@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 import java.rmi.NotBoundException;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
+import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 
@@ -22,6 +23,6 @@ public class GridSchedulerMain {
 
         RmiServer server = new RmiServer(1099);
 
-        new GridScheduler(server, id, IRepository.Repositories.resourceManagerRepository, IRepository.Repositories.gridSchedulerRepository);
+        new GridScheduler(server, id, Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository);
     }
 }

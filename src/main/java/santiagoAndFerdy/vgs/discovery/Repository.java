@@ -1,5 +1,8 @@
 package santiagoAndFerdy.vgs.discovery;
 
+import com.linkedin.parseq.function.Function2;
+import santiagoAndFerdy.vgs.discovery.selector.ISelector;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -13,7 +16,6 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Created by Fydio on 3/24/16.
@@ -193,5 +195,37 @@ public class Repository<T extends Remote> implements IRepository<T> {
         } catch (RemoteException | NotBoundException | MalformedURLException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public <R> Optional<R> invokeOnEntity(Function2<T, Integer, R> toInvoke, ISelector selector, int... idsToIgnore) {
+        Map<Integer, Long> weights = getLastKnownLoads();
+        Arrays.stream(idsToIgnore).forEach(weights::remove);
+        final boolean[] success = new boolean[1];
+        success[0] = false;
+
+        while(!success[0]) {
+            Optional<Integer> selectedId = selector.selectIndex(weights);
+
+            Optional<R> attempt = selectedId.flatMap(id -> {
+                weights.remove(selectedId);
+
+                return getEntity(id).map(entity -> {
+                    R result = null;
+                    try {
+                        result = toInvoke.apply(entity, id);
+                        success[0] = true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    return result;
+                });
+            });
+
+            if(attempt.isPresent()) return attempt;
+        }
+
+        return Optional.empty();
     }
 }
