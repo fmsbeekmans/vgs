@@ -113,62 +113,27 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     protected Optional<Integer> requestMonitoring(WorkRequest req) throws RemoteException {
 
-        return invokeOnGridScheduler((gs, gsId) -> {
+        return gsRepository.invokeOnEntity((gs, gsId) -> {
             System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to monitor job " + req.getJob().getJobId());
             gs.monitor(new MonitoringRequest(id, req));
 
             monitoredBy.put(req, gsId);
             monitoredAt.get(gsId).add(req);
 
-            return null;
-        } , req, new HashSet<>());
+            return gsId;
+        }, Selectors.invertedWeighedRandom);
     }
 
     protected Optional<Integer> requestBackUp(WorkRequest req, int monitorId) throws RemoteException {
-        HashSet<Integer> ignore = new HashSet<>();
-        ignore.add(monitorId);
-
-        return invokeOnGridScheduler((gs, gsId) -> {
+        return gsRepository.invokeOnEntity((gs, gsId) -> {
             System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to back up job " + req.getJob().getJobId());
             gs.backUp(new BackUpRequest(id, req));
 
             backedUpBy.put(req, gsId);
             backedUpAt.get(gsId).add(req);
 
-            return null;
-        } , req, ignore);
-    }
-
-    protected Optional<Integer> invokeOnGridScheduler(Function2<IGridScheduler, Integer, Void> toInvoke, WorkRequest req, Set<Integer> ignore)
-            throws RemoteException {
-        Map<Integer, Long> loads = gsRepository.getLastKnownLoads();
-        ignore.forEach(loads::remove);
-        Optional<Integer> maybeGsId = Selectors.invertedWeighedRandom.selectIndex(loads);
-
-        if (!maybeGsId.isPresent())
-            return maybeGsId;
-
-        Optional<IGridScheduler> maybeGs = maybeGsId.flatMap(gsId -> gsRepository.getEntity(gsId));
-        if (maybeGs.isPresent()) {
-            try {
-                int gsId = maybeGsId.get();
-                IGridScheduler gs = maybeGs.get();
-
-                toInvoke.apply(gs, gsId);
-
-                return maybeGsId;
-            } catch (RemoteException e) {
-                // retry
-                return invokeOnGridScheduler(toInvoke, req, ignore);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            // retry
-            return invokeOnGridScheduler(toInvoke, req, ignore);
-        }
-
-        return maybeGsId;
+            return gsId;
+        } , Selectors.invertedWeighedRandom, monitorId);
     }
 
     protected synchronized void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
