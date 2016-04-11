@@ -156,7 +156,7 @@ public class Repository<T extends IAddressable> implements IRepository<T> {
         return urls.get(id);
     }
 
-    public static <T extends Remote> IRepository<T> fromFile(Path entityListingPath) throws IOException {
+    public static <T extends IAddressable> IRepository<T> fromFile(Path entityListingPath) throws IOException {
         Scanner s = new Scanner(Files.newInputStream(entityListingPath));
 
         Map<Integer, String> urls = new HashMap<>();
@@ -171,7 +171,7 @@ public class Repository<T extends IAddressable> implements IRepository<T> {
         return new Repository<T>(urls);
     }
 
-    public static <T extends Remote> IRepository<T> fromStream(InputStream input) throws IOException {
+    public static <T extends IAddressable> IRepository<T> fromStream(InputStream input) throws IOException {
         Scanner s = new Scanner(input);
         Map<Integer, String> urls = new HashMap<>();
         while (s.hasNext()) {

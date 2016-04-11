@@ -81,4 +81,14 @@ public class User extends UnicastRemoteObject implements IUser {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
         pendingJobs.remove(j);
     }
+
+    @Override
+    public int getId() throws RemoteException {
+        return id;
+    }
+
+    @Override
+    public long ping() throws RemoteException {
+        return 0;
+    }
 }

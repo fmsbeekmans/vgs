@@ -11,7 +11,7 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 4/3/16.
  */
-public interface IUser extends Remote {
+public interface IUser extends IAddressable {
     void acceptResult(Job j) throws RemoteException;
     void createJobs(int rmId, int n, int ms) throws RemoteException;
 }
