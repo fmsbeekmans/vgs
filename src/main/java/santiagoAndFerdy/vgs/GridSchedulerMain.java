@@ -3,6 +3,7 @@ package santiagoAndFerdy.vgs;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 
 import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
@@ -14,14 +15,21 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 public class GridSchedulerMain {
 
     public static void main(String[] args) throws InterruptedException, NotBoundException, URISyntaxException, IOException {
-        if (args.length < 1) {
-            System.err.println("Please insert this GS ID");
-            return;
-        }
-        int id = Integer.parseInt(args[0]);
-
+//        if (args.length < 1) {
+//            System.err.println("Please insert this GS ID");
+//            return;
+//        }
+//        int id = Integer.parseInt(args[0]);
+//
         RmiServer server = new RmiServer(1099);
 
-        new GridScheduler(server, id, Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository);
+      //  new GridScheduler(server, id, Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository);
+        Repositories.gridSchedulerRepository.ids().forEach(gsId -> {
+            try {
+                new GridScheduler(server, gsId, Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

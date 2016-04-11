@@ -17,11 +17,7 @@ public class SimulationLauncher {
 
         Repositories.gridSchedulerRepository.ids().forEach(gsId -> {
             try {
-                new GridScheduler(
-                        rmiServer,
-                        gsId,
-                        Repositories.resourceManagerRepository,
-                        Repositories.gridSchedulerRepository);
+                new GridScheduler(rmiServer, gsId, Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -29,13 +25,8 @@ public class SimulationLauncher {
 
         Repositories.resourceManagerRepository.ids().forEach(rmId -> {
             try {
-                new ResourceManager(
-                        rmiServer,
-                        rmId,
-                        Repositories.userRepository,
-                        Repositories.resourceManagerRepository,
-                        Repositories.gridSchedulerRepository,
-                        1000);
+                new ResourceManager(rmiServer, rmId, Repositories.userRepository, Repositories.resourceManagerRepository,
+                        Repositories.gridSchedulerRepository, 1000);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -43,12 +34,9 @@ public class SimulationLauncher {
 
         Repositories.userRepository.ids().forEach(uId -> {
             try {
-                new User(
-                        rmiServer,
-                        uId,
-                        Repositories.userRepository,
-                        Repositories.resourceManagerRepository);
-            } catch (RemoteException e) {
+                new User(rmiServer, uId, Repositories.userRepository, Repositories.resourceManagerRepository);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         });
@@ -57,7 +45,7 @@ public class SimulationLauncher {
             Repositories.userRepository.getEntity(uId).ifPresent(u -> {
                 Repositories.resourceManagerRepository.ids().forEach(rmId -> {
                     try {
-                        u.createJobs(rmId, 10, 1000);
+                        u.createJobs(rmId, 100, 1000);
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }

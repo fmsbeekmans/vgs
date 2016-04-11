@@ -13,6 +13,7 @@ public class Job implements Serializable, Comparable<Job> {
     private int               initialResourceManagerId;
     private int[]             additionalResourceManagerIds;
     private int               size;
+    private long              startTime;
     private int               currentResourceManagerId;
 
     public Job(int duration, int jobId, int initialResourceManagerId) {
@@ -20,10 +21,15 @@ public class Job implements Serializable, Comparable<Job> {
         this.jobId = jobId;
         this.initialResourceManagerId = initialResourceManagerId;
         currentResourceManagerId = initialResourceManagerId;
+        startTime = System.currentTimeMillis();
     }
 
     public int getDuration() {
         return duration;
+    }
+    
+    public long getStartTime() {
+        return startTime;
     }
 
     public int getJobId() {

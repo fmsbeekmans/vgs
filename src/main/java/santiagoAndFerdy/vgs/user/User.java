@@ -1,5 +1,8 @@
 package santiagoAndFerdy.vgs.user;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
@@ -7,6 +10,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 
 import santiagoAndFerdy.vgs.discovery.IRepository;
@@ -29,12 +33,13 @@ public class User extends UnicastRemoteObject implements IUser {
     private IRepository<IUser> userRepository;
     private IRepository<IResourceManager> resourceManagerRepository;
     private Set<Job>                      pendingJobs;
+    private PrintWriter                          writer;
 
     public User(
             RmiServer rmiServer,
             int id,
             IRepository<IUser> userRepository,
-            IRepository<IResourceManager> resourceManagerRepository) throws RemoteException {
+            IRepository<IResourceManager> resourceManagerRepository) throws RemoteException, FileNotFoundException {
 
         this.rmiServer = rmiServer;
         this.id = id;
@@ -43,7 +48,9 @@ public class User extends UnicastRemoteObject implements IUser {
 
         this.url = userRepository.getUrl(id);
         pendingJobs = new HashSet<>();
-
+        Random r = new Random();
+        Integer num = r.nextInt(100);
+        writer = new PrintWriter(new File("jobTimes"+num.toString()+".csv"));
         // register self
         rmiServer.register(url, this);
     }
@@ -85,6 +92,9 @@ public class User extends UnicastRemoteObject implements IUser {
     @Override
     public synchronized void acceptResult(Job j) throws RemoteException {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
+        String time = ((Long)(System.currentTimeMillis() - j.getStartTime())).toString();
+        writer.write(j.getJobId()+","+time+"\n");
+        writer.flush();
 //        pendingJobs.remove(j);
     }
 }

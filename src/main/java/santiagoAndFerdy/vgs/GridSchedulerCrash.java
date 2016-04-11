@@ -8,10 +8,11 @@ import santiagoAndFerdy.vgs.resourceManager.ResourceManager;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
+import java.io.FileNotFoundException;
 import java.rmi.RemoteException;
 
 public class GridSchedulerCrash {
-    public static void main(String[] args) throws RemoteException, InterruptedException {
+    public static void main(String[] args) throws RemoteException, InterruptedException, FileNotFoundException {
         RmiServer rmiServer = new RmiServer(1099);
 
         IGridScheduler gs0 = new GridScheduler(
