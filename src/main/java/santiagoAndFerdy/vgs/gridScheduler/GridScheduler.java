@@ -52,7 +52,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId() + " to monitor at cluster " + id);
+        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId());
         monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getToMonitor());
     }
 
@@ -61,7 +61,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId());
         backUpJobs.get(backUpRequest.getSourceResourceManagerId()).add(backUpRequest.getToBackUp());
     }
 
@@ -90,7 +90,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
 
         monitoredJobs.remove(request);
-        System.out.println("[GS\t" + id + "] Stop monitoring " + request.getJob().getJobId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Stop monitoring " + request.getJob().getJobId());
     }
 
     @Override
@@ -99,7 +99,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
 
         backUpJobs.remove(workRequest);
-        System.out.println("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId() + " at cluster " + id);
+        System.out.println("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId());
     }
 
     @Override
@@ -156,11 +156,11 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             if (running && !recovering) {
                 synchronized (recovering) { recovering = true;}
                 monitoredJobs.get(rmId).forEach(monitored -> {
-                    System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + rmId);
 
                     WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
-                    rmRepository.invokeOnEntity((rm, id) -> {
+                    rmRepository.invokeOnEntity((rm, newRmId) -> {
+                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + newRmId);
                         rm.orderWork(reScheduleOrder);
 
                         return null;

@@ -215,47 +215,56 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     public void setUpMonitorCrashRecovery() {
         gsRepository.onOffline(gsId -> {
-        if(running && !recovering) {
-                synchronized (recovering) { recovering = true; }
-                monitoredAt.get(gsId).forEach(req -> {
-                    // for each request at the crashed monitor
-                    Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
-                    maybeBackUpId.ifPresent(backUpId -> {
-                        if (gsRepository.checkStatus(backUpId)) {
-                            // back-up still alive
-                            // promote back-up, request new back-up
-                            gsRepository.getEntity(backUpId).ifPresent(gs -> {
+            synchronized (recovering) {
+                if(running && !recovering) {
+
+                    recovering = true;
+                    monitoredAt.get(gsId).forEach(req -> {
+                        // for each request at the crashed monitor
+                        Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
+                        maybeBackUpId.ifPresent(backUpId -> {
+                            if (gsRepository.checkStatus(backUpId)) {
+                                // back-up still alive
+                                // promote back-up, request new back-up
+                                gsRepository.getEntity(backUpId).ifPresent(gs -> {
+                                    try {
+                                        gs.promote(new PromotionRequest(id, req));
+
+                                        monitoredBy.put(req, id);
+                                        requestBackUp(req, backUpId);
+
+                                    } catch (RemoteException e) {
+                                        // warning
+                                        System.out.println("[RM\t" + id  + "] Can't fully fix redundancy for job " + req.getJob().getJobId() + ". Try to finish anyway");
+                                    }
+                                });
+                            } else {
+                                // back-up down
+                                // new backup, new monitor
                                 try {
-                                    gs.promote(new PromotionRequest(id, req));
+                                    requestMonitoring(req);
                                     requestBackUp(req, gsId);
                                 } catch (RemoteException e) {
-                                    // warning
-                                    System.out.println("[RM\t" + id  + "] Can't fully fix redundancy for job " + req.getJob().getJobId() + ". Try to finish anyway");
+                                    e.printStackTrace();
                                 }
-                            });
-                        } else {
-                            // back-up down
-                            // new backup, new monitor
+                            }
+                        });
+
+                        if (!maybeBackUpId.isPresent()) {
                             try {
-                                requestMonitoring(req);
                                 requestBackUp(req, gsId);
+
                             } catch (RemoteException e) {
-                                e.printStackTrace();
+                                // warn
+                                System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up of job " + req.getJob().getJobId());
                             }
                         }
                     });
-                    if (!maybeBackUpId.isPresent()) {
-                        try {
-                            requestBackUp(req, gsId);
-                        } catch (RemoteException e) {
-                            // warn
-                            System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up of job " + req.getJob().getJobId());
-                        }
-                    }
-                });
 
-                synchronized (recovering) { recovering = false; }
+                    monitoredAt.get(gsId).clear();
+                }
             }
+
 
             return null;
         });
