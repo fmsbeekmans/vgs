@@ -189,20 +189,24 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         });
     }
 
-    protected synchronized void processQueue() {
+    protected void processQueue() {
         while (true) {
-            Node node = idleNodes.poll();
-            if (node != null) {
-                WorkRequest work = jobQueue.poll();
-                if (work != null) {
-                    System.out.println("[RM\t" + id + "] Executing job " + work.getJob().getJobId());
-                    node.handle(work);
+            synchronized (idleNodes) {
+                Node node = idleNodes.poll();
+                if (node != null) {
+                    synchronized (jobQueue) {
+                        WorkRequest work = jobQueue.poll();
+                        if (work != null) {
+                            System.out.println("[RM\t" + id + "] Executing job " + work.getJob().getJobId());
+                            node.handle(work);
+                        } else {
+                            idleNodes.offer(node);
+                            break;
+                        }
+                    }
                 } else {
-                    idleNodes.offer(node);
                     break;
                 }
-            } else {
-                break;
             }
         }
     }
