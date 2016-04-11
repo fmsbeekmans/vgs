@@ -43,6 +43,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private Map<Integer, Set<WorkRequest>> monitoredAt;
     private Map<Integer, Set<WorkRequest>> backedUpAt;
 
+    private Boolean recovering;
+
     private ScheduledExecutorService       timer;
     private Engine                         engine;
 
@@ -212,87 +214,80 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     public void setUpMonitorCrashRecovery() {
         gsRepository.onOffline(gsId -> {
-            if (running) {
-                monitoredAt.get(gsId).forEach(req -> {
-                    // for each request at the crashed monitor
-                    Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
-                    maybeBackUpId.ifPresent(backUpId -> {
-                        if (gsRepository.checkStatus(backUpId)) {
-                            // back-up still alive
-                            // promote back-up, request new back-up
-                            try {
-                                requestBackUp(req, gsId);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
+            if(!recovering) {
+                synchronized (recovering) { recovering = true; }
+
+                if (running) {
+                    monitoredAt.get(gsId).forEach(req -> {
+                        // for each request at the crashed monitor
+                        Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
+                        maybeBackUpId.ifPresent(backUpId -> {
+                            if (gsRepository.checkStatus(backUpId)) {
+                                // back-up still alive
+                                // promote back-up, request new back-up
+                                try {
+                                    requestBackUp(req, gsId);
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                // back-up down
+                                // new backup, new monitor
+                                try {
+                                    requestMonitoring(req);
+                                    requestBackUp(req, gsId);
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
                             }
-                        } else {
-                            // back-up down
-                            // new backup, new monitor
+                        });
+                        if (!maybeBackUpId.isPresent()) {
                             try {
-                                requestMonitoring(req);
                                 requestBackUp(req, gsId);
                             } catch (RemoteException e) {
-                                e.printStackTrace();
+                                System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up");
                             }
                         }
                     });
-                    if(!maybeBackUpId.isPresent()) {
-                        try {
-                            requestBackUp(req, gsId);
-                        } catch (RemoteException e) {
-                            System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up");
-                        }
-                    }
-                });
+
+                    synchronized (recovering) { recovering = false; }
+                }
             }
-        });
-    }
-
-    public void setUpReBackUp() {
-        gsRepository.onOffline(gsId -> {
-            if (running) {
-                backedUpAt.get(gsId).forEach(req -> {
-                    engine.run(Task.action(() -> {
-                        System.out.println("[RM\t" + id + "] Requesting new backup of job " + req.getJob().getJobId());
-                        int monitorId = monitoredBy.get(req);
-                        requestBackUp(req, monitorId);
-                        backedUpAt.get(gsId).remove(req);
-                    }));
-
-                });
-            }
-
             return null;
         });
     }
 
     public void setUpPromote() {
-        gsRepository.onOffline(gsId -> {
-            if (running) {
-                monitoredAt.get(gsId).forEach(req -> {
-                    engine.run(Task.action(() -> {
-                        System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
+        if(!recovering) {
+            synchronized (recovering) { recovering = true; }
+            gsRepository.onOffline(gsId -> {
+                if (running) {
+                    monitoredAt.get(gsId).forEach(req -> {
+                        engine.run(Task.action(() -> {
+                            System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
 
-                        int backUpId = backedUpBy.get(req);
-                        gsRepository.getEntity(backUpId).ifPresent(gs -> {
-                            try {
-                                PromotionRequest promotionRequest = new PromotionRequest(id, req);
-                                gs.promote(promotionRequest);
+                            int backUpId = backedUpBy.get(req);
+                            gsRepository.getEntity(backUpId).ifPresent(gs -> {
+                                try {
+                                    PromotionRequest promotionRequest = new PromotionRequest(id, req);
+                                    gs.promote(promotionRequest);
 
-                                monitoredAt.get(backUpId).add(req);
-                                monitoredBy.put(req, backUpId);
+                                    monitoredAt.get(backUpId).add(req);
+                                    monitoredBy.put(req, backUpId);
 
-                                requestBackUp(req, backUpId);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    }));
-                });
-            }
-            return null;
+                                    requestBackUp(req, backUpId);
+                                } catch (RemoteException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        }));
+                    });
+                }
+                synchronized (recovering) { recovering = false; }
 
-        });
+                return null;
+            });
+        }
     }
 
     @Override
@@ -304,6 +299,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         backedUpBy = new HashMap<>();
         monitoredAt = new HashMap<>();
         backedUpAt = new HashMap<>();
+
+        recovering = false;
 
         gsRepository.ids().forEach(gsId -> {
             monitoredAt.put(gsId, new HashSet<>());
