@@ -8,6 +8,9 @@ import java.rmi.server.UnicastRemoteObject;
  */
 class RemoteMock extends UnicastRemoteObject implements IRemoteMock {
     private double value;
+    private int id;
+    private long load;
+
 
     public RemoteMock(double value) throws RemoteException {
         this.value = value;
@@ -16,5 +19,19 @@ class RemoteMock extends UnicastRemoteObject implements IRemoteMock {
     @Override
     public double getValue() {
         return value;
+    }
+
+    @Override
+    public int getId() throws RemoteException {
+        return id;
+    }
+
+    public void setLoad(long load) {
+        this.load = load;
+    }
+
+    @Override
+    public long ping() throws RemoteException {
+        return load;
     }
 }

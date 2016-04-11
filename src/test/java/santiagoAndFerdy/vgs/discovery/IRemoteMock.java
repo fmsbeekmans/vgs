@@ -6,6 +6,6 @@ import java.rmi.RemoteException;
 /**
  * Created by Fydio on 3/24/16.
  */
-interface IRemoteMock extends Remote {
+interface IRemoteMock extends IAddressable {
     double getValue() throws RemoteException;
 }
