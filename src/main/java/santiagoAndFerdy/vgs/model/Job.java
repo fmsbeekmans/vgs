@@ -40,25 +40,17 @@ public class Job implements Serializable, Comparable<Job> {
 
     public void addResourceManagerId(int newResourceManagerId) {
         if (additionalResourceManagerIds == null) {
-            additionalResourceManagerIds = new int[5];
-            additionalResourceManagerIds[0] = newResourceManagerId;
-            size = 1;
-        } else {
-            if (size == additionalResourceManagerIds.length) {
-                int n = additionalResourceManagerIds.length;
-                int[] swap = new int[n * 2];
-                for (int i = 0; i < n; i++)
-                    swap[i] = additionalResourceManagerIds[i];
+            additionalResourceManagerIds = new int[] { newResourceManagerId };
+        }
+        else {
+            int n = additionalResourceManagerIds.length;
+            int[] swap = new int[n + 1];
 
-                swap[n] = newResourceManagerId;
+            for(int i = 0; i < n; i++) swap[i] = additionalResourceManagerIds[i];
 
-                additionalResourceManagerIds = swap;
-                size++;
-            } else {
-                additionalResourceManagerIds[size] = newResourceManagerId;
-                size++;
-            }
-            currentResourceManagerId = newResourceManagerId;
+            swap[n] = newResourceManagerId;
+
+            additionalResourceManagerIds = swap;
         }
     }
 
