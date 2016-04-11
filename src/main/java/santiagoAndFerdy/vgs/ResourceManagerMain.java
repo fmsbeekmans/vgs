@@ -14,7 +14,7 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
  */
 public class ResourceManagerMain {
 
-    public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
+    public static void main(String[] args) throws URISyntaxException, InterruptedException, NotBoundException {
         if(args.length < 1){
             System.err.println("Please insert this RM ID");
             return;
@@ -24,7 +24,11 @@ public class ResourceManagerMain {
         // int nNodes = Integer.valueOf(args[1]);
         int nNodes = 1000;
         RmiServer rmiServer = new RmiServer(1099);
-        new ResourceManager(rmiServer, id, Repositories.userRepository, Repositories.resourceManagerRepository,
-                Repositories.gridSchedulerRepository, nNodes);
+        try {
+            new ResourceManager(rmiServer, id, Repositories.userRepository(), Repositories.resourceManagerRepository(),
+                    Repositories.gridSchedulerRepository(), nNodes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

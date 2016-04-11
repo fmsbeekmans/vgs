@@ -11,38 +11,18 @@ import java.io.InputStream;
  * Created by Fydio on 4/3/16.
  */
 public class Repositories {
-    public static IRepository<IUser> userRepository;
-    public static IRepository<IResourceManager> resourceManagerRepository;
-    public static IRepository<IGridScheduler> gridSchedulerRepository;
+    public static IRepository<IUser> userRepository() throws IOException {
+        InputStream userStream = Repositories.class.getClassLoader().getResourceAsStream("users");
+        return Repository.fromStream(userStream);
+    }
 
-    static {
-        ClassLoader classLoader = Repositories.class.getClassLoader();
+    public static IRepository<IResourceManager> resourceManagerRepository() throws IOException {
+        InputStream rmStream = Repositories.class.getClassLoader().getResourceAsStream("resource-managers");
+        return Repository.fromStream(rmStream);
+    }
 
-        try {
-            InputStream usersStream = classLoader.getResourceAsStream("users");
-            //Path userRepositoryFilePath = Paths.get(usersUrl.);
-
-            userRepository = Repository.fromStream(usersStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            InputStream resourceManagerStream = classLoader.getResourceAsStream("resource-managers");
-            //Path resourceManagerRepositoryFilePath = Paths.get(resourceManagerUrl.toURI());
-
-            resourceManagerRepository = Repository.fromStream(resourceManagerStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            InputStream gridSchedulersStream = classLoader.getResourceAsStream("grid-schedulers");
-            //Path gridSchedulersFilePath = Paths.get(gridSchedulersUrl.toURI());
-
-            gridSchedulerRepository = Repository.fromStream(gridSchedulersStream);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static IRepository<IGridScheduler> gridSchedulerRepository() throws IOException {
+        InputStream gsStream = Repositories.class.getClassLoader().getResourceAsStream("grid-schedulers");
+        return Repository.fromStream(gsStream);
     }
 }

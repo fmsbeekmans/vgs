@@ -59,6 +59,7 @@ public class User extends UnicastRemoteObject implements IUser {
      * @throws NotBoundException
      * @throws MalformedURLException
      */
+    @Override
     public void createJobs(int rmId, int numJobs, int duration) throws RemoteException {
         for (int i = 0; i < numJobs; i++) {
             final Job j = new Job(duration, IDGen.getNewId(), rmId);

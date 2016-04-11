@@ -21,7 +21,7 @@ public class SimulationLauncherExternal {
         ProcessBuilder pb;
         
         //GSs
-        for (int gsId : Repositories.gridSchedulerRepository.ids()) {
+        for (int gsId : Repositories.gridSchedulerRepository().ids()) {
             pb = new ProcessBuilder("java", "-jar", "GridScheduler.jar", Integer.toString(gsId));
             pb.redirectErrorStream(true);
             gsProcess.add(pb.start());
@@ -47,7 +47,7 @@ public class SimulationLauncherExternal {
         
         
         //RMs
-        for (int rmId : Repositories.resourceManagerRepository.ids()) {
+        for (int rmId : Repositories.resourceManagerRepository().ids()) {
             pb = new ProcessBuilder("java", "-jar", "ResourceManager.jar", Integer.toString(rmId));
             pb.redirectErrorStream(true);
             rmProcess.add(pb.start());

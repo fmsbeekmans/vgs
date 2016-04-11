@@ -1,8 +1,8 @@
 package santiagoAndFerdy.vgs;
 
+import java.io.IOException;
 import java.rmi.RemoteException;
 
-import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Repositories;
 import santiagoAndFerdy.vgs.gridScheduler.GridScheduler;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
@@ -12,29 +12,66 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 import santiagoAndFerdy.vgs.user.User;
 
 public class SimulationLauncher {
-    public static void main(String[] args) throws RemoteException, InterruptedException {
+    public static void main(String[] args) throws RemoteException, InterruptedException, IOException {
 
         RmiServer rmiServer = new RmiServer(1099);
 
-        IGridScheduler gs0 = new GridScheduler(rmiServer, 0, Repositories.resourceManagerRepository,
-                Repositories.gridSchedulerRepository);
-        IGridScheduler gs1 = new GridScheduler(rmiServer, 1, Repositories.resourceManagerRepository,
-                Repositories.gridSchedulerRepository);
-        IGridScheduler gs2 = new GridScheduler(rmiServer, 2, Repositories.resourceManagerRepository,
-                Repositories.gridSchedulerRepository);
+        Repositories.gridSchedulerRepository().ids().forEach(gsId -> {
+            try {
+                new GridScheduler(
+                        rmiServer,
+                        gsId,
+                        Repositories.resourceManagerRepository(),
+                        Repositories.gridSchedulerRepository());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
 
-        IResourceManager rm0 = new ResourceManager(rmiServer, 0, Repositories.userRepository,
-                Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository, 100);
-        IResourceManager rm1 = new ResourceManager(rmiServer, 1, Repositories.userRepository,
-                Repositories.resourceManagerRepository, Repositories.gridSchedulerRepository, 100);
+        Repositories.resourceManagerRepository().ids().forEach(rmId -> {
+            try {
+                new ResourceManager(
+                        rmiServer,
+                        rmId,
+                        Repositories.userRepository(),
+                        Repositories.resourceManagerRepository(),
+                        Repositories.gridSchedulerRepository(),
+                        1000);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
 
-        User u0 = new User(rmiServer, 0, Repositories.userRepository, Repositories.resourceManagerRepository);
+        Repositories.userRepository().ids().forEach(uId -> {
+            try {
+                new User(
+                        rmiServer,
+                        uId,
+                        Repositories.userRepository(),
+                        Repositories.resourceManagerRepository());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
 
-        User u1 = new User(rmiServer, 1, Repositories.userRepository, Repositories.resourceManagerRepository);
-
-        u0.createJobs(0, 1000, 100);
-        // u0.createJobs(1, 1000, 200);
-        u1.createJobs(0, 1000, 50);
-        // u1.createJobs(1, 1000, 10);
+        Repositories.userRepository().ids().forEach(uId -> {
+            try {
+                Repositories.userRepository().getEntity(uId).ifPresent(u -> {
+                    try {
+                        Repositories.resourceManagerRepository().ids().forEach(rmId -> {
+                            try {
+                                u.createJobs(rmId, 10, 1000);
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

@@ -26,6 +26,6 @@ public class UserMain {
         
         RmiServer rmiServer = new RmiServer(1099);
 
-        new User(rmiServer, id, Repositories.userRepository, Repositories.resourceManagerRepository).createJobs(toRM, numJobs, jobDuration);
+        new User(rmiServer, id, Repositories.userRepository(), Repositories.resourceManagerRepository()).createJobs(toRM, numJobs, jobDuration);
     }
 }
