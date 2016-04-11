@@ -214,80 +214,84 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     public void setUpMonitorCrashRecovery() {
         gsRepository.onOffline(gsId -> {
-            if(!recovering) {
+        if(running && !recovering) {
                 synchronized (recovering) { recovering = true; }
-
-                if (running) {
-                    monitoredAt.get(gsId).forEach(req -> {
-                        // for each request at the crashed monitor
-                        Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
-                        maybeBackUpId.ifPresent(backUpId -> {
-                            if (gsRepository.checkStatus(backUpId)) {
-                                // back-up still alive
-                                // promote back-up, request new back-up
+                monitoredAt.get(gsId).forEach(req -> {
+                    // for each request at the crashed monitor
+                    Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
+                    maybeBackUpId.ifPresent(backUpId -> {
+                        if (gsRepository.checkStatus(backUpId)) {
+                            // back-up still alive
+                            // promote back-up, request new back-up
+                            gsRepository.getEntity(backUpId).ifPresent(gs -> {
                                 try {
+                                    gs.promote(new PromotionRequest(id, req));
                                     requestBackUp(req, gsId);
                                 } catch (RemoteException e) {
-                                    e.printStackTrace();
+                                    // warning
+                                    System.out.println("[RM\t" + id  + "] Can't fully fix redundancy for job " + req.getJob().getJobId() + ". Try to finish anyway");
                                 }
-                            } else {
-                                // back-up down
-                                // new backup, new monitor
-                                try {
-                                    requestMonitoring(req);
-                                    requestBackUp(req, gsId);
-                                } catch (RemoteException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-                        if (!maybeBackUpId.isPresent()) {
+                            });
+                        } else {
+                            // back-up down
+                            // new backup, new monitor
                             try {
+                                requestMonitoring(req);
                                 requestBackUp(req, gsId);
                             } catch (RemoteException e) {
-                                System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up");
+                                e.printStackTrace();
                             }
                         }
                     });
+                    if (!maybeBackUpId.isPresent()) {
+                        try {
+                            requestBackUp(req, gsId);
+                        } catch (RemoteException e) {
+                            // warn
+                            System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up of job " + req.getJob().getJobId());
+                        }
+                    }
+                });
 
-                    synchronized (recovering) { recovering = false; }
-                }
+                synchronized (recovering) { recovering = false; }
             }
+
             return null;
         });
     }
 
-    public void setUpPromote() {
-        if(!recovering) {
-            synchronized (recovering) { recovering = true; }
-            gsRepository.onOffline(gsId -> {
-                if (running) {
-                    monitoredAt.get(gsId).forEach(req -> {
-                        engine.run(Task.action(() -> {
-                            System.out.println("[RM\t" + id + "] Promoting  GS " + gsId + " to monitor for job " + req.getJob().getJobId());
+    public void setUpBackUpCrash() {
+        gsRepository.onOffline(gsId -> {
 
-                            int backUpId = backedUpBy.get(req);
-                            gsRepository.getEntity(backUpId).ifPresent(gs -> {
-                                try {
-                                    PromotionRequest promotionRequest = new PromotionRequest(id, req);
-                                    gs.promote(promotionRequest);
-
-                                    monitoredAt.get(backUpId).add(req);
-                                    monitoredBy.put(req, backUpId);
-
-                                    requestBackUp(req, backUpId);
-                                } catch (RemoteException e) {
-                                    e.printStackTrace();
-                                }
-                            });
-                        }));
+            if(running && !recovering) {
+                synchronized (recovering) { recovering = true; }
+                backedUpAt.get(gsId).forEach(req -> {
+                    Optional.ofNullable(monitoredBy.get(req)).ifPresent(monitorId -> {
+                        if(gsRepository.checkStatus(monitorId)) {
+                            // monitor still up, request new back-up
+                            try {
+                                requestBackUp(req, monitorId);
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            // monitor down, set up monitor and back-up
+                            try {
+                                requestMonitoring(req);
+                                requestBackUp(req, monitorId);
+                            } catch (RemoteException e) {
+                                System.out.println("[RM\t" + id + "] Can't make new back-up for job " + req.getJob().getJobId());
+                            }
+                        }
                     });
-                }
-                synchronized (recovering) { recovering = false; }
+                });
 
-                return null;
-            });
-        }
+                synchronized (recovering) { recovering = false; }
+            }
+
+
+            return null;
+        });
     }
 
     @Override
