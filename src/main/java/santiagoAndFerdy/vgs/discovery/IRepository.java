@@ -50,6 +50,8 @@ public interface IRepository<T extends Remote> extends Serializable {
 
     Optional<T> getEntityExceptId(int id);
 
+    boolean checkStatus(int id);
+
     <R> Optional<R> invokeOnEntity(Function2<T, Integer, R> toInvoke, ISelector selector, int... idsToIgnore);
 
 }

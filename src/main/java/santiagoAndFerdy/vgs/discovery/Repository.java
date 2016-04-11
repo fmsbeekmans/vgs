@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Fydio on 3/24/16.
  */
-public class Repository<T extends Remote> implements IRepository<T> {
+public class Repository<T extends IAddressable> implements IRepository<T> {
     private static final long             serialVersionUID = 1619009373620002568L;
 
     protected Map<Integer, String> urls;
@@ -227,5 +227,19 @@ public class Repository<T extends Remote> implements IRepository<T> {
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public boolean checkStatus(int id) {
+        return getEntity(id).map(entity -> {
+            try {
+                entity.ping();
+
+                return true;
+            } catch (RemoteException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }).orElse(false);
     }
 }
