@@ -64,8 +64,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         running = false;
 
         start();
-        setUpReBackUp();
-        setUpPromote();
+        setUpMonitorCrashRecovery();
     }
 
     @Override
@@ -209,6 +208,44 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                 }
             }
         }
+    }
+
+    public void setUpMonitorCrashRecovery() {
+        gsRepository.onOffline(gsId -> {
+            if (running) {
+                monitoredAt.get(gsId).forEach(req -> {
+                    // for each request at the crashed monitor
+                    Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
+                    maybeBackUpId.ifPresent(backUpId -> {
+                        if (gsRepository.checkStatus(backUpId)) {
+                            // back-up still alive
+                            // promote back-up, request new back-up
+                            try {
+                                requestBackUp(req, gsId);
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            // back-up down
+                            // new backup, new monitor
+                            try {
+                                requestMonitoring(req);
+                                requestBackUp(req, gsId);
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                    if(!maybeBackUpId.isPresent()) {
+                        try {
+                            requestBackUp(req, gsId);
+                        } catch (RemoteException e) {
+                            System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up");
+                        }
+                    }
+                });
+            }
+        });
     }
 
     public void setUpReBackUp() {
