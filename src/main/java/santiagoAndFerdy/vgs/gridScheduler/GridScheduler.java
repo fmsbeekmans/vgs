@@ -25,6 +25,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Map<Integer, Set<WorkRequest>> monitoredJobs;
     private Map<Integer, Set<WorkRequest>> backUpJobs;
 
+    private Boolean recovering;
+
     private boolean                        running;
 
     private long                           load;
@@ -106,6 +108,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         monitoredJobs = new HashMap<>();
         backUpJobs = new HashMap<>();
 
+        recovering = false;
+
         for (int rmId : rmRepository.ids()) {
             monitoredJobs.put(rmId, new HashSet<>());
             backUpJobs.put(rmId, new HashSet<>());
@@ -149,25 +153,20 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
 
     public void setUpReSchedule() {
         rmRepository.onOffline(rmId -> {
-            if (running) {
-                synchronized (monitoredJobs.get(rmId)) {
-                    monitoredJobs.get(rmId).forEach(monitored -> {
-                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + rmId);
+            if (running && !recovering) {
+                synchronized (recovering) { recovering = true;}
+                monitoredJobs.get(rmId).forEach(monitored -> {
+                    System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + rmId);
 
-                        WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
+                    WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
-                        Map<Integer, Long> loads = rmRepository.getLastKnownLoads();
-                        Optional<IResourceManager> newRm = Selectors.invertedWeighedRandom.selectIndex(loads)
-                                .flatMap(newRmId -> rmRepository.getEntity(newRmId));
-                        newRm.ifPresent(rm -> {
-                            try {
-                                rm.orderWork(reScheduleOrder);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    });
-                }
+                    rmRepository.invokeOnEntity((rm, id) -> {
+                        rm.orderWork(reScheduleOrder);
+
+                        return null;
+                    }, Selectors.invertedWeighedRandom);
+                });
+                synchronized (recovering) { recovering = true;}
             }
 
             return null;

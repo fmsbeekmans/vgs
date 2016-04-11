@@ -67,6 +67,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         start();
         setUpMonitorCrashRecovery();
+        setUpBackUpCrash();
     }
 
     @Override
