@@ -59,7 +59,7 @@ public class ResourceManagerCrash {
                     Repositories.userRepository(),
                     Repositories.resourceManagerRepository());
             
-            u0.createJobs(0, 1, 5000);
+            u0.createJobs(0, 1, 3000);
             
             Thread.sleep(1000);
             

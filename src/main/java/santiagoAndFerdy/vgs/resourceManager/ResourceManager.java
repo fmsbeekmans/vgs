@@ -99,6 +99,16 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public synchronized void orderWork(WorkOrder req) throws RemoteException {
         WorkRequest work = req.getWorkRequest();
 
+        // removing possible old monitor reference
+        Optional.ofNullable(monitoredBy.get(work)).ifPresent(oldMonitorId -> {
+            monitoredAt.get(oldMonitorId).remove(work);
+        });
+
+        // update monitor admin
+        monitoredBy.put(work, req.getFromGridSchedulerId());
+        monitoredAt.get(req.getFromGridSchedulerId()).add(work);
+
+        // admin the hop to here
         req.getWorkRequest().getJob().addResourceManagerId(id);
         Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
 
