@@ -97,4 +97,8 @@ public class Job implements Serializable, Comparable<Job> {
         result = 31 * result + (int) (initialResourceManagerId ^ (initialResourceManagerId >>> 32));
         return result;
     }
+    @Override
+    public String toString() {
+        return "Job " + jobId;
+    }
 }
