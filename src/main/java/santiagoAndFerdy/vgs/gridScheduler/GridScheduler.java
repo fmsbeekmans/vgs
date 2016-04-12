@@ -71,7 +71,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
 
         System.out.println("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob()
-                .getJobId() + " at cluster " + id);
+                .getJobId());
         backUpJobs.get(promotionRequest.getSourceResourceManagerId()).remove(promotionRequest.getToBecomePrimaryFor());
         monitoredJobs.get(promotionRequest.getSourceResourceManagerId()).add(promotionRequest.getToBecomePrimaryFor());
 

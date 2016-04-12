@@ -229,7 +229,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                 if(running && !recovering) {
 
                     recovering = true;
-                    monitoredAt.get(gsId).forEach(req -> {
+                    monitoredAt.remove(gsId).forEach(req -> {
                         // for each request at the crashed monitor
                         Optional<Integer> maybeBackUpId = Optional.ofNullable(backedUpBy.get(req));
                         maybeBackUpId.ifPresent(backUpId -> {
@@ -285,7 +285,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
             if(running && !recovering) {
                 synchronized (recovering) { recovering = true; }
-                backedUpAt.get(gsId).forEach(req -> {
+                backedUpAt.remove(gsId).forEach(req -> {
                     Optional.ofNullable(monitoredBy.get(req)).ifPresent(monitorId -> {
                         if(gsRepository.checkStatus(monitorId)) {
                             // monitor still up, request new back-up
