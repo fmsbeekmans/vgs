@@ -11,10 +11,33 @@ This abstraction is more similar to objects and methods than the threading
 alternative, which is closer to the hardware implementation.
 Thus, it makes it easier to reason about the system in terms of tasks and objects than threads and interruptions.
 
+\subsection{Components}
+
+... diagram based on assignment ...
+\subsubsection{User}
+The user is the consumer of the grid.
+He can send jobs to any resource manager and will wait on it's completion.
+
+\subsubsection{Resource Manager}
+A Resource manager is responsible for the health of a cluster and serves as the entry point to the grid for the users.
+A cluster consists of a resource manager and a set of nodes, exclusively managed by that resource manager.
+If a cluster is offered more load than it can handle, the resource manager is allowed to offload the job.
+
+\subsubsection{Grid Scheduler}
+Grid schedulers together are responsible for the health of the grid.
+... More text!
+
+\subsection{Topology}
+Fundamental to the design is the relations between the different nodes.
+Initially a ring topology was proposed but has been discontinued in favor of a fully connected topology.
+Following is an overview of both topologies and a comparison.
+
 \subsection{Ring topology}
 
-The proposed architecture, depicted in figure 1, consists on a logical ring of GSs and evenly divided groups of RMs.
-Each group of RMs is primarily connected to one GS (blue lines) and the next GS in the ring as backup (red lines). Apart from that, every GS is connected to the next and previous GS of the logical ring (black lines). Be connected means to send periodically heartbeats to check if the components are online. 
+The originally proposed architecture, depicted in figure 1, consists on a logical unidirectional ring of grid schedulers.
+Each grid scheduler is primarily in charge of an evenly divided group of resource managers.
+The next grid scheduler in the ring would be the back up for the resource managers of grid scheduler before them 
+... add color coding info ...
 \\ 
 \begin{figure}[H]
 \centering
@@ -22,8 +45,11 @@ Each group of RMs is primarily connected to one GS (blue lines) and the next GS 
 	\caption{Ring topology}
 \end{figure}
 
-\subsubsection{Bootstrap}
-As in most of distributed computing systems [2], this topology has the bootstrap problem. How to initiate the system? Since the topology is fixed, the components need to know previously with who they are going to be connected with which causes synchronization issues.
+\subsubsection{Grid initialization}
+In this topology every grid scheduler would have to find their back up.
+This poses a big dilemma, how should the grid schedulers form this ring on start-up?
+Allowing the grid schedulers to form a ring by finding each other allows them to initialize and to adapt to failures.
+But allowing the topology to change introduces a lot of complexity
 
 \subsubsection{Replication}
 When a job request arrives to a cluster controlled by a RM this will check whether it can accept the job or not. If there are resources available, the RM will send a monitoring request to its main GS, this will translate a backup request to the backup GS and return the confirmation to the RM. After that, it will begin the execution of the job in one of its nodes. This replication strategy guarantees that if a RM suspends its activity, the jobs can be rescheduled in another cluster and that in case of failure of one GS or GS/RM at the same time, the remaining GS will be able to reallocate the workload of the failed cluster in another one.
