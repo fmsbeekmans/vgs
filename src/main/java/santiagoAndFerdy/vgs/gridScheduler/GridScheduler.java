@@ -11,6 +11,9 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 public class GridScheduler extends UnicastRemoteObject implements IGridScheduler {
     private static final long              serialVersionUID = -5694724140595312739L;
@@ -30,6 +33,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private boolean                        running;
 
     private long                           load;
+    private Logger                         logger;
+    private FileHandler                    fh;
 
     public GridScheduler(RmiServer rmiServer, int id, IRepository<IResourceManager> rmRepository, IRepository<IGridScheduler> gsRepository)
             throws RemoteException {
@@ -41,7 +46,17 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         this.gsRepository = gsRepository;
         gridSchedulerPinger = new Pinger(gsRepository);
         resourceManagerPinger = new Pinger(rmRepository);
+        logger = Logger.getLogger("GridScheduler" + id);
 
+        try {
+            fh = new FileHandler("GridScheduler" + id + ".log");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        logger.addHandler(fh);
+        SimpleFormatter formatter = new SimpleFormatter();
+        fh.setFormatter(formatter);
         start();
         setUpReSchedule();
         setUpSelfPromote();
@@ -52,7 +67,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId());
+        logger.info("[GS\t" + id + "] Received job " + monitorRequest.getToMonitor().getJob().getJobId());
         monitoredJobs.get(monitorRequest.getSourceResourceManagerId()).add(monitorRequest.getToMonitor());
     }
 
@@ -61,7 +76,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId());
+        logger.info("[GS\t" + id + "] Received backup request from " + backUpRequest.getSourceResourceManagerId());
         backUpJobs.get(backUpRequest.getSourceResourceManagerId()).add(backUpRequest.getToBackUp());
     }
 
@@ -70,7 +85,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob().getJobId());
+        logger.info("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob().getJobId());
         backUpJobs.get(promotionRequest.getSourceResourceManagerId()).remove(promotionRequest.getToBecomePrimaryFor());
         monitoredJobs.get(promotionRequest.getSourceResourceManagerId()).add(promotionRequest.getToBecomePrimaryFor());
 
@@ -82,7 +97,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
         int exRm = req.getJob().getCurrentResourceManagerId();
         Optional<Integer> newRm = rmRepository.invokeOnEntity((rm, rmId) -> {
-            System.out.println("[GS\t" + id + "] Sending to RM " + rmId + " job " + req.getJob().getJobId());
+            logger.info("[GS\t" + id + "] Sending to RM " + rmId + " job " + req.getJob().getJobId());
             WorkOrder wO = new WorkOrder(id, req);
             rm.orderWork(wO);
             return rmId;
@@ -97,8 +112,8 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             }
             q.add(req);
             monitoredJobs.put(rmId, q);
-        }else{
-            System.err.println("There was a problem allocating the job");
+        } else {
+            logger.severe("[GS\t" + id + "] There was a problem allocating the job");
         }
 
     }
@@ -109,7 +124,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
 
         monitoredJobs.remove(request);
-        System.out.println("[GS\t" + id + "] Stop monitoring " + request.getJob().getJobId());
+        logger.info("[GS\t" + id + "] Stop monitoring " + request.getJob().getJobId());
     }
 
     @Override
@@ -118,7 +133,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
             throw new RemoteException("I am offline");
 
         backUpJobs.remove(workRequest);
-        System.out.println("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId());
+        logger.info("[GS\t" + id + "] Releasing back-up of workRequest " + workRequest.getJob().getJobId());
     }
 
     @Override
@@ -155,7 +170,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         gridSchedulerPinger.start();
         resourceManagerPinger.start();
 
-        System.out.println("[GS\t" + id + "] Online");
+        logger.info("[GS\t" + id + "] Online");
     }
 
     @Override
@@ -167,7 +182,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         gridSchedulerPinger.stop();
         resourceManagerPinger.stop();
 
-        System.out.println("[GS\t" + id + "] Offline");
+        logger.info("[GS\t" + id + "] Offline");
     }
 
     public void setUpReSchedule() {
@@ -181,7 +196,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                     WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
 
                     rmRepository.invokeOnEntity((rm, newRmId) -> {
-                        System.out.println("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + newRmId);
+                        logger.info("[GS\t" + id + "] Rescheduling job " + monitored.getJob().getJobId() + " on RM " + newRmId);
                         rm.orderWork(reScheduleOrder);
 
                         return null;
@@ -205,7 +220,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] RM " + from + " awake");
+        logger.info("[GS\t" + id + "] RM " + from + " awake");
         rmRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
@@ -214,7 +229,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] GS " + from + " awake");
+        logger.info("[GS\t" + id + "] GS " + from + " awake");
         gsRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 

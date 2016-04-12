@@ -52,8 +52,6 @@ public class Pinger<T extends IAddressable> {
                     repository.setLastKnownStatus(id, Status.ONLINE);
                     repository.setLastKnownLoad(id, newLoad);
                 } catch (Exception e) {
-                    // if(urls.get(id).contains("52.58.103.62")) testing for amazon (doesn't work yet)
-                    // e.printStackTrace();
                     repository.setLastKnownStatus(id, Status.OFFLINE);
                 }
             }

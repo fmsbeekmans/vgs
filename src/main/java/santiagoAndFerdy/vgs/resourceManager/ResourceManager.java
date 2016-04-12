@@ -1,24 +1,39 @@
 package santiagoAndFerdy.vgs.resourceManager;
 
+import java.io.IOException;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+
 import com.linkedin.parseq.Engine;
 import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
-import com.linkedin.parseq.function.Function2;
 import com.sun.istack.internal.NotNull;
 
+import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.discovery.Pinger;
 import santiagoAndFerdy.vgs.discovery.Status;
 import santiagoAndFerdy.vgs.discovery.selector.Selectors;
 import santiagoAndFerdy.vgs.gridScheduler.IGridScheduler;
-import santiagoAndFerdy.vgs.messages.*;
+import santiagoAndFerdy.vgs.messages.BackUpRequest;
+import santiagoAndFerdy.vgs.messages.MonitoringRequest;
+import santiagoAndFerdy.vgs.messages.PromotionRequest;
+import santiagoAndFerdy.vgs.messages.WorkOrder;
+import santiagoAndFerdy.vgs.messages.WorkRequest;
 import santiagoAndFerdy.vgs.rmi.RmiServer;
-
-import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
-import java.util.*;
-import java.util.concurrent.*;
-
-import santiagoAndFerdy.vgs.discovery.IRepository;
 import santiagoAndFerdy.vgs.user.IUser;
 
 /**
@@ -47,7 +62,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     private ScheduledExecutorService       timer;
     private Engine                         engine;
-
+    private Logger                         logger;
+    private FileHandler                    fh;
     private int                            load;
 
     private boolean                        running;
@@ -60,11 +76,21 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         this.rmRepository = rmRepository;
         this.gsRepository = gsRepository;
         rmiServer.register(rmRepository.getUrl(id), this);
-        gridSchedulerPinger = new Pinger(gsRepository);
+        gridSchedulerPinger = new Pinger<IGridScheduler>(gsRepository);
         this.nNodes = nNodes;
         queueSize = nNodes;
         running = false;
-
+        logger = Logger.getLogger("ResourceManager" + id);
+        
+        try {
+            fh = new FileHandler("ResourceManager" + id+".log");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        logger.addHandler(fh);
+        SimpleFormatter formatter = new SimpleFormatter();  
+        fh.setFormatter(formatter);
         start();
         setUpMonitorCrashRecovery();
         setUpBackUpCrash();
@@ -77,7 +103,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         if (needToOffload()) {
             gsRepository.invokeOnEntity((gs, gsId) -> {
-                System.out.println("[RM\t" + id + "] Offloading to GS " + gsId + " job " + req.getJob().getJobId());
+                logger.info("[RM\t" + id + "] Offloading to GS " + gsId + " job " + req.getJob().getJobId());
                 gs.offLoad(req);
                 return gsId;
             } , Selectors.invertedWeighedRandom);
@@ -102,7 +128,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     @Override
     public synchronized void orderWork(WorkOrder req) throws RemoteException {
         WorkRequest work = req.getWorkRequest();
-        
+
         // removing possible old monitor reference
         Optional.ofNullable(monitoredBy.get(work)).ifPresent(oldMonitorId -> {
             monitoredAt.get(oldMonitorId).remove(work);
@@ -117,7 +143,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
 
         if (backUp.isPresent()) {
-            System.out.println("[RM\t" + id + "] Received job from GS " + req.getFromGridSchedulerId());
+            logger.info("[RM\t" + id + "] Received job from GS " + req.getFromGridSchedulerId());
             engine.run(Task.action(() -> schedule(work)));
         } else {
             throw new RemoteException("Failed to set up backup");
@@ -131,7 +157,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     protected Optional<Integer> requestMonitoring(WorkRequest req) throws RemoteException {
 
         return gsRepository.invokeOnEntity((gs, gsId) -> {
-            System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to monitor job " + req.getJob().getJobId());
+            logger.info("[RM\t" + id + "] Requesting GS " + gsId + " to monitor job " + req.getJob().getJobId());
             gs.monitor(new MonitoringRequest(id, req));
 
             monitoredBy.put(req, gsId);
@@ -143,7 +169,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     protected Optional<Integer> requestBackUp(WorkRequest req, int monitorId) throws RemoteException {
         return gsRepository.invokeOnEntity((gs, gsId) -> {
-            System.out.println("[RM\t" + id + "] Requesting GS " + gsId + " to back up job " + req.getJob().getJobId());
+            logger.info("[RM\t" + id + "] Requesting GS " + gsId + " to back up job " + req.getJob().getJobId());
             gs.backUp(new BackUpRequest(id, req));
 
             backedUpBy.put(req, gsId);
@@ -154,7 +180,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     protected synchronized void schedule(@NotNull WorkRequest toSchedule) throws RemoteException {
-        System.out.println("[RM\t" + id + "] Scheduling job " + toSchedule.getJob().getJobId());
+        logger.info("[RM\t" + id + "] Scheduling job " + toSchedule.getJob().getJobId());
         jobQueue.offer(toSchedule);
         load += toSchedule.getJob().getDuration();
         engine.run(Task.action(() -> processQueue()));
@@ -167,7 +193,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         Optional<IUser> maybeUser = userRepository.getEntity(finished.getUserId());
 
-        System.out.println("[RM\t" + id + "] Finished running job " + finished.getJob().getJobId());
+        logger.info("[RM\t" + id + "] Finished running job " + finished.getJob().getJobId());
 
         if (maybeUser.isPresent()) {
             maybeUser.get().acceptResult(finished.getJob());
@@ -176,7 +202,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             load -= finished.getJob().getDuration();
             processQueue();
         } else {
-            System.err.println("User not present");
+            logger.severe("[RM\t" + id + "] User not present");
         }
 
     }
@@ -214,7 +240,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                     synchronized (jobQueue) {
                         WorkRequest work = jobQueue.poll();
                         if (work != null) {
-                            System.out.println("[RM\t" + id + "] Executing job " + work.getJob().getJobId());
+                            logger.info("[RM\t" + id + "] Executing job " + work.getJob().getJobId());
                             node.handle(work);
                         } else {
                             idleNodes.offer(node);
@@ -250,7 +276,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
                                     } catch (RemoteException e) {
                                         // warning
-                                        System.out.println("[RM\t" + id + "] Can't fully fix redundancy for job " + req.getJob()
+                                        logger.warning("[RM\t" + id + "] Can't fully fix redundancy for job " + req.getJob()
                                                 .getJobId() + ". Try to finish anyway");
                                     }
                                 });
@@ -272,7 +298,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
                             } catch (RemoteException e) {
                                 // warn
-                                System.out.println("[RM\t" + id + "] Not enough GS available to make new back-up of job " + req.getJob().getJobId());
+                                logger.warning("[RM\t" + id + "] Not enough GS available to make new back-up of job " + req.getJob().getJobId());
                             }
                         }
                     });
@@ -307,7 +333,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                                 requestMonitoring(req);
                                 requestBackUp(req, monitorId);
                             } catch (RemoteException e) {
-                                System.out.println("[RM\t" + id + "] Can't make new back-up for job " + req.getJob().getJobId());
+                                logger.severe("[RM\t" + id + "] Can't make new back-up for job " + req.getJob().getJobId());
                             }
                         }
                     });
@@ -365,7 +391,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
         gridSchedulerPinger.start();
 
-        System.out.println("[RM\t" + id + "] Online");
+        logger.info("[RM\t" + id + "] Online");
     }
 
     @Override
@@ -391,7 +417,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[RM\t" + id + "] GS " + from + " awake");
+        logger.info("[RM\t" + id + "] GS " + from + " awake");
         gsRepository.setLastKnownStatus(from, Status.ONLINE);
     }
 
