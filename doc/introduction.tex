@@ -1,10 +1,9 @@
+
 \section{Introduction}
-Could you please add the proper names, course title, instructors... as on the lab report and fix the margins? I am afraid I am not so familiar with LaTEX.
+With the explosion of the data, the industry has set its sight on distributed computing systems for their data processing problems. However, this field has several technical challenges and problems to solve. For instance, what happens when a node that was executing some work goes down? How to distribute the workload across the system so one part is not more loaded than another? To tackle this scenario, WantDS BV has the goal of designing and implementing a distributed simulator of multi-cluster system and study its feasibility. 
+%This paragraphs answers: describe the problem
 \\\\
-It would be nice if you could detail a little bit more the architecture of the system I just explained the fault tolerance mechanism but I have to leave now.
-\\\
-I wouldn't worry about the figure by now but I think we should include a drawing or something. It can guide us through the developing. The more detailed we have the system overview the easier will for developing.
-\\\\ 
-Once you do the modifications and feedback I will have a quick meeting with the TA to validate the design and later we will start the implementation.
-\\\\
-Have a nice day! 
+The distributed system designed is formed by multiple clusters that carry out user workloads, consisting on stateless asynchronous jobs a certain duration. Additionally, another kind of nodes, known as grid schedulers, monitor and control the different clusters.
+% this one: the system you are about to implement
+This document describes the process of designing, developing and evaluating such system. Section 2 details the requirements of the proposed Virtual Grid System (VGS). Section 3 analyzes the considered design approaches and compares their respective merits and deficiencies. Subsequently, section 4 shows the results of the experiments conducted to evaluate and assess the system. Finally, the designed and implemented system and its trade-offs are discussed in Section 5 followed by a conclusion that contains the verdict whether the system is feasible or not.
+%the structure of the remainder of the article

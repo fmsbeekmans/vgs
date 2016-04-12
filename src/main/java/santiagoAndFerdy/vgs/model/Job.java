@@ -13,6 +13,7 @@ public class Job implements Serializable, Comparable<Job> {
     private int               initialResourceManagerId;
     private int[]             additionalResourceManagerIds;
     private int               size;
+    private long              startTime;
     private int               currentResourceManagerId;
 
     public Job(int duration, int jobId, int initialResourceManagerId) {
@@ -20,10 +21,15 @@ public class Job implements Serializable, Comparable<Job> {
         this.jobId = jobId;
         this.initialResourceManagerId = initialResourceManagerId;
         currentResourceManagerId = initialResourceManagerId;
+        startTime = System.currentTimeMillis();
     }
 
     public int getDuration() {
         return duration;
+    }
+    
+    public long getStartTime() {
+        return startTime;
     }
 
     public int getJobId() {
@@ -40,17 +46,25 @@ public class Job implements Serializable, Comparable<Job> {
 
     public void addResourceManagerId(int newResourceManagerId) {
         if (additionalResourceManagerIds == null) {
-            additionalResourceManagerIds = new int[] { newResourceManagerId };
-        }
-        else {
-            int n = additionalResourceManagerIds.length;
-            int[] swap = new int[n + 1];
+            additionalResourceManagerIds = new int[5];
+            additionalResourceManagerIds[0] = newResourceManagerId;
+            size = 1;
+        } else {
+            if (size == additionalResourceManagerIds.length) {
+                int n = additionalResourceManagerIds.length;
+                int[] swap = new int[n * 2];
+                for (int i = 0; i < n; i++)
+                    swap[i] = additionalResourceManagerIds[i];
 
-            for(int i = 0; i < n; i++) swap[i] = additionalResourceManagerIds[i];
+                swap[n] = newResourceManagerId;
 
-            swap[n] = newResourceManagerId;
-
-            additionalResourceManagerIds = swap;
+                additionalResourceManagerIds = swap;
+                size++;
+            } else {
+                additionalResourceManagerIds[size] = newResourceManagerId;
+                size++;
+            }
+            currentResourceManagerId = newResourceManagerId;
         }
     }
 

@@ -1,10 +1,11 @@
 package santiagoAndFerdy.vgs.user;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.net.MalformedURLException;
-import java.rmi.NoSuchObjectException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,20 +22,17 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
  */
 public class User extends UnicastRemoteObject implements IUser {
 
-    private static final long serialVersionUID = 4963157568070156360L;
-
-    private RmiServer rmiServer;
-    private int id;
-    private String url;
-    private IRepository<IUser> userRepository;
+    private static final long             serialVersionUID = 4963157568070156360L;
+    private PrintWriter                   writer;
+    private RmiServer                     rmiServer;
+    private int                           id;
+    private String                        url;
+    private IRepository<IUser>            userRepository;
     private IRepository<IResourceManager> resourceManagerRepository;
     private Set<Job>                      pendingJobs;
 
-    public User(
-            RmiServer rmiServer,
-            int id,
-            IRepository<IUser> userRepository,
-            IRepository<IResourceManager> resourceManagerRepository) throws RemoteException {
+    public User(RmiServer rmiServer, int id, IRepository<IUser> userRepository, IRepository<IResourceManager> resourceManagerRepository)
+            throws RemoteException {
 
         this.rmiServer = rmiServer;
         this.id = id;
@@ -43,7 +41,11 @@ public class User extends UnicastRemoteObject implements IUser {
 
         this.url = userRepository.getUrl(id);
         pendingJobs = new HashSet<>();
-
+        try {
+            writer = new PrintWriter(new File("jobTimes" + id + ".csv"));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         // register self
         rmiServer.register(url, this);
     }
@@ -79,6 +81,9 @@ public class User extends UnicastRemoteObject implements IUser {
     @Override
     public void acceptResult(Job j) throws RemoteException {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
+        String time = ((Long) (System.currentTimeMillis() - j.getStartTime())).toString();
+        writer.write(j.getJobId() + "," + time + "\n");
+        writer.flush();
         pendingJobs.remove(j);
     }
 
