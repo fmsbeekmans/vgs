@@ -25,7 +25,7 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     private Map<Integer, Set<WorkRequest>> monitoredJobs;
     private Map<Integer, Set<WorkRequest>> backUpJobs;
 
-    private Boolean recovering;
+    private Boolean                        recovering;
 
     private boolean                        running;
 
@@ -70,17 +70,36 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
         if (!running)
             throw new RemoteException("I am offline");
 
-        System.out.println("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob()
-                .getJobId());
+        System.out.println("[GS\t" + id + "] Promoting to primary for job " + promotionRequest.getToBecomePrimaryFor().getJob().getJobId());
         backUpJobs.get(promotionRequest.getSourceResourceManagerId()).remove(promotionRequest.getToBecomePrimaryFor());
         monitoredJobs.get(promotionRequest.getSourceResourceManagerId()).add(promotionRequest.getToBecomePrimaryFor());
 
     }
 
     @Override
-    public void offLoad(WorkRequest workRequest) throws RemoteException {
+    public synchronized void offLoad(WorkRequest req) throws RemoteException {
         if (!running)
             throw new RemoteException("I am offline");
+        int exRm = req.getJob().getCurrentResourceManagerId();
+        Optional<Integer> newRm = rmRepository.invokeOnEntity((rm, rmId) -> {
+            System.out.println("[GS\t" + id + "] Sending to RM " + rmId + " job " + req.getJob().getJobId());
+            WorkOrder wO = new WorkOrder(id, req);
+            rm.orderWork(wO);
+            return rmId;
+        } , Selectors.invertedWeighedRandom, exRm);
+        if (newRm.isPresent()) {
+            int rmId = newRm.get();
+            Set<WorkRequest> q;
+            if (monitoredJobs.containsKey(rmId)) {
+                q = monitoredJobs.get(rmId);
+            } else {
+                q = new HashSet<>();
+            }
+            q.add(req);
+            monitoredJobs.put(rmId, q);
+        }else{
+            System.err.println("There was a problem allocating the job");
+        }
 
     }
 
@@ -154,7 +173,9 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
     public void setUpReSchedule() {
         rmRepository.onOffline(rmId -> {
             if (running && !recovering) {
-                synchronized (recovering) { recovering = true;}
+                synchronized (recovering) {
+                    recovering = true;
+                }
                 monitoredJobs.get(rmId).forEach(monitored -> {
 
                     WorkOrder reScheduleOrder = new WorkOrder(id, monitored);
@@ -164,9 +185,11 @@ public class GridScheduler extends UnicastRemoteObject implements IGridScheduler
                         rm.orderWork(reScheduleOrder);
 
                         return null;
-                    }, Selectors.invertedWeighedRandom);
+                    } , Selectors.invertedWeighedRandom);
                 });
-                synchronized (recovering) { recovering = true;}
+                synchronized (recovering) {
+                    recovering = true;
+                }
             }
 
             return null;

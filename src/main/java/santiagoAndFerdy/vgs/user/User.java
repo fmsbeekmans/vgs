@@ -85,6 +85,9 @@ public class User extends UnicastRemoteObject implements IUser {
         writer.write(j.getJobId() + "," + time + "\n");
         writer.flush();
         pendingJobs.remove(j);
+        if (pendingJobs.isEmpty()) {
+            System.out.println("[U\t" + id + "] All jobs completed");
+        }
     }
 
     @Override

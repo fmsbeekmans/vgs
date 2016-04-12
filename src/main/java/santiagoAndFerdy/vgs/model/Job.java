@@ -64,8 +64,8 @@ public class Job implements Serializable, Comparable<Job> {
                 additionalResourceManagerIds[size] = newResourceManagerId;
                 size++;
             }
-            currentResourceManagerId = newResourceManagerId;
         }
+        currentResourceManagerId = newResourceManagerId;
     }
 
     public int getCurrentResourceManagerId() {

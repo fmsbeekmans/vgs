@@ -1,4 +1,4 @@
-package santiagoAndFerdy.vgs;
+package santiagoAndFerdy.vgs.discovery;
 
 import santiagoAndFerdy.vgs.discovery.selector.Selectors;
 

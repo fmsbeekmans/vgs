@@ -25,8 +25,8 @@ import santiagoAndFerdy.vgs.user.IUser;
  * Created by Fydio on 3/19/16.
  */
 public class ResourceManager extends UnicastRemoteObject implements IResourceManager {
-    private static final long serialVersionUID = -5340659478612949546L;
-    
+    private static final long              serialVersionUID = -5340659478612949546L;
+
     private RmiServer                      rmiServer;
     private int                            id;
     private IRepository<IUser>             userRepository;
@@ -37,13 +37,13 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     private Queue<WorkRequest>             jobQueue;
     private Queue<Node>                    idleNodes;
     private int                            nNodes;
-
+    private int                            queueSize;
     private Map<WorkRequest, Integer>      monitoredBy;
     private Map<WorkRequest, Integer>      backedUpBy;
     private Map<Integer, Set<WorkRequest>> monitoredAt;
     private Map<Integer, Set<WorkRequest>> backedUpAt;
 
-    private Boolean recovering;
+    private Boolean                        recovering;
 
     private ScheduledExecutorService       timer;
     private Engine                         engine;
@@ -61,8 +61,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         this.gsRepository = gsRepository;
         rmiServer.register(rmRepository.getUrl(id), this);
         gridSchedulerPinger = new Pinger(gsRepository);
-
         this.nNodes = nNodes;
+        queueSize = nNodes;
         running = false;
 
         start();
@@ -76,7 +76,11 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             throw new RemoteException("I am offline");
 
         if (needToOffload()) {
-            // TODO send to GS to offload
+            gsRepository.invokeOnEntity((gs, gsId) -> {
+                System.out.println("[RM\t" + id + "] Offloading to GS " + gsId + " job " + req.getJob().getJobId());
+                gs.offLoad(req);
+                return gsId;
+            } , Selectors.invertedWeighedRandom);
         } else {
             Optional<?> setUpRedundancy = requestMonitoring(req).flatMap(monitorId -> {
                 try {
@@ -98,7 +102,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     @Override
     public synchronized void orderWork(WorkOrder req) throws RemoteException {
         WorkRequest work = req.getWorkRequest();
-
+        
         // removing possible old monitor reference
         Optional.ofNullable(monitoredBy.get(work)).ifPresent(oldMonitorId -> {
             monitoredAt.get(oldMonitorId).remove(work);
@@ -113,6 +117,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         Optional<?> backUp = requestBackUp(work, req.getFromGridSchedulerId());
 
         if (backUp.isPresent()) {
+            System.out.println("[RM\t" + id + "] Received job from GS " + req.getFromGridSchedulerId());
             engine.run(Task.action(() -> schedule(work)));
         } else {
             throw new RemoteException("Failed to set up backup");
@@ -120,7 +125,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     }
 
     protected boolean needToOffload() {
-        return false;
+        return jobQueue.size() == queueSize;
     }
 
     protected Optional<Integer> requestMonitoring(WorkRequest req) throws RemoteException {
@@ -133,7 +138,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
             monitoredAt.get(gsId).add(req);
 
             return gsId;
-        }, Selectors.invertedWeighedRandom);
+        } , Selectors.invertedWeighedRandom);
     }
 
     protected Optional<Integer> requestBackUp(WorkRequest req, int monitorId) throws RemoteException {
@@ -226,7 +231,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public void setUpMonitorCrashRecovery() {
         gsRepository.onOffline(gsId -> {
             synchronized (recovering) {
-                if(running && !recovering) {
+                if (running && !recovering) {
 
                     recovering = true;
                     monitoredAt.remove(gsId).forEach(req -> {
@@ -245,7 +250,8 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
                                     } catch (RemoteException e) {
                                         // warning
-                                        System.out.println("[RM\t" + id  + "] Can't fully fix redundancy for job " + req.getJob().getJobId() + ". Try to finish anyway");
+                                        System.out.println("[RM\t" + id + "] Can't fully fix redundancy for job " + req.getJob()
+                                                .getJobId() + ". Try to finish anyway");
                                     }
                                 });
                             } else {
@@ -275,7 +281,6 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                 }
             }
 
-
             return null;
         });
     }
@@ -283,11 +288,13 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
     public void setUpBackUpCrash() {
         gsRepository.onOffline(gsId -> {
 
-            if(running && !recovering) {
-                synchronized (recovering) { recovering = true; }
+            if (running && !recovering) {
+                synchronized (recovering) {
+                    recovering = true;
+                }
                 backedUpAt.remove(gsId).forEach(req -> {
                     Optional.ofNullable(monitoredBy.get(req)).ifPresent(monitorId -> {
-                        if(gsRepository.checkStatus(monitorId)) {
+                        if (gsRepository.checkStatus(monitorId)) {
                             // monitor still up, request new back-up
                             try {
                                 requestBackUp(req, monitorId);
@@ -306,9 +313,10 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
                     });
                 });
 
-                synchronized (recovering) { recovering = false; }
+                synchronized (recovering) {
+                    recovering = false;
+                }
             }
-
 
             return null;
         });
@@ -316,7 +324,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
 
     @Override
     public synchronized void start() throws RemoteException {
-        jobQueue = new LinkedBlockingQueue<>();
+        jobQueue = new ConcurrentLinkedQueue<>();
         idleNodes = new ArrayBlockingQueue<>(nNodes);
 
         monitoredBy = new HashMap<>();
