@@ -1,12 +1,12 @@
 close all
 clear all
-M = csvread('5000_2_2/jobTimes88.csv');
+M = csvread('4/jobTimes32.csv');
 ids = M(:,1);
 times = M(:,2);
 figure
 plot(ids,times);
 xlabel('Jobs');
-ylabel('Time in ms');
+ylabel('Duration');
 hold on
 avg = mean(times)
 plot(ids, avg);
