@@ -19,10 +19,12 @@ class User(val id: Int,
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
-    rmRepo.getEntity(rmId).foreach(rm => {
-      val req = WorkRequest(Job(0, rmId, ms), id)
-      rm.offerWork(req)
-    })
+    for { i <- 0 until n }{
+      rmRepo.getEntity(rmId).foreach(rm => {
+        val req = WorkRequest(Job(i, rmId, ms), id)
+        rm.offerWork(req)
+      })
+    }
   }
 
   @throws(classOf[RemoteException])

@@ -9,7 +9,7 @@ import grid.user.IUser
 case class WorkRequest(job: Job, userId: Int) extends Serializable
 
 @SerialVersionUID(2L)
-case class WorkOrder(job: Job, monitorId: Int) extends Serializable
+case class WorkOrder(work: WorkRequest, monitorId: Int) extends Serializable
 
 @SerialVersionUID(3L)
 case class MonitorRequest(work: WorkRequest, rmId: Int) extends Serializable

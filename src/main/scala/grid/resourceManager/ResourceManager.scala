@@ -1,10 +1,11 @@
 package grid.resourceManager
 
+import collection.mutable._
 import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
-import grid.discovery.Repository
+import grid.discovery.{Pingable, Repository}
 import grid.discovery.Selector.WeighedRandomSelector
 import grid.gridScheduler.IGridScheduler
 import grid.messages.{BackUpRequest, MonitorRequest, WorkOrder, WorkRequest}
@@ -13,27 +14,28 @@ import grid.user.IUser
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Try
 
 class ResourceManager(val id: Int,
                       val n: Int,
                       val userRepo: Repository[IUser],
                       val rmRepo: Repository[IResourceManager],
-                      val gsRepo: Repository[IGridScheduler]) extends UnicastRemoteObject with IResourceManager {
-
-  import collection._
+                      val gsRepo: Repository[IGridScheduler]) extends UnicastRemoteObject with IResourceManager with Pingable {
 
   var timer: ScheduledExecutorService = null
 
   var running: Boolean = false
 
-  var jobLocks: mutable.Map[WorkRequest, Object] = null
-  var queue: mutable.Queue[WorkRequest] = null
-  var idleNodes: mutable.Queue[Node] = null
+  var jobLocks: Map[WorkRequest, Object] = null
+  var queue: Queue[WorkRequest] = null
+  var idleNodes: Queue[Node] = null
 
-  var monitor: mutable.Map[WorkRequest, Int] = null
-  var monitoredBy: mutable.Map[Int, Set[WorkRequest]] = null
-  var backUp: mutable.Map[WorkRequest, Int] = null
-  var backedUpBy: mutable.Map[Int, Set[WorkRequest]] = null
+  var monitor: Map[WorkRequest, Int] = null
+  var monitoredBy: Map[Int, Set[WorkRequest]] = null
+  var backUp: Map[WorkRequest, Int] = null
+  var backedUpBy: Map[Int, Set[WorkRequest]] = null
+
+  var load = 0
 
   RmiServer.register(this)
 
@@ -42,18 +44,18 @@ class ResourceManager(val id: Int,
   def start(): Unit = synchronized {
     timer = Executors.newSingleThreadScheduledExecutor()
 
-    jobLocks = mutable.Map()
-    queue = mutable.Queue()
-    idleNodes = mutable.Queue()
+    jobLocks = Map()
+    queue = Queue()
+    idleNodes = Queue()
 
-    monitor = mutable.Map()
-    monitoredBy = mutable.Map()
-    backUp = mutable.Map()
-    backedUpBy = mutable.Map()
+    monitor = Map()
+    monitoredBy = Map()
+    backUp = Map()
+    backedUpBy = Map()
 
     gsRepo.ids().foreach(gsId => {
-      monitoredBy.put(gsId, mutable.Set())
-      backedUpBy.put(gsId, mutable.Set())
+      monitoredBy.put(gsId, Set())
+      backedUpBy.put(gsId, Set())
     })
 
     val nodes = for {
@@ -63,16 +65,30 @@ class ResourceManager(val id: Int,
 
     nodes.foreach(idleNodes.enqueue(_))
 
+    load = 0
+
     running = true
   }
 
   @throws(classOf[RemoteException])
   override def orderWork(req: WorkOrder): Unit =  {
-
+    jobLocks(req.work).synchronized {
+      requestBackUp(req.work, req.monitorId) match {
+        case Some(_) => {
+          registerMonitor(req.work, req.monitorId)
+          queue.synchronized(queue.enqueue(req.work))
+          processQueue()
+        }
+        case None => {
+          unregisterBackUp(req.work)
+        }
+      }
+    }
   }
 
   @throws(classOf[RemoteException])
   override def offerWork(work: WorkRequest): Unit = {
+    println(s"[RM\t${id}] received job ${work.job.id}")
     val lock: WorkRequest = work.copy()
     jobLocks.put(lock, new Object)
     lock.synchronized {
@@ -86,8 +102,8 @@ class ResourceManager(val id: Int,
               processQueue()
             }
             case None => {
-              removeMonitorAdmin(work)
-              removeBackUpAdmin(work)
+              unregisterMonitor(work)
+              unregisterBackUp(work)
             }
           }
         }
@@ -112,7 +128,7 @@ class ResourceManager(val id: Int,
     }
   }
 
-  def removeMonitorAdmin(work: WorkRequest): Unit = {
+  def unregisterMonitor(work: WorkRequest): Unit = {
     jobLocks(work).synchronized {
       monitoredBy(monitor(work)) - work
       monitor - work
@@ -136,7 +152,7 @@ class ResourceManager(val id: Int,
     }
   }
 
-  def removeBackUpAdmin(work: WorkRequest): Unit = {
+  def unregisterBackUp(work: WorkRequest): Unit = {
     jobLocks(work).synchronized {
       backedUpBy(backUp(work)) - work
       backUp - work
@@ -146,6 +162,7 @@ class ResourceManager(val id: Int,
   @throws(classOf[RemoteException])
   override def finish(work: WorkRequest, node: Node): Unit = {
     jobLocks(work).synchronized {
+      println(s"[RM\t${id}] finished executing job ${work.job.id}")
       userRepo.getEntity(work.userId).foreach(u => {
         u.acceptResult(work.job)
         release(work)
@@ -156,8 +173,12 @@ class ResourceManager(val id: Int,
 
   def release(work: WorkRequest): Unit = {
     jobLocks(work).synchronized {
-
+      println(s"[RM\t${id}] releasing job ${work.job.id}")
+      Try { gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work)) }
+      Try { gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work)) }
     }
+
+    jobLocks - work
   }
 
   def processQueue(): Unit = {
@@ -167,13 +188,16 @@ class ResourceManager(val id: Int,
           val work = queue.dequeue()
           val worker = idleNodes.dequeue()
 
-          Future {
-            worker.handle(work)
-          }
+          println(s"[RM\t${id}] starting job ${work.job.id}")
+
+          worker.handle(work)
         }
       }
     }
   }
+
+  @throws(classOf[RemoteException])
+  override def ping(): Long = load
 
   override def url: String = rmRepo.url(id)
 }

@@ -15,4 +15,10 @@ trait IGridScheduler extends Addressable {
 
   @throws(classOf[RemoteException])
   def promote(req: PromoteRequest): Unit
+
+  @throws(classOf[RemoteException])
+  def releaseMonitor(req: WorkRequest): Unit
+
+  @throws(classOf[RemoteException])
+  def releaseBackUp(req: WorkRequest): Unit
 }

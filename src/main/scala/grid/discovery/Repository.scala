@@ -30,6 +30,8 @@ class Repository[T <: Addressable](registry: Map[Int, String]) {
   def onlineCallbacks: mutable.Seq[Int => Void] = mutable.ListBuffer()
   def offlineCallbacks: mutable.Seq[Int => Void] = mutable.ListBuffer()
 
+  def setStatus(id: Int, online: Boolean) = isOnline.put(id, online)
+
   def onlineIds(): Seq[Int] = isOnline
     .collect { case (id, true) => id }
     .toList
