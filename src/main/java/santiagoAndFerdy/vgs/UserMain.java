@@ -74,15 +74,15 @@ public class UserMain {
                         if (uId == id) {
                             try {
                                 Repositories.resourceManagerRepository().ids().forEach(rmId -> {
-                                    if (rmId == 0) { // send 800 jobs to RM 0
+                                    if (rmId == 0) { // send 500 jobs to RM 0
                                         try {
-                                            u.createJobs(rmId, 800, jobDuration);
+                                            u.createJobs(rmId, 500, jobDuration);
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
-                                    } else { // send 200 to the rest
+                                    } else { // send 100 to the rest
                                         try {
-                                            u.createJobs(rmId, 200, jobDuration);
+                                            u.createJobs(rmId, 100, jobDuration);
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }
