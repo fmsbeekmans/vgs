@@ -3,7 +3,7 @@ package grid.gridScheduler
 import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
 
-import grid.discovery.{Pingable, Repository}
+import grid.discovery.{Pingable, RemoteShutDown, Repository}
 import grid.messages.{BackUpRequest, MonitorRequest, PromoteRequest, WorkRequest}
 import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
@@ -30,7 +30,6 @@ class GridScheduler(val id: Int,
   start()
 
   def start(): Unit = {
-
     monitoringForRm = Map()
     monitoringPerRm = Map()
     backUpForRm = Map()
@@ -66,8 +65,8 @@ class GridScheduler(val id: Int,
 
 
   override def releaseMonitor(work: WorkRequest): Unit = {
-    println(s"[GS\t${id}] releasing monitoring for job ${work.job.id}")
-    unregisterMonitor(work)
+      println(s"[GS\t${id}] releasing monitoring for job ${work.job.id}")
+      unregisterMonitor(work)
   }
 
   override def backUp(req: BackUpRequest): Unit = {

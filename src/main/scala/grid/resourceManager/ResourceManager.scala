@@ -12,8 +12,7 @@ import grid.messages.{BackUpRequest, MonitorRequest, WorkOrder, WorkRequest}
 import grid.rmi.RmiServer
 import grid.user.IUser
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 import scala.util.Try
 
 class ResourceManager(val id: Int,
@@ -26,7 +25,6 @@ class ResourceManager(val id: Int,
 
   var running: Boolean = false
 
-  var jobLocks: Map[WorkRequest, Object] = null
   var queue: Queue[WorkRequest] = null
   var idleNodes: Queue[Node] = null
 
@@ -37,14 +35,23 @@ class ResourceManager(val id: Int,
 
   var load = 0
 
+  val receiveWorkExecutor: ExecutionContext = ExecutionContext.fromExecutorService(
+    Executors.newWorkStealingPool(4)
+  )
+  val queueExecutor: ExecutionContext = ExecutionContext.fromExecutorService(
+      Executors.newWorkStealingPool(4)
+  )
+  val gsExecutor: ExecutionContext = ExecutionContext.fromExecutorService(
+    Executors.newWorkStealingPool(4)
+  )
+
   RmiServer.register(this)
 
   start()
 
   def start(): Unit = synchronized {
-    timer = Executors.newSingleThreadScheduledExecutor()
+    timer = Executors.newScheduledThreadPool(8)
 
-    jobLocks = Map()
     queue = Queue()
     idleNodes = Queue()
 
@@ -72,43 +79,41 @@ class ResourceManager(val id: Int,
 
   @throws(classOf[RemoteException])
   override def orderWork(req: WorkOrder): Unit =  {
-    jobLocks(req.work).synchronized {
-      requestBackUp(req.work, req.monitorId) match {
-        case Some(_) => {
-          registerMonitor(req.work, req.monitorId)
-          queue.synchronized(queue.enqueue(req.work))
-          processQueue()
-        }
-        case None => {
-          unregisterBackUp(req.work)
+    Future {
+      blocking {
+        requestBackUp(req.work, req.monitorId) match {
+          case Some(_) => {
+            registerMonitor(req.work, req.monitorId)
+            queue.enqueue(req.work)
+            processQueue()
+          }
+          case None => {
+            unregisterBackUp(req.work)
+          }
         }
       }
-    }
+    }(receiveWorkExecutor)
   }
 
   @throws(classOf[RemoteException])
   override def offerWork(work: WorkRequest): Unit = {
     println(s"[RM\t${id}] received job ${work.job.id}")
-    val lock: WorkRequest = work.copy()
-    jobLocks.put(lock, new Object)
-    lock.synchronized {
-      queue.synchronized {
-        Future {
-          requestMonitor(work).flatMap(monitorId => {
-            requestBackUp(work, monitorId)
-          }) match {
-            case Some(_) => {
-              queue.enqueue(work)
-              processQueue()
-            }
-            case None => {
-              unregisterMonitor(work)
-              unregisterBackUp(work)
-            }
+    Future {
+      blocking {
+        requestMonitor(work).flatMap(monitorId => {
+          requestBackUp(work, monitorId)
+        }) match {
+          case Some(_) => {
+            queue.enqueue(work)
+            processQueue()
+          }
+          case None => {
+            unregisterMonitor(work)
+            unregisterBackUp(work)
           }
         }
       }
-    }
+    }(receiveWorkExecutor)
   }
 
   def requestMonitor(work: WorkRequest): Option[Int] = {
@@ -122,17 +127,13 @@ class ResourceManager(val id: Int,
   }
 
   def registerMonitor(work: WorkRequest, monitorId: Int) = {
-    jobLocks(work).synchronized {
-      monitor.put(work, monitorId)
-      monitoredBy(monitorId) + work
-    }
+    monitor.put(work, monitorId)
+    monitoredBy(monitorId) + work
   }
 
   def unregisterMonitor(work: WorkRequest): Unit = {
-    jobLocks(work).synchronized {
-      monitoredBy(monitor(work)) - work
-      monitor - work
-    }
+    monitoredBy(monitor(work)) - work
+    monitor - work
   }
 
   def requestBackUp(work: WorkRequest, monitorId: Int): Option[Int] = {
@@ -146,55 +147,48 @@ class ResourceManager(val id: Int,
   }
 
   def registerBackUp(work: WorkRequest, backUpId: Int) = {
-    jobLocks(work).synchronized {
-      backUp.put(work, backUpId)
-      backedUpBy(backUpId) + work
-    }
+    backUp.put(work, backUpId)
+    backedUpBy(backUpId) + work
   }
 
   def unregisterBackUp(work: WorkRequest): Unit = {
-    jobLocks(work).synchronized {
-      backedUpBy(backUp(work)) - work
-      backUp - work
-    }
+    backedUpBy(backUp(work)) - work
+    backUp - work
   }
 
   @throws(classOf[RemoteException])
   override def finish(work: WorkRequest, node: Node): Unit = {
-    jobLocks(work).synchronized {
-      println(s"[RM\t${id}] finished executing job ${work.job.id}")
-      userRepo.getEntity(work.userId).foreach(u => {
-        u.acceptResult(work.job)
-        release(work)
-        idleNodes.synchronized(idleNodes.enqueue(node))
-      })
-    }
+    println(s"[RM\t${id}] finished executing job ${work.job.id}")
+    userRepo.getEntity(work.userId).foreach(u => {
+      u.acceptResult(work.job)
 
-    processQueue()
-  }
+      idleNodes.enqueue(node)
 
-  def release(work: WorkRequest): Unit = {
-    jobLocks(work).synchronized {
-      println(s"[RM\t${id}] releasing job ${work.job.id}")
-      Try { gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work)) }
-      Try { gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work)) }
-    }
+      Future {
+        blocking {
+          println(s"[RM\t${id}] releasing job ${work.job.id}")
+          Try {
+            gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
+            gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
+          }
+        }
+      }(gsExecutor).map((release: Try[Unit]) => processQueue())(gsExecutor)
+    })
 
-    jobLocks - work
   }
 
   def processQueue(): Unit = {
-    queue.synchronized {
-      idleNodes.synchronized {
-        while(queue.nonEmpty && idleNodes.nonEmpty) {
-          val work = queue.dequeue()
-          val worker = idleNodes.dequeue()
+    while(queue.nonEmpty && idleNodes.nonEmpty) {
+      val work = queue.dequeue()
+      val worker = idleNodes.dequeue()
 
-          println(s"[RM\t${id}] starting job ${work.job.id}")
+      println(s"[RM\t${id}] starting job ${work.job.id}")
 
-          Future { worker.handle(work) }
+      Future {
+        blocking {
+          worker.handle(work)
         }
-      }
+      }(queueExecutor)
     }
   }
 

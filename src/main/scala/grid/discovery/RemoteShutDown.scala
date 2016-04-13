@@ -4,7 +4,11 @@ import java.rmi.RemoteException
 
 import grid.rmi.Addressable
 
-trait Pingable extends Addressable {
+trait RemoteShutDown extends Addressable {
   @throws(classOf[RemoteException])
-  def ping(): Long
+  def start(): Unit
+
+  @throws(classOf[RemoteException])
+  def shutDown(): Unit
+
 }

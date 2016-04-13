@@ -9,7 +9,7 @@ import grid.model.Job
 import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 
-import scala.concurrent.duration.Duration
+import scala.collection.mutable._
 
 class User(val id: Int,
            val userRepo: Repository[IUser],
@@ -17,11 +17,17 @@ class User(val id: Int,
 
   RmiServer.register(this)
 
+  var jobs = 0
+
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
+    jobs += n
+
     for { i <- 0 until n }{
       rmRepo.getEntity(rmId).foreach(rm => {
-        val req = WorkRequest(Job(i, rmId, ms), id)
+        val job = Job(i, rmId, ms)
+
+        val req = WorkRequest(job, id)
         rm.offerWork(req)
       })
     }
@@ -29,7 +35,11 @@ class User(val id: Int,
 
   @throws(classOf[RemoteException])
   override def acceptResult(job: Job): Unit = {
-    println(job)
+    println(s"[U\t$id] Result for ${job.id}")
+
+    jobs -= 1
+
+    if(jobs == 0) println(s"[U\t$id] Jobs completed")
   }
 
   override def url: String = {
