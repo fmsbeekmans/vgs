@@ -38,7 +38,7 @@ object RunJob extends App {
     rmRepo
   )
 
-  user.createJobs(0, 2, 10000)
+  user.createJobs(0, 200, 100)
 
   def resourcePath(fileName: String): Path = {
     val url = getClass.getClassLoader.getResource(fileName)

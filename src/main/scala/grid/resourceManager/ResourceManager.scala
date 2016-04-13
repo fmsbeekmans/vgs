@@ -169,6 +169,8 @@ class ResourceManager(val id: Int,
         idleNodes.synchronized(idleNodes.enqueue(node))
       })
     }
+
+    processQueue()
   }
 
   def release(work: WorkRequest): Unit = {
@@ -190,7 +192,7 @@ class ResourceManager(val id: Int,
 
           println(s"[RM\t${id}] starting job ${work.job.id}")
 
-          worker.handle(work)
+          Future { worker.handle(work) }
         }
       }
     }
