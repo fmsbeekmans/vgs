@@ -15,13 +15,14 @@ import santiagoAndFerdy.vgs.rmi.RmiServer;
 public class ResourceManagerMain {
 
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException, NotBoundException {
-        if (args.length < 2) {
-            System.err.println("Please insert range of RM IDs");
+        if (args.length < 3) {
+            System.err.println("Please insert range of RM IDs and the number of nodes");
             return;
         }
-        int nNodes = 1000;
         int begin = Integer.valueOf(args[0]);
         int end = Integer.valueOf(args[1]);
+        int nNodes = Integer.valueOf(args[2]);
+
         RmiServer rmiServer = new RmiServer(1099);
 
         Repositories.resourceManagerRepository().ids().forEach(rmId -> {

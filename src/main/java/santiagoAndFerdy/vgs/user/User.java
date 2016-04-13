@@ -81,8 +81,9 @@ public class User extends UnicastRemoteObject implements IUser {
     @Override
     public void acceptResult(Job j) throws RemoteException {
         System.out.println("[U\t" + id + "] Job " + j.getJobId() + " finished execution");
-        String time = ((Long) (System.currentTimeMillis() - j.getStartTime())).toString();
-        writer.write(j.getJobId() + "," + time + "\n");
+        long end = System.currentTimeMillis();
+        String time = ((Long) (end - j.getStartTime())).toString();
+        writer.write(j.getInitialResourceManagerId()+","+ j.getCurrentResourceManagerId()+"," + time + "\n");
         writer.flush();
         pendingJobs.remove(j);
         if (pendingJobs.isEmpty()) {
