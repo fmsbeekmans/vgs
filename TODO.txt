@@ -1,0 +1,40 @@
+Change the background application section, no design decisions (rephrase workflow)
+Use job queue term
+Change realistics studies for "the system is intended to..."
+Rephrase failure requirement in section 2
+Reorder system design introduction, explain that we didn't continue with the ring topology!
+Change connected for "monitoring and explain the meaning (same for backup)
+Explain a little bit more the connectivity of GS in ring topology
+Change bootstrap by initialization.
+Workflow section (fault-tolerance, replication, load balancing)
+Include workflow diagram
+Fault recovery, ring reconnects, how would a gs rejoin the ring, or not designed but needs mention
+I see you mention coming back to life later. Mentioning domino in between seems out of place, move to comparison?
+Don't make early asssumptions (ring scalability starts with the conclusion)
+Describe how to load balance and the problematics here
+Explain that just RM send HB to GSs and GSs send HBs to GSs. Change scalability O(n) ??
+no depicted
+explain the lines on full connectivity topology
+change order (no conclusion) in bootstrap (initialization) of the full connected topology
+node is just the worker not the component
+GSs and RMs broadcast their awakening (RM to GS and GS to RM AND GS)
+State the RM idle problem (on the discussion)
+Introduce that due to the topology we have some messaging higher which causes O(n) conclude with probabluyu not important
+Move technical details to a small implementation section, include repository, include, scheduling policy with tasks, the selecting algorithm. (no more than 
+ parags)
+ 
+explain a little bit more the arrivals pattern. 
+fairness from user's perspective (graph that we have)
+setup include random failures for fault-tolerance
+fault-tolerance: we need a experiment for that show screenshot with logs
+load-balance/offloading graph with the queue
+scalibily makes tests to find the limit
+
+DISCUSSION:
+
+1. Message overloading is not a problem however 
+2. Workload reality scenarios so the RM iddle problem won't be a problem
+3. Fault tolerance involving more than a pair of components is difficult so it's always good to keep the schema simple.
+4. Load balancing role of GS (the two alternatives ours and active GS).
+
+Conclusion

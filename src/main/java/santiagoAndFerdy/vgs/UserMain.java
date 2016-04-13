@@ -8,17 +8,31 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.EngineBuilder;
+import com.linkedin.parseq.Task;
 
 /**
  * Created by Fydio on 3/18/16.
  */
 public class UserMain {
+    private static Engine                   engine;
+    private static ScheduledExecutorService timer;
+
     public static void main(String[] args) throws IOException, NotBoundException, InterruptedException, URISyntaxException {
         if (args.length < 2) {
             System.err.println("Please insert job duration (ms), User ID, flag regular, overload or offload, optional number of jobs (default 100)");
             return;
         }
+        ExecutorService taskScheduler = Executors.newFixedThreadPool(100);
+        timer = Executors.newSingleThreadScheduledExecutor();
+        engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
 
+        // Params
         int jobDuration = Integer.parseInt(args[0]);
         int id = Integer.parseInt(args[1]);
         int numJobs;
@@ -27,6 +41,7 @@ public class UserMain {
             numJobs = Integer.parseInt(args[3]);
         } else
             numJobs = 100;
+
         RmiServer rmiServer = new RmiServer(1099);
 
         Repositories.userRepository().ids().forEach(uId -> {
@@ -34,12 +49,11 @@ public class UserMain {
                 try {
                     new User(rmiServer, uId, Repositories.userRepository(), Repositories.resourceManagerRepository());
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
         });
-        // REGULAR, send numJobs to every RM
+        // REGULAR, send numJobs to every RM at the same time as task.
         if (flag.equals("regular")) {
             Repositories.userRepository().ids().forEach(uId -> {
                 try {
@@ -47,47 +61,14 @@ public class UserMain {
                         if (uId == id) {
                             try {
                                 Repositories.resourceManagerRepository().ids().forEach(rmId -> {
-
-                                    try {
-                                        u.createJobs(rmId, numJobs, jobDuration);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-
-                                    }
-
-                                });
-                            } catch (Exception e) {
-                                // TODO Auto-generated catch block
-                                e.printStackTrace();
-                            }
-                        }
-                    });
-                } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            });
-        } else if (flag.equals("overload")) { // Overload a certain RM to force to load balance
-            Repositories.userRepository().ids().forEach(uId -> {
-                try {
-                    Repositories.userRepository().getEntity(uId).ifPresent(u -> {
-                        if (uId == id) {
-                            try {
-                                Repositories.resourceManagerRepository().ids().forEach(rmId -> {
-                                    if (rmId == 0) { // send 500 jobs to RM 0
+                                    engine.run(Task.action(() -> {
                                         try {
-                                            u.createJobs(rmId, 500, jobDuration);
+                                            u.createJobs(rmId, numJobs, jobDuration);
                                         } catch (Exception e) {
                                             e.printStackTrace();
-                                        }
-                                    } else { // send 100 to the rest
-                                        try {
-                                            u.createJobs(rmId, 100, jobDuration);
-                                        } catch (Exception e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
 
+                                        }
+                                    }));
                                 });
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -98,14 +79,15 @@ public class UserMain {
                     e.printStackTrace();
                 }
             });
-        } else { // Offload Test send 10 jobs to 3 RM, they will offload on the GS and the GS will allocate them in a new one
+        } else if (flag.equals("offload")) { // Offload Test send 10 jobs to 3 RM, they will offload on the GS and the GS will allocate them in a new
+                                             // one according with the load balancing policy implemented on the selectors.
             Repositories.userRepository().ids().forEach(uId -> {
                 try {
                     Repositories.userRepository().getEntity(uId).ifPresent(u -> {
                         if (uId == id) {
                             try {
                                 Repositories.resourceManagerRepository().ids().forEach(rmId -> {
-                                    if (rmId < 2) { // send just 10 jobs to 2 RMs
+                                    if (rmId < 2) { // send just 10 jobs to 2 first RMs (easy with the logging)
                                         try {
                                             u.createJobs(rmId, 10, jobDuration);
                                         } catch (Exception e) {
@@ -114,17 +96,37 @@ public class UserMain {
                                     }
                                 });
                             } catch (Exception e) {
-                                // TODO Auto-generated catch block
                                 e.printStackTrace();
                             }
                         }
                     });
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            });
+        } else { // send jobs sequentially (first to RM0, then to RM1...)
+            Repositories.userRepository().ids().forEach(uId -> {
+                try {
+                    Repositories.userRepository().getEntity(uId).ifPresent(u -> {
+                        if (uId == id) {
+                            try {
+                                Repositories.resourceManagerRepository().ids().forEach(rmId -> {
+                                    try {
+                                        u.createJobs(rmId, numJobs, jobDuration);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+
+                                    }
+                                });
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             });
         }
-
     }
 }

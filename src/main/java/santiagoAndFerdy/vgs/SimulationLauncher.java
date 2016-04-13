@@ -36,48 +36,50 @@ public class SimulationLauncher {
                         Repositories.userRepository(),
                         Repositories.resourceManagerRepository(),
                         Repositories.gridSchedulerRepository(),
-                        4);
+                        2);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
 
-        Repositories.userRepository().ids().forEach(uId -> {
-            try {
-                new User(
-                        rmiServer,
-                        uId,
-                        Repositories.userRepository(),
-                        Repositories.resourceManagerRepository());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-//        int uId = Repositories.userRepository().ids().get(0);
-//        try{
-//            User u = new User(rmiServer, uId, Repositories.userRepository(), Repositories.resourceManagerRepository());
-//            u.createJobs(0, 25, 2000);
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-        Repositories.userRepository().ids().forEach(uId -> {
-            try {
-                Repositories.userRepository().getEntity(uId).ifPresent(u -> {
-                    try {
-                        Repositories.resourceManagerRepository().ids().forEach(rmId -> {
-                            try {
-                                u.createJobs(rmId, 100, 2000);
-                            } catch (RemoteException e) {
-                                e.printStackTrace();
-                            }
-                        });
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+//        Repositories.userRepository().ids().forEach(uId -> {
+//            try {
+//                new User(
+//                        rmiServer,
+//                        uId,
+//                        Repositories.userRepository(),
+//                        Repositories.resourceManagerRepository());
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
+        int uId = Repositories.userRepository().ids().get(0);
+        try{
+            User u = new User(rmiServer, uId, Repositories.userRepository(), Repositories.resourceManagerRepository());
+            User u2 = new User(rmiServer, 1, Repositories.userRepository(), Repositories.resourceManagerRepository());
+            u.createJobs(0, 10, 2000);
+            u2.createJobs(0, 10, 2000);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+//        Repositories.userRepository().ids().forEach(uId -> {
+//            try {
+//                Repositories.userRepository().getEntity(uId).ifPresent(u -> {
+//                    try {
+//                        Repositories.resourceManagerRepository().ids().forEach(rmId -> {
+//                            try {
+//                                u.createJobs(rmId, 100, 2000);
+//                            } catch (RemoteException e) {
+//                                e.printStackTrace();
+//                            }
+//                        });
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                });
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
     }
 }

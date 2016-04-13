@@ -81,15 +81,15 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         queueSize = nNodes;
         running = false;
         logger = Logger.getLogger("ResourceManager" + id);
-        
+
         try {
-            fh = new FileHandler("ResourceManager" + id+".log");
+            fh = new FileHandler("ResourceManager" + id + ".log");
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         logger.addHandler(fh);
-        SimpleFormatter formatter = new SimpleFormatter();  
+        SimpleFormatter formatter = new SimpleFormatter();
         fh.setFormatter(formatter);
         start();
         setUpMonitorCrashRecovery();
@@ -368,7 +368,7 @@ public class ResourceManager extends UnicastRemoteObject implements IResourceMan
         load = 0;
 
         ExecutorService taskScheduler = Executors.newFixedThreadPool(100);
-        this.timer = Executors.newSingleThreadScheduledExecutor();
+        this.timer = Executors.newScheduledThreadPool(100);
         engine = new EngineBuilder().setTaskExecutor(taskScheduler).setTimerScheduler(timer).build();
 
         for (int i = 0; i < nNodes; i++) {

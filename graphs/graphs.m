@@ -1,16 +1,16 @@
-close all
+%close all
 clear all
-M = csvread('4/jobTimes32.csv');
-ids = M(:,1);
-times = M(:,2);
+M = csvread('40k/jobTimes0.csv');
+times = M(:,3);
+times = times.';
 figure
-bar(ids,times);
+plot(times);
 xlabel('Job number');
-ylabel('Duration in ms');
-xlim([ids(1) ids(length(ids))]);
+ylabel('Job Duration in ms');
 hold on
-avg = mean(times)
-plot(5000,'r')
-v = var(times)
-count = sum(times > 2500)
-perc = count/length(ids)
+avg = sum(times)/length(times);
+means = ones(1,length(times));
+means = avg.*means;
+plot(means,'r')
+v = var(times);
+legend('Job execution time', 'Average job execution time');
