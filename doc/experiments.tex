@@ -1,0 +1,6 @@
+\section{Experiments}
+\subsection{Experiments setup}
+Apart from the local setup used to developing and debugging purposes, the whole system was deployed in Amazon Web Services platform. To do so, 4 EC2 t2.micro instances were used. These type of instances have one virtual CPU with a maximum frequency of 3.3 GHz. One of the instances hosts the 5 grid schedulers nodes, resource managers are divided in two groups of 10 clusters, each group running in different instance. The last virtual machine acts as user, it generates several user processes which request several amounts of jobs of fixed duration to several clusters. All the code used for the project and the experiments can be found on GitHub\footnote{https://github.com/fydio/vgs}.
+\subsection{Experiments}
+\subsubsection{Jobs & Users}
+The first experiment conducted was to verify that the system worked as expected in absence of failures. To do so, we launched 2 users requesting a fixed amount of 500 jobs of two seconds duration to each cluster, which makes in total a workload of 20,000 jobs for the whole system, double than the required. Results of job duration are displayed in following figure 3.
