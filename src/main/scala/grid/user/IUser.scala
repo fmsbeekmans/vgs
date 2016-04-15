@@ -2,8 +2,8 @@ package grid.user
 
 import java.rmi.RemoteException
 
+import grid.cluster.Addressable
 import grid.model.Job
-import grid.rmi.Addressable
 
 import scala.concurrent.duration.Duration
 

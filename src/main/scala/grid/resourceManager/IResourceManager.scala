@@ -2,11 +2,11 @@ package grid.resourceManager
 
 import java.rmi.RemoteException
 
+import grid.cluster.{Addressable, RemoteShutDown}
 import grid.messages._
 import grid.model.Job
-import grid.rmi.Addressable
 
-trait IResourceManager extends Addressable {
+trait IResourceManager extends Addressable with RemoteShutDown {
 
   @throws(classOf[RemoteException])
   def offerWork(work: WorkRequest) {}

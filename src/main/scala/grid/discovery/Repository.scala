@@ -1,45 +1,39 @@
 package grid.discovery
 
-import collection._
+import collection.mutable._
 import java.nio.file.{Files, Path}
 import java.rmi.Naming
 import java.util.Scanner
 
+import grid.cluster.Addressable
 import grid.discovery.Selector.Selector
-import grid.rmi.{Addressable, RmiServer}
 
-import scala.concurrent.Future
 import scala.util.Try
 import scala.util.control.Breaks._
 
-class Repository[T <: Addressable](registry: Map[Int, String]) {
+class Repository[T <: Addressable](registry: collection.immutable.Map[Int, String]) {
 
-  val isOnline: mutable.Map[Int, Boolean] = mutable.Map()
-  val load: mutable.Map[Int, Long] = mutable.Map()
+  private val isOnline: Map[Int, Boolean] = Map()
+  val load: Map[Int, Long] = Map()
 
   registry.keys.foreach(id => {
     isOnline.put(id, true)
     load.put(id, 0L)
   })
 
-  def ids(): Seq[Int] = registry.keys.toList
+  def ids(): collection.immutable.Seq[Int] = synchronized { registry.keys.toList }
 
-  def url(id: Int): String = urls().toList(id)
-  def urls(): Seq[String] = registry.values.toList
+  def url(id: Int): String = synchronized { urls().toList(id) }
+  def urls(): collection.immutable.Seq[String] = synchronized { registry.values.toList }
 
-  def onlineCallbacks: mutable.Seq[Int => Void] = mutable.ListBuffer()
-  def offlineCallbacks: mutable.Seq[Int => Void] = mutable.ListBuffer()
+  val onlineCallbacks: ListBuffer[Int => Unit] = synchronized { ListBuffer() }
+  val offlineCallbacks: ListBuffer[Int => Unit] = synchronized { ListBuffer() }
 
-  def setStatus(id: Int, online: Boolean) = isOnline.put(id, online)
-
-  def onlineIds(): Seq[Int] = isOnline
-    .collect { case (id, true) => id }
-    .toList
-
-  def getEntity(id: Int): Option[T] = {
-    val result = Try { Naming.lookup(url(id)).asInstanceOf[T] }.toOption
+  def setStatus(id: Int, online: Boolean) = synchronized {
     val oldState = isOnline(id)
-    val newState = result.isDefined
+    val newState = online
+
+    isOnline.put(id, online)
 
     if(oldState != newState) {
       if(!newState) {
@@ -50,11 +44,36 @@ class Repository[T <: Addressable](registry: Map[Int, String]) {
         onlineCallbacks.foreach(f => f(id))
       }
     }
+  }
+
+  def onlineIds(): collection.immutable.Seq[Int] = synchronized {
+    isOnline
+      .collect { case (id, true) => id }
+      .toList
+  }
+
+  def getEntity(id: Int): Option[T] = synchronized {
+    val result = Try { Naming.lookup(url(id)).asInstanceOf[T] }.toOption
+
+    result.flatMap(e => {
+      Try {
+        e.ping()
+      }.toOption
+    }) match {
+      case Some(ping) => {
+        setStatus(id, true)
+        load.put(id, ping)
+      }
+      case None => {
+        setStatus(id, false)
+        load.put(id, Integer.MAX_VALUE)
+      }
+    }
 
     result
   }
 
-  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = {
+  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = synchronized {
     var result: Option[(R, Int)] = None
     val afterExclude = load.filter(idAndWeight => !excludeIds.contains(idAndWeight._1)).toMap
 
@@ -73,12 +92,12 @@ class Repository[T <: Addressable](registry: Map[Int, String]) {
     result
   }
 
-  def onOnline(f: Int => Unit): Unit = {
-    onlineCallbacks :+ f
+  def onOnline(f: Int => Unit): Unit = synchronized {
+    onlineCallbacks += f
   }
 
-  def onOffline(f: Int => Unit): Unit = {
-    offlineCallbacks :+ f
+  def onOffline(f: Int => Unit): Unit = synchronized {
+    offlineCallbacks += f
   }
 }
 
@@ -89,7 +108,7 @@ object Repository {
     val inStream = Files.newInputStream(path)
     val scanner = new Scanner(inStream)
 
-    val registry: mutable.Map[Int, String] = mutable.Map()
+    val registry: Map[Int, String] = Map()
 
     while(scanner.hasNextLine()) {
       val line = scanner.nextLine()

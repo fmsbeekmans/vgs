@@ -2,10 +2,10 @@ package grid.gridScheduler
 
 import java.rmi.RemoteException
 
+import grid.cluster.{Addressable, RemoteShutDown}
 import grid.messages._
-import grid.rmi.Addressable
 
-trait IGridScheduler extends Addressable {
+trait IGridScheduler extends Addressable with RemoteShutDown {
 
   @throws(classOf[RemoteException])
   def monitor(req: MonitorRequest): Unit

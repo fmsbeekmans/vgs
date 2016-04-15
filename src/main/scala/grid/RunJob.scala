@@ -7,6 +7,9 @@ import grid.gridScheduler.{GridScheduler, IGridScheduler}
 import grid.resourceManager.{IResourceManager, ResourceManager}
 import grid.user.{IUser, User}
 
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object RunJob extends App {
   val gsRepo = Repository.fromFile[IGridScheduler](resourcePath("gss"))
   val rmRepo = Repository.fromFile[IResourceManager](resourcePath("rms"))
@@ -26,7 +29,7 @@ object RunJob extends App {
 
   val rm = new ResourceManager(
     0,
-    1000,
+    1000000,
     userRepo,
     rmRepo,
     gsRepo
@@ -38,7 +41,13 @@ object RunJob extends App {
     rmRepo
   )
 
-  user.createJobs(0, 20000, 100)
+  Future { user.createJobs(0, 20000, 200) }
+
+  Thread.sleep(100)
+
+  gs0.shutDown()
+
+  gs0.registerMonitor(null, 0)
 
   def resourcePath(fileName: String): Path = {
     val url = getClass.getClassLoader.getResource(fileName)

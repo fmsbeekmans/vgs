@@ -1,12 +1,12 @@
-package grid.discovery
+package grid.cluster
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
-import grid.rmi.Addressable
+import grid.discovery.Repository
 
 import scala.util.{Failure, Success, Try}
 
-class Pinger[T <: Pingable](repo: Repository[T]) {
+class Pinger[T <: Addressable](repo: Repository[T]) {
 
   var timer: ScheduledExecutorService = null
 
@@ -20,11 +20,11 @@ class Pinger[T <: Pingable](repo: Repository[T]) {
         } match {
           case Success(ping) => {
             repo.load.put(id, ping)
-            repo.isOnline.put(id, true)
+            repo.setStatus(id, true)
           }
           case Failure(_) => {
             repo.load - id
-            repo.isOnline.put(id, false)
+            repo.setStatus(id, false)
           }
         })
       })
@@ -32,6 +32,6 @@ class Pinger[T <: Pingable](repo: Repository[T]) {
   }
 
   def stop(): Unit = {
-
+    timer.shutdownNow()
   }
 }

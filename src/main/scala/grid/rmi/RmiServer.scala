@@ -3,6 +3,8 @@ package grid.rmi
 import java.rmi.Naming
 import java.rmi.registry._
 
+import grid.cluster.Addressable
+
 import scala.util.Try
 
 /**
