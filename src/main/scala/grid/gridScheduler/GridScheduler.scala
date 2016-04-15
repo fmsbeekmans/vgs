@@ -135,8 +135,7 @@ class GridScheduler(val id: Int,
   }
 
   rmRepo.onOffline(rmId => {
-    logger.info(s"[GS\t${id}] recovering monitored jobs [${monitoringPerRm(rmId).map(_.job.id)}]")
-    logger.info(s"[${rmRepo.onlineIds()}]")
+    logger.info(s"[GS\t${id}] recovering monitored jobs")
 
     synchronized {
       monitoringPerRm(rmId).foreach(work => {

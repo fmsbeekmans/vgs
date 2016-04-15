@@ -1,12 +1,15 @@
 package grid.discovery
 
 import collection.mutable._
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.rmi.Naming
 import java.util.Scanner
 
 import grid.cluster.Addressable
 import grid.discovery.Selector.Selector
+import grid.gridScheduler.IGridScheduler
+import grid.resourceManager.IResourceManager
+import grid.user.IUser
 
 import scala.util.Try
 import scala.util.control.Breaks._
@@ -124,5 +127,25 @@ object Repository {
     }
 
     new Repository[T](registry.toMap);
+  }
+
+
+  val gsRepo = {
+    Repository.fromFile[IGridScheduler](resourcePath("gss"))
+  }
+
+  val rmRepo = {
+    println("repo")
+    Repository.fromFile[IResourceManager](resourcePath("rms"))
+  }
+
+  val userRepo = {
+    Repository.fromFile[IUser](resourcePath("users"))
+  }
+
+
+  def resourcePath(fileName: String): Path = {
+    val url = getClass.getClassLoader.getResource(fileName)
+    Paths.get(url.toURI)
   }
 }

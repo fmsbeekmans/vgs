@@ -1,19 +1,16 @@
 package grid
 
-import java.nio.file.{Path, Paths}
-
 import grid.discovery.Repository
-import grid.gridScheduler.{GridScheduler, IGridScheduler}
-import grid.resourceManager.{IResourceManager, ResourceManager}
-import grid.user.{IUser, User}
+import grid.gridScheduler.GridScheduler
+import grid.resourceManager.ResourceManager
+import grid.user.User
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object RunJob extends App {
-  val gsRepo = Repository.fromFile[IGridScheduler](resourcePath("gss"))
-  val rmRepo = Repository.fromFile[IResourceManager](resourcePath("rms"))
-  val userRepo = Repository.fromFile[IUser](resourcePath("users"))
+
+  import Repository._
 
   val gs0 = new GridScheduler(
     0,
@@ -54,9 +51,4 @@ object RunJob extends App {
   Thread.sleep(300)
 
   rm0.shutDown()
-
-  def resourcePath(fileName: String): Path = {
-    val url = getClass.getClassLoader.getResource(fileName)
-    Paths.get(url.toURI)
-  }
 }
