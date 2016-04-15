@@ -39,7 +39,7 @@ class User(val id: Int,
   override def acceptResult(job: Job): Unit = {
     synchronized(jobs -= 1)
 
-    logger.info(s"[U\t$id] Result for ${job.id}")
+    logger.info(s"[U\t$id] Result for ${job.id} $jobs left")
 //    println(s"[U\t$id] Result for ${job.id}")
 
 

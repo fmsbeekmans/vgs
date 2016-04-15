@@ -102,9 +102,13 @@ class ResourceManager(val id: Int,
   override def orderWork(order: WorkOrder): Unit = ifOnline {
     val work = order.work
     val monitorId = order.monitorId
+    registerMonitor(work, monitorId)
 
     requestBackUp(work, monitorId) foreach {
-      case None => unregisterBackUp(work)
+      case None => {
+        unregisterMonitor(work)
+        unregisterBackUp(work)
+      }
       case Some(_) => {
         if (online) {
           logger.info(s"[RM\t${id}] received back up for job ${work.job.id}")

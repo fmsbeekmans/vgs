@@ -62,3 +62,5 @@ fabric.properties
 ### Intellij Patch ###
 *.iml
 .idea/
+
+log

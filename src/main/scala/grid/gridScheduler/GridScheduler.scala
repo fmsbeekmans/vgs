@@ -12,6 +12,7 @@ import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 
 import collection.mutable._
+import scala.util.Try
 import scala.util.control.NonFatal
 
 class GridScheduler(val id: Int,
@@ -85,14 +86,14 @@ class GridScheduler(val id: Int,
     registerMonitor(req.work, req.rmId)
   }
 
-  def registerMonitor(work: WorkRequest, rmId: Int): Unit = {
+  def registerMonitor(work: WorkRequest, rmId: Int): Unit = synchronized {
     monitoringForRm.put(work, rmId)
     monitoringPerRm(rmId) += work
   }
 
-  def unregisterMonitor(work: WorkRequest): Unit = {
-    monitoringPerRm(monitoringForRm(work)) - work
-    monitoringForRm -= work
+  def unregisterMonitor(work: WorkRequest): Unit = synchronized {
+    Try { monitoringPerRm(monitoringForRm(work)) - work }
+    Try { monitoringForRm -= work }
   }
 
 
@@ -106,15 +107,15 @@ class GridScheduler(val id: Int,
     registerBackUp(req.work, req.rmId, req.monitorId)
   }
 
-  def registerBackUp(work: WorkRequest, rmId: Int, monitorId: Int): Unit = {
-    backUpForRm.put(work, rmId)
-    backUpPerRm(rmId) += work
+  def registerBackUp(work: WorkRequest, rmId: Int, monitorId: Int): Unit = synchronized {
+    Try { backUpForRm.put(work, rmId) }
+    Try { backUpPerRm(rmId) += work }
 
-    backUpForGs.put(work, monitorId)
-    backUpPerGs(monitorId) += work
+    Try { backUpForGs.put(work, monitorId) }
+    Try { backUpPerGs(monitorId) += work }
   }
 
-  def unregisterBackUp(work: WorkRequest): Unit = {
+  def unregisterBackUp(work: WorkRequest): Unit = synchronized {
     backUpPerRm(backUpForRm(work)) -= work
     backUpForRm - work
 
@@ -134,20 +135,27 @@ class GridScheduler(val id: Int,
   }
 
   rmRepo.onOffline(rmId => {
-    logger.info(s"[GS\t${id}] recovering monitored jobs")
-    monitoringPerRm.synchronized(monitoringPerRm(rmId)).foreach(work => {
-      rmRepo.invokeOnEntity((rm, newRmId) => {
-        unregisterMonitor(work)
-        val workOrder = WorkOrder(work, newRmId)
+    logger.info(s"[GS\t${id}] recovering monitored jobs [${monitoringPerRm(rmId).map(_.job.id)}]")
+    logger.info(s"[${rmRepo.onlineIds()}]")
 
-        try {
-          rm.orderWork(workOrder)
-        } catch {
-          case NonFatal(e) =>
-        }
+    synchronized {
+      monitoringPerRm(rmId).foreach(work => {
+        logger.info(s"[GS\t${id}] rescheduling jobs ${work.job.id} on $rmId")
 
-      }, InvertedRandomWeighedSelector)
-    })
+        rmRepo.invokeOnEntity((rm, newRmId) => {
+          unregisterMonitor(work)
+          val workOrder = WorkOrder(work, newRmId)
+
+          try {
+            rm.orderWork(workOrder)
+            registerMonitor(work, newRmId)
+          } catch {
+            case NonFatal(e) =>
+          }
+
+        }, InvertedRandomWeighedSelector)
+      })
+    }
   })
 
   @throws(classOf[RemoteException])

@@ -75,10 +75,12 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
 
   def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = synchronized {
     var result: Option[(R, Int)] = None
-    val afterExclude = load.filter(idAndWeight => !excludeIds.contains(idAndWeight._1)).toMap
+    val afterExclude = load.filter(idAndWeight => onlineIds.contains(idAndWeight._1) && !excludeIds.contains(idAndWeight._1)).toMap
+
+//    println(s"Chosing from ${afterExclude}")
 
     breakable {
-      while (onlineIds.nonEmpty) {
+      while ((onlineIds.diff(excludeIds)).nonEmpty) {
         result = for {
           id <- selector.selectIndex(afterExclude)
           entity <- getEntity(id)
