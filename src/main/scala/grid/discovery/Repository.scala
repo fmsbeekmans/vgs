@@ -13,6 +13,8 @@ import scala.util.control.Breaks._
 
 class Repository[T <: Addressable](registry: collection.immutable.Map[Int, String]) {
 
+  private var silent = false
+
   private val isOnline: Map[Int, Boolean] = Map()
   val load: Map[Int, Long] = Map()
 
@@ -35,13 +37,17 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
 
     isOnline.put(id, online)
 
-    if(oldState != newState) {
-      if(!newState) {
-        // went offline
-        offlineCallbacks.foreach(f => f(id))
-      } else {
-        // went online
-        onlineCallbacks.foreach(f => f(id))
+    synchronized {
+      if (!silent && oldState != newState) {
+        silent = true
+        if (!newState) {
+          // went offline
+          offlineCallbacks.foreach(f => f(id))
+        } else {
+          // went online
+          onlineCallbacks.foreach(f => f(id))
+        }
+        silent = false
       }
     }
   }
@@ -76,8 +82,6 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
   def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = synchronized {
     var result: Option[(R, Int)] = None
     val afterExclude = load.filter(idAndWeight => onlineIds.contains(idAndWeight._1) && !excludeIds.contains(idAndWeight._1)).toMap
-
-//    println(s"Chosing from ${afterExclude}")
 
     breakable {
       while ((onlineIds.diff(excludeIds)).nonEmpty) {
