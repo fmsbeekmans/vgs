@@ -129,7 +129,7 @@ class GridScheduler(val id: Int,
   }
 
   override def promote(req: PromoteRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] promoting to primary ${req.work.job.id}")
+    logger.info(s"[GS\t${id}] promoting to primary for job ${req.work.job.id}")
     unregisterBackUp(req.work)
     registerMonitor(req.work, req.rmId)
   }

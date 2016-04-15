@@ -124,6 +124,7 @@ class ResourceManager(val id: Int,
     logger.info(s"[RM\t${id}] received job ${work.job.id}")
 
     requestMonitoringAndBackUp(work).foreach(_ => if(online) {
+      queue.synchronized(queue.enqueue(work))
       processQueue()
     })
   }
@@ -208,22 +209,21 @@ class ResourceManager(val id: Int,
     }
   }
 
-  def requestPromotion(work: WorkRequest): Future[Boolean] = ifOnline {
+  def requestPromotion(work: WorkRequest, backUpId: Int): Future[Boolean] = ifOnline {
     Future {
-      synchronized {
-        val backUpId = backUp(work)
-        blocking {
-          val result = gsRepo.getEntity(backUpId).map { newMonitor =>
-            newMonitor.promote(PromoteRequest(work, backUpId))
-          }
-
-          if(result.isDefined) {
-            unregisterBackUp(work)
-            registerMonitor(work, backUpId)
-          }
-
-          result.isDefined
+      val result = blocking {
+        gsRepo.getEntity(backUpId).map { newMonitor =>
+          newMonitor.promote(PromoteRequest(work, backUpId))
         }
+      }
+
+      synchronized {
+        if(result.isDefined) {
+          unregisterBackUp(work)
+          registerMonitor(work, backUpId)
+        }
+
+        result.isDefined
       }
     }
   }
@@ -278,17 +278,45 @@ class ResourceManager(val id: Int,
     }
   }
 
-  gsRepo.onOffline(gsId => {
+  gsRepo.onOffline(gsId => synchronized {
     val restoreMonitor = monitoredBy(gsId).clone()
+    logger.info(s"[RM\t${id}] Restoring monitors")
 
     restoreMonitor.foreach(work => {
-      val monitorId = monitor(work)
+      val backUpId = backUp(work)
 
-      requestPromotion(work) foreach { promoted =>
-        if(!promoted) requestMonitoringAndBackUp(work)
+      val monitorId = monitor(work)
+      // try to promote backup
+      requestPromotion(work, backUpId) foreach { promoted =>
+        if(promoted) {
+          requestBackUp(work, backUpId)
+        } else {
+          logger.info(s"[RM\t${id}] do both for job ${work.job.id}")
+          // if fails create new monitor and backup
+          unregisterMonitor(work)
+          unregisterBackUp(work)
+          requestMonitoringAndBackUp(work)
+        }
       }
     })
 
+    logger.info(s"[RM\t${id}] Restoring backUps")
+    val restoreBackUp = backedUpBy(gsId).clone()
+
+    restoreBackUp.foreach { work =>
+      val monitorId = monitor(work)
+
+      // does the monitor still respond?
+      if(gsRepo.checkStatus(monitorId)) {
+        // yes -> new backup
+        unregisterBackUp(work)
+        requestBackUp(work, monitorId)
+      } else {
+        unregisterBackUp(work)
+        unregisterMonitor(work)
+        requestMonitoringAndBackUp(work)
+      }
+    }
   })
 
   @throws(classOf[RemoteException])

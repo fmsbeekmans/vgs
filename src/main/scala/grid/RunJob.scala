@@ -24,6 +24,18 @@ object RunJob extends App {
     gsRepo
   )
 
+  val gs2 = new GridScheduler(
+    2,
+    rmRepo,
+    gsRepo
+  )
+
+  val gs3 = new GridScheduler(
+    3,
+    rmRepo,
+    gsRepo
+  )
+
   val rm0 = new ResourceManager(
     0,
     10000,
@@ -46,9 +58,10 @@ object RunJob extends App {
     rmRepo
   )
 
-  Future { user.createJobs(0, 10000, 10000) }
+  Future { user.createJobs(0, 200, 10000) }
 
-  Thread.sleep(8000)
+  Thread.sleep(5000)
 
-  rm0.shutDown()
+  gs0.shutDown()
+  gs1.shutDown()
 }
