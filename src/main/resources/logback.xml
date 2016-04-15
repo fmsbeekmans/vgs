@@ -10,7 +10,7 @@
         <file>log</file>
         <append>false</append>
         <encoder>
-            <pattern>[%thread] %msg%n</pattern>
+            <pattern>%msg%n</pattern>
         </encoder>
     </appender>
 
