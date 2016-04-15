@@ -13,5 +13,8 @@ trait IUser extends Addressable {
   def createJobs(rmId: Int, n: Int, ms: Int): Unit
 
   @throws(classOf[RemoteException])
+  def acceptJob(job: Job): Unit
+
+  @throws(classOf[RemoteException])
   def acceptResult(job: Job): Unit
 }

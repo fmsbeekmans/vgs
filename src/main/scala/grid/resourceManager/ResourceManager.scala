@@ -41,7 +41,7 @@ class ResourceManager(val id: Int,
   var load = 0
 
   implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutorService(
-    Executors.newWorkStealingPool(64)
+    Executors.newWorkStealingPool(128)
   )
 
   RmiServer.register(this)
@@ -49,7 +49,7 @@ class ResourceManager(val id: Int,
   start()
 
   def start(): Unit = synchronized {
-    timer = Executors.newScheduledThreadPool(16)
+    timer = Executors.newScheduledThreadPool(8)
 
     queue = Queue()
     idleNodes = Queue()
@@ -105,13 +105,13 @@ class ResourceManager(val id: Int,
     registerMonitor(work, monitorId)
 
     requestBackUp(work, monitorId) foreach {
-      case None => {
+      case None => synchronized {
         unregisterMonitor(work)
         unregisterBackUp(work)
       }
       case Some(_) => {
         if (online) {
-          logger.info(s"[RM\t${id}] received back up for job ${work.job.id}")
+          logger.info(s"[RM\t${id}] received work order for job ${work.job.id}")
           queue.synchronized(queue.enqueue(work))
           processQueue()
         }
@@ -123,24 +123,9 @@ class ResourceManager(val id: Int,
   override def offerWork(work: WorkRequest): Unit = ifOnline {
     logger.info(s"[RM\t${id}] received job ${work.job.id}")
 
-    requestMonitor(work).foreach {
-      case None => unregisterMonitor(work)
-      case Some(monitorId) => {
-        if (online) {
-          logger.info(s"[RM\t${id}] received monitor for job ${work.job.id}")
-          requestBackUp(work, monitorId) foreach {
-            case None => unregisterBackUp(work)
-            case Some(_) => {
-              if (online) {
-                logger.info(s"[RM\t${id}] received back up for job ${work.job.id}")
-                queue.synchronized(queue.enqueue(work))
-                processQueue()
-              }
-            }
-          }
-        }
-      }
-    }
+    requestMonitoringAndBackUp(work).foreach(_ => if(online) {
+      processQueue()
+    })
   }
 
   def requestMonitor(work: WorkRequest): Future[Option[Int]] = ifOnline {
@@ -201,6 +186,26 @@ class ResourceManager(val id: Int,
   def unregisterBackUp(work: WorkRequest): Unit = synchronized {
     Try { backedUpBy(backUp(work)) -= work }
     Try { backUp -= work }
+  }
+
+  def requestMonitoringAndBackUp(work: WorkRequest): Future[Option[(Int, Int)]] = ifOnline {
+    requestMonitor(work) flatMap {
+      case Some(monitorId) if online => {
+        requestBackUp(work, monitorId) map {
+          case Some(backUpId) if online => Some((monitorId, backUpId))
+          case _ => {
+            unregisterMonitor(work)
+            unregisterBackUp(work)
+
+            None
+          }
+        }
+      }
+      case _ => {
+        unregisterMonitor(work)
+        Future { None }
+      }
+    }
   }
 
   @throws(classOf[RemoteException])

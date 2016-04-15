@@ -98,8 +98,8 @@ class GridScheduler(val id: Int,
 
 
   override def releaseMonitor(work: WorkRequest): Unit = ifOnline {
-      logger.info(s"[GS\t${id}] releasing monitoring for job ${work.job.id}")
-      unregisterMonitor(work)
+    logger.info(s"[GS\t${id}] releasing monitoring for job ${work.job.id}")
+    unregisterMonitor(work)
   }
 
   override def backUp(req: BackUpRequest): Unit = ifOnline {
@@ -108,19 +108,19 @@ class GridScheduler(val id: Int,
   }
 
   def registerBackUp(work: WorkRequest, rmId: Int, monitorId: Int): Unit = synchronized {
-    Try { backUpForRm.put(work, rmId) }
-    Try { backUpPerRm(rmId) += work }
+    backUpForRm.put(work, rmId)
+    backUpPerRm(rmId) += work
 
-    Try { backUpForGs.put(work, monitorId) }
-    Try { backUpPerGs(monitorId) += work }
+    backUpForGs.put(work, monitorId)
+    backUpPerGs(monitorId) += work
   }
 
   def unregisterBackUp(work: WorkRequest): Unit = synchronized {
-    backUpPerRm(backUpForRm(work)) -= work
-    backUpForRm -= work
+    Try { backUpPerRm(backUpForRm(work)) -= work }
+    Try { backUpForRm -= work }
 
-    backUpPerGs(backUpForGs(work)) -= work
-    backUpForGs -= work
+    Try { backUpPerGs(backUpForGs(work)) -= work }
+    Try { backUpForGs -= work }
   }
 
   override def releaseBackUp(work: WorkRequest): Unit = ifOnline {
@@ -135,10 +135,11 @@ class GridScheduler(val id: Int,
   }
 
   rmRepo.onOffline(rmId => {
-    logger.info(s"[GS\t${id}] recovering monitored jobs")
+    logger.info(s"[GS\t${id}] recovering monitored ${monitoringPerRm(rmId).size} jobs")
 
     synchronized {
-      monitoringPerRm(rmId).foreach(work => {
+      val jobsToReschedule = monitoringPerRm(rmId).clone()
+      jobsToReschedule.foreach(work => {
         logger.info(s"[GS\t${id}] rescheduling jobs ${work.job.id} on $rmId")
 
         rmRepo.invokeOnEntity((rm, newRmId) => {

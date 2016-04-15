@@ -11,6 +11,7 @@ import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 
 import scala.collection.mutable._
+import scala.concurrent.Promise
 import scala.util.Random
 
 class User(val id: Int,
@@ -21,6 +22,7 @@ class User(val id: Int,
 
   var jobs = 0
   val pendingJobs: Set[Job] = Set()
+  val offeredJobs: Map[Job, Promise[Unit]] = Map()
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
@@ -28,14 +30,24 @@ class User(val id: Int,
 
     for { i <- 0 until n }{
       rmRepo.getEntity(rmId).foreach(rm => {
-        val job = Job(i, rmId, Random.nextInt(ms * 2))
+        synchronized {
+          val job = Job(i, rmId, Random.nextInt(ms * 2))
+//          val promise = Promise[Unit]
+//          promise.future
 
-        pendingJobs.synchronized(pendingJobs += job)
+          pendingJobs += job
+//          offeredJobs.put(job, )
 
-        val req = WorkRequest(job, id)
-        rm.offerWork(req)
+          val req = WorkRequest(job, id)
+          rm.offerWork(req)
+        }
       })
     }
+  }
+
+  @throws(classOf[RemoteException])
+  override def acceptJob(job: Job): Unit = {
+
   }
 
   @throws(classOf[RemoteException])
