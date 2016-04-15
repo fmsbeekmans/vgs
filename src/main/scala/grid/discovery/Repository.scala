@@ -108,6 +108,14 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
   def onOffline(f: Int => Unit): Unit = synchronized {
     offlineCallbacks += f
   }
+
+  def checkStatus(of: Int): Boolean = {
+    Try {
+      Naming.lookup(url(of)).asInstanceOf[T]
+    }.flatMap { entity =>
+      Try { entity.ping() }
+    }.toOption.isDefined
+  }
 }
 
 object Repository {
