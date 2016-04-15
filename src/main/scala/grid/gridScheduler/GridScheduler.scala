@@ -57,6 +57,8 @@ class GridScheduler(val id: Int,
     rmPinger.start()
 
     online = true
+
+    logger.info(s"[GS\t${id}] Online")
   }
 
   override def shutDown(): Unit = synchronized {
@@ -79,10 +81,12 @@ class GridScheduler(val id: Int,
     rmPinger.stop()
 
     online = false
+
+    logger.info(s"[GS\t${id}] Offline")
   }
 
   override def monitor(req: MonitorRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] monitoring job ${req.work.job.id}")
+    logger.info(s"[GS\t${id}] Monitoring job ${req.work.job.id}")
     registerMonitor(req.work, req.rmId)
   }
 
@@ -98,12 +102,12 @@ class GridScheduler(val id: Int,
 
 
   override def releaseMonitor(work: WorkRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] releasing monitoring for job ${work.job.id}")
+    logger.info(s"[GS\t${id}] Releasing monitoring for job ${work.job.id}")
     unregisterMonitor(work)
   }
 
   override def backUp(req: BackUpRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] backing up job ${req.work.job.id}")
+    logger.info(s"[GS\t${id}] Backing up job ${req.work.job.id}")
     registerBackUp(req.work, req.rmId, req.monitorId)
   }
 
@@ -124,23 +128,23 @@ class GridScheduler(val id: Int,
   }
 
   override def releaseBackUp(work: WorkRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] releasing back up for job ${work.job.id}")
+    logger.info(s"[GS\t${id}] Releasing back up for job ${work.job.id}")
     unregisterBackUp(work)
   }
 
   override def promote(req: PromoteRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] promoting to primary for job ${req.work.job.id}")
+    logger.info(s"[GS\t${id}] Promoting to primary for job ${req.work.job.id}")
     unregisterBackUp(req.work)
     registerMonitor(req.work, req.rmId)
   }
 
   rmRepo.onOffline(rmId => {
-    logger.info(s"[GS\t${id}] recovering monitored ${monitoringPerRm(rmId).size} jobs")
+    logger.info(s"[GS\t${id}] Recovering monitored jobs")
 
     synchronized {
       val jobsToReschedule = monitoringPerRm(rmId).clone()
       jobsToReschedule.foreach(work => {
-        logger.info(s"[GS\t${id}] rescheduling jobs ${work.job.id} on $rmId")
+        logger.info(s"[GS\t${id}] Rescheduling jobs ${work.job.id}")
 
         rmRepo.invokeOnEntity((rm, newRmId) => {
           unregisterMonitor(work)
@@ -153,7 +157,36 @@ class GridScheduler(val id: Int,
             case NonFatal(e) =>
           }
 
-        }, InvertedRandomWeighedSelector)
+        }, InvertedRandomWeighedSelector, rmId)
+      })
+    }
+  })
+
+  gsRepo.onOffline(gsId => {
+    logger.info(s"[GS\t${id}] Backup status check")
+    synchronized {
+      val backUpJobs = backUpPerGs(gsId).clone
+
+      backUpJobs.foreach(work => {
+        val rmId = backUpForRm(work)
+
+        // check if rm is still running
+        if(!rmRepo.checkStatus(rmId)) {
+          // no -> monitor and reschedule, otherwise rm will take care of itself
+          logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
+          val reschedule = rmRepo.invokeOnEntity((rm, newRmId) => {
+            rm.orderWork(WorkOrder(work, newRmId))
+
+            newRmId
+          }, InvertedRandomWeighedSelector, rmId)
+
+          reschedule match {
+            case Some((_, newRmId)) => registerMonitor(work, newRmId)
+            case _ => {}
+          }
+
+        }
+
       })
     }
   })

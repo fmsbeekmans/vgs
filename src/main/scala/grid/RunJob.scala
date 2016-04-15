@@ -58,10 +58,9 @@ object RunJob extends App {
     rmRepo
   )
 
-  Future { user.createJobs(0, 200, 10000) }
+  Future { user.createJobs(0, 100, 3000) }
 
-  Thread.sleep(5000)
+  Thread.sleep(1000)
 
-  gs0.shutDown()
-  gs1.shutDown()
+  rm0.shutDown()
 }
