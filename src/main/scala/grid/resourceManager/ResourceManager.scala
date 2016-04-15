@@ -279,7 +279,16 @@ class ResourceManager(val id: Int,
   }
 
   gsRepo.onOffline(gsId => {
-    println(s"$gsId offline")
+    val restoreMonitor = monitoredBy(gsId).clone()
+
+    restoreMonitor.foreach(work => {
+      val monitorId = monitor(work)
+
+      requestPromotion(work) foreach { promoted =>
+        if(!promoted) requestMonitoringAndBackUp(work)
+      }
+    })
+
   })
 
   @throws(classOf[RemoteException])
