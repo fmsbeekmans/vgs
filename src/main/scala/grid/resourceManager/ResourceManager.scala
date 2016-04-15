@@ -10,7 +10,7 @@ import grid.cluster.{Pinger, RemoteShutDown}
 import grid.discovery.Repository
 import grid.discovery.Selector.WeighedRandomSelector
 import grid.gridScheduler.IGridScheduler
-import grid.messages.{BackUpRequest, MonitorRequest, WorkOrder, WorkRequest}
+import grid.messages._
 import grid.rmi.RmiServer
 import grid.user.IUser
 
@@ -204,6 +204,26 @@ class ResourceManager(val id: Int,
       case _ => {
         unregisterMonitor(work)
         Future { None }
+      }
+    }
+  }
+
+  def requestPromotion(work: WorkRequest): Future[Boolean] = ifOnline {
+    Future {
+      synchronized {
+        val backUpId = backUp(work)
+        blocking {
+          val result = gsRepo.getEntity(backUpId).map { newMonitor =>
+            newMonitor.promote(PromoteRequest(work, backUpId))
+          }
+
+          if(result.isDefined) {
+            unregisterBackUp(work)
+            registerMonitor(work, backUpId)
+          }
+
+          result.isDefined
+        }
       }
     }
   }
