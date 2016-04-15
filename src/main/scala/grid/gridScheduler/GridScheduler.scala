@@ -6,11 +6,13 @@ import java.rmi.server.UnicastRemoteObject
 import com.typesafe.scalalogging.LazyLogging
 import grid.cluster.{Pinger, RemoteShutDown}
 import grid.discovery.Repository
-import grid.messages.{BackUpRequest, MonitorRequest, PromoteRequest, WorkRequest}
+import grid.discovery.Selector.InvertedRandomWeighedSelector
+import grid.messages._
 import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 
 import collection.mutable._
+import scala.util.control.NonFatal
 
 class GridScheduler(val id: Int,
                     val rmRepo: Repository[IResourceManager],
@@ -85,12 +87,12 @@ class GridScheduler(val id: Int,
 
   def registerMonitor(work: WorkRequest, rmId: Int): Unit = {
     monitoringForRm.put(work, rmId)
-    monitoringPerRm(rmId) + work
+    monitoringPerRm(rmId) += work
   }
 
   def unregisterMonitor(work: WorkRequest): Unit = {
     monitoringPerRm(monitoringForRm(work)) - work
-    monitoringForRm - work
+    monitoringForRm -= work
   }
 
 
@@ -106,17 +108,17 @@ class GridScheduler(val id: Int,
 
   def registerBackUp(work: WorkRequest, rmId: Int, monitorId: Int): Unit = {
     backUpForRm.put(work, rmId)
-    backUpPerRm(rmId) + work
+    backUpPerRm(rmId) += work
 
     backUpForGs.put(work, monitorId)
-    backUpPerGs(monitorId) + work
+    backUpPerGs(monitorId) += work
   }
 
   def unregisterBackUp(work: WorkRequest): Unit = {
-    backUpPerRm(backUpForRm(work)) - work
+    backUpPerRm(backUpForRm(work)) -= work
     backUpForRm - work
 
-    backUpPerGs(backUpForGs(work)) - work
+    backUpPerGs(backUpForGs(work)) -= work
     backUpForGs - work
   }
 
@@ -131,8 +133,21 @@ class GridScheduler(val id: Int,
     registerMonitor(req.work, req.rmId)
   }
 
-  gsRepo.onOffline(gsId => {
-    println(s"$gsId offline")
+  rmRepo.onOffline(rmId => {
+    logger.info(s"[GS\t${id}] recovering monitored jobs")
+    monitoringPerRm.synchronized(monitoringPerRm(rmId)).foreach(work => {
+      rmRepo.invokeOnEntity((rm, newRmId) => {
+        unregisterMonitor(work)
+        val workOrder = WorkOrder(work, newRmId)
+
+        try {
+          rm.orderWork(workOrder)
+        } catch {
+          case NonFatal(e) =>
+        }
+
+      }, InvertedRandomWeighedSelector)
+    })
   })
 
   @throws(classOf[RemoteException])

@@ -27,8 +27,16 @@ object RunJob extends App {
     gsRepo
   )
 
-  val rm = new ResourceManager(
+  val rm0 = new ResourceManager(
     0,
+    1000000,
+    userRepo,
+    rmRepo,
+    gsRepo
+  )
+
+  val rm1 = new ResourceManager(
+    1,
     1000000,
     userRepo,
     rmRepo,
@@ -41,13 +49,11 @@ object RunJob extends App {
     rmRepo
   )
 
-  Future { user.createJobs(0, 20000, 200) }
+  Future { user.createJobs(0, 200, 200) }
 
-  Thread.sleep(100)
+  Thread.sleep(300)
 
-  gs0.shutDown()
-
-  gs0.registerMonitor(null, 0)
+  rm0.shutDown()
 
   def resourcePath(fileName: String): Path = {
     val url = getClass.getClassLoader.getResource(fileName)

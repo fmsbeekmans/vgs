@@ -94,15 +94,25 @@ class ResourceManager(val id: Int,
     pinger.stop()
 
     online = false
+
+    logger.info(s"[RM\t${id}] Offline")
   }
 
   @throws(classOf[RemoteException])
-  override def orderWork(req: WorkOrder): Unit = ifOnline {
-    //    implicit val gsExecutionService = gsExecutor
-    //    for {
-    //      monitor <- requestMonitor(req)
-    //      backUp <-
-    //    } yield monitor
+  override def orderWork(order: WorkOrder): Unit = ifOnline {
+    val work = order.work
+    val monitorId = order.monitorId
+
+    requestBackUp(work, monitorId) foreach {
+      case None => unregisterBackUp(work)
+      case Some(_) => {
+        if (online) {
+          logger.info(s"[RM\t${id}] received back up for job ${work.job.id}")
+          queue.synchronized(queue.enqueue(work))
+          processQueue()
+        }
+      }
+    }
   }
 
   @throws(classOf[RemoteException])
@@ -136,24 +146,27 @@ class ResourceManager(val id: Int,
           gs.monitor(MonitorRequest(work, id))
         }, WeighedRandomSelector)
       }
-      if (result.isDefined) registerMonitor(work, result.get._2)
 
-      if (online) {
-        result.map(_._2)
-      } else {
-        None
+      synchronized {
+        if (online && result.isDefined) registerMonitor(work, result.get._2)
+
+        if (online) {
+          result.map(_._2)
+        } else {
+          None
+        }
       }
     }
   }
 
   def registerMonitor(work: WorkRequest, monitorId: Int) = synchronized {
     monitor.put(work, monitorId)
-    monitoredBy(monitorId) + work
+    monitoredBy(monitorId) += work
   }
 
   def unregisterMonitor(work: WorkRequest): Unit = synchronized {
-    monitoredBy(monitor(work)) - work
-    monitor - work
+    Try { monitoredBy(monitor(work)) -= work }
+    Try { monitor -= work }
   }
 
   def requestBackUp(work: WorkRequest, monitorId: Int): Future[Option[Int]] = ifOnline {
@@ -178,12 +191,12 @@ class ResourceManager(val id: Int,
 
   def registerBackUp(work: WorkRequest, backUpId: Int) = synchronized {
     backUp.put(work, backUpId)
-    backedUpBy(backUpId) + work
+    backedUpBy(backUpId) += work
   }
 
   def unregisterBackUp(work: WorkRequest): Unit = synchronized {
-    backedUpBy(backUp(work)) - work
-    backUp - work
+    Try { backedUpBy(backUp(work)) -= work }
+    Try { backUp -= work }
   }
 
   @throws(classOf[RemoteException])
