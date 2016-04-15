@@ -20,6 +20,7 @@ class User(val id: Int,
   RmiServer.register(this)
 
   var jobs = 0
+  val pendingJobs: Set[Job] = Set()
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
@@ -29,6 +30,8 @@ class User(val id: Int,
       rmRepo.getEntity(rmId).foreach(rm => {
         val job = Job(i, rmId, Random.nextInt(ms * 2))
 
+        pendingJobs.synchronized(pendingJobs += job)
+
         val req = WorkRequest(job, id)
         rm.offerWork(req)
       })
@@ -37,16 +40,19 @@ class User(val id: Int,
 
   @throws(classOf[RemoteException])
   override def acceptResult(job: Job): Unit = {
-    synchronized(jobs -= 1)
+    pendingJobs.synchronized {
+      if(pendingJobs.contains(job)) {
+        synchronized(jobs -= 1)
+        pendingJobs -= job
 
-    logger.info(s"[U\t$id] Result for ${job.id} $jobs left")
-//    println(s"[U\t$id] Result for ${job.id}")
+        logger.info(s"[U\t$id] Result for ${job.id} $jobs left")
 
-
-    if(jobs == 0) {
-      logger.info(s"[U\t$id] Jobs completed")
-      logger.info(s"[U\t$id] Jobs completed")
-      System.exit(0)
+        if (jobs == 0) {
+          logger.info(s"[U\t$id] Jobs completed")
+          logger.info(s"[U\t$id] Jobs completed")
+          System.exit(0)
+        }
+      }
     }
   }
 
