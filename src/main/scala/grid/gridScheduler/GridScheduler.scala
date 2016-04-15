@@ -92,7 +92,7 @@ class GridScheduler(val id: Int,
   }
 
   def unregisterMonitor(work: WorkRequest): Unit = synchronized {
-    Try { monitoringPerRm(monitoringForRm(work)) - work }
+    Try { monitoringPerRm(monitoringForRm(work)) -= work }
     Try { monitoringForRm -= work }
   }
 
@@ -117,10 +117,10 @@ class GridScheduler(val id: Int,
 
   def unregisterBackUp(work: WorkRequest): Unit = synchronized {
     backUpPerRm(backUpForRm(work)) -= work
-    backUpForRm - work
+    backUpForRm -= work
 
     backUpPerGs(backUpForGs(work)) -= work
-    backUpForGs - work
+    backUpForGs -= work
   }
 
   override def releaseBackUp(work: WorkRequest): Unit = ifOnline {
