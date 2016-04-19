@@ -103,6 +103,7 @@ class ResourceManager(val id: Int,
     val work = order.work
     val monitorId = order.monitorId
     registerMonitor(work, monitorId)
+    logger.info(s"[RM\t${id}] received work order for job ${work.job.id}")
 
     requestBackUp(work, monitorId) foreach {
       case None => synchronized {
@@ -110,11 +111,7 @@ class ResourceManager(val id: Int,
         unregisterBackUp(work)
       }
       case Some(_) => {
-        if (online) {
-          logger.info(s"[RM\t${id}] received work order for job ${work.job.id}")
-          queue.synchronized(queue.enqueue(work))
-          processQueue()
-        }
+        if (online) { schedule(work) }
       }
     }
   }
@@ -123,10 +120,15 @@ class ResourceManager(val id: Int,
   override def offerWork(work: WorkRequest): Unit = ifOnline {
     logger.info(s"[RM\t${id}] received job ${work.job.id}")
 
-    requestMonitoringAndBackUp(work).foreach(_ => if(online) {
+    requestMonitoringAndBackUp(work).foreach(_ => if(online) { schedule(work) })
+  }
+
+  def schedule(work: WorkRequest): Unit = ifOnline {
+    synchronized {
       queue.synchronized(queue.enqueue(work))
+      load += work.job.ms
       processQueue()
-    })
+    }
   }
 
   def requestMonitor(work: WorkRequest): Future[Option[Int]] = ifOnline {
@@ -231,7 +233,7 @@ class ResourceManager(val id: Int,
   @throws(classOf[RemoteException])
   override def finish(work: WorkRequest, node: Node): Unit = ifOnline {
     logger.info(s"[RM\t${id}] finished executing job ${work.job.id}")
-
+    synchronized(load -= work.job.ms)
     idleNodes.synchronized(idleNodes.enqueue(node))
 
     processQueue()
