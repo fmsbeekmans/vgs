@@ -9,6 +9,7 @@ import grid.messages.WorkRequest
 import grid.model.Job
 import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable._
 import scala.concurrent.Promise
@@ -19,6 +20,8 @@ class User(val id: Int,
            val rmRepo: Repository[IResourceManager]) extends UnicastRemoteObject with IUser with LazyLogging {
 
   RmiServer.register(this)
+
+  val jobLog = LoggerFactory.getLogger("jobs")
 
   var jobs = 0
   val pendingJobs: Set[Job] = Set()
@@ -56,6 +59,9 @@ class User(val id: Int,
       if(pendingJobs.contains(job)) {
         synchronized(jobs -= 1)
         pendingJobs -= job
+
+        val now = System.currentTimeMillis()
+        jobLog.info(s"${job.id}, ${job.created}, $now, ${job.firstRmId}, ${job.otherRms.mkString(", ")}")
 
         logger.info(s"[U\t$id] Result for ${job.id} $jobs left")
 
