@@ -119,8 +119,13 @@ class ResourceManager(val id: Int,
   @throws(classOf[RemoteException])
   override def offerWork(work: WorkRequest): Unit = ifOnline {
     logger.info(s"[RM\t${id}] received job ${work.job.id}")
-
-    requestMonitoringAndBackUp(work).foreach(_ => if(online) { schedule(work) })
+    if(isFull) {
+      offLoad(work)
+    } else {
+      requestMonitoringAndBackUp(work).foreach(_ => if (online) {
+        schedule(work)
+      })
+    }
   }
 
   def schedule(work: WorkRequest): Unit = ifOnline {
@@ -135,7 +140,7 @@ class ResourceManager(val id: Int,
     queue.length > n
   }
 
-  def offload(work: WorkRequest): Unit = ifOnline {
+  def offLoad(work: WorkRequest): Unit = ifOnline {
     gsRepo.invokeOnEntity((gs, gsId) => {
       logger.info(s"[RM\t${id}] Offloading job ${work.job.id} through GS ${gsId}")
       gs.offLoad(OffLoadRequest(work))
