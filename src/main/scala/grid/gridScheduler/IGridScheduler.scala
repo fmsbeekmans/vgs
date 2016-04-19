@@ -16,6 +16,10 @@ trait IGridScheduler extends Addressable with RemoteShutDown {
   @throws(classOf[RemoteException])
   def promote(req: PromoteRequest): Unit
 
+
+  @throws(classOf[RemoteException])
+  def offLoad(req: OffLoadRequest): Unit
+
   @throws(classOf[RemoteException])
   def releaseMonitor(req: WorkRequest): Unit
 

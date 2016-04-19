@@ -138,6 +138,13 @@ class GridScheduler(val id: Int,
     registerMonitor(req.work, req.rmId)
   }
 
+  override def offLoad(req: OffLoadRequest): Unit = ifOnline {
+    rmRepo.invokeOnEntity((rm, rmId) => {
+      logger.info(s"[GS\t${id}] Offloading job ${req.work.job.id} to rm ${rmId}")
+      rm.orderWork(WorkOrder(req.work, id))
+    }, InvertedRandomWeighedSelector)
+  }
+
   rmRepo.onOffline(rmId => {
     logger.info(s"[GS\t${id}] Recovering monitored jobs")
 

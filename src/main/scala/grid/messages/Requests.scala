@@ -20,3 +20,5 @@ case class BackUpRequest(work: WorkRequest, rmId: Int, monitorId: Int) extends S
 @SerialVersionUID(5L)
 case class PromoteRequest(work: WorkRequest, rmId: Int) extends Serializable
 
+@SerialVersionUID(6L)
+case class OffLoadRequest(work: WorkRequest) extends Serializable
