@@ -9,7 +9,7 @@ object GridBuild extends Build {
   lazy val gridApp = Project(
     id = "vgs",
     base = file("./"),
-    settings = commonSettings ++ Seq(
+    settings = commonSettings ++ assemblySettings ++ Seq(
       mainClass in assembly := Some("grid.main"),
       libraryDependencies ++= loggingDeps ++ testDeps
     )
@@ -17,9 +17,14 @@ object GridBuild extends Build {
 
 
 
+
   lazy val commonSettings = Seq(
     organization := "santiagoAndFerdy",
     version := "1.0.0",
     scalaVersion := "2.11.7"
+  )
+
+  lazy val assemblySettings = Seq(
+    target in assembly := file("out/")
   )
 }
