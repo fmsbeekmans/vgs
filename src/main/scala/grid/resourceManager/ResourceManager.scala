@@ -8,7 +8,7 @@ import java.util.concurrent.{Executors, ScheduledExecutorService}
 import com.typesafe.scalalogging.LazyLogging
 import grid.cluster.{Pinger, RemoteShutDown}
 import grid.discovery.Repository
-import grid.discovery.Selector.WeighedRandomSelector
+import grid.discovery.Selector.{InvertedRandomWeighedSelector, WeighedRandomSelector}
 import grid.gridScheduler.IGridScheduler
 import grid.messages._
 import grid.rmi.RmiServer
@@ -129,6 +129,17 @@ class ResourceManager(val id: Int,
       load += work.job.ms
       processQueue()
     }
+  }
+
+  def isFull(): Boolean = synchronized {
+    queue.length > n
+  }
+
+  def offload(work: WorkRequest): Unit = ifOnline {
+    gsRepo.invokeOnEntity((gs, gsId) => {
+      logger.info(s"[RM\t${id}] Offloading job ${work.job.id} through GS ${gsId}")
+      gs.offLoad(OffLoadRequest(work))
+    }, InvertedRandomWeighedSelector)
   }
 
   def requestMonitor(work: WorkRequest): Future[Option[Int]] = ifOnline {
