@@ -38,7 +38,7 @@ object RunJob extends App {
 
   val rm0 = new ResourceManager(
     0,
-    10000,
+    10,
     userRepo,
     rmRepo,
     gsRepo
@@ -46,7 +46,7 @@ object RunJob extends App {
 
   val rm1 = new ResourceManager(
     1,
-    10000,
+    10,
     userRepo,
     rmRepo,
     gsRepo
@@ -59,8 +59,4 @@ object RunJob extends App {
   )
 
   Future { user.createJobs(0, 100, 3000) }
-
-  Thread.sleep(1000)
-
-  rm0.shutDown()
 }

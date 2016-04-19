@@ -6,7 +6,7 @@ import java.rmi.server.UnicastRemoteObject
 import com.typesafe.scalalogging.LazyLogging
 import grid.discovery.Repository
 import grid.messages.WorkRequest
-import grid.model.Job
+import grid.model.{IDGen, Job}
 import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 import org.slf4j.LoggerFactory
@@ -34,7 +34,7 @@ class User(val id: Int,
     for { i <- 0 until n }{
       rmRepo.getEntity(rmId).foreach(rm => {
         synchronized {
-          val job = Job(i, rmId, Random.nextInt(ms * 2))
+          val job = Job(IDGen.genId(), rmId, Random.nextInt(ms * 2))
 //          val promise = Promise[Unit]
 //          promise.future
 

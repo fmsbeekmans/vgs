@@ -13,3 +13,15 @@ case class Job(id: Int, firstRmId: Int, ms: Int, otherRms: Seq[Int] = List()) ex
     }
   }
 }
+
+object IDGen {
+  var i = 0;
+
+  def genId(): Int = synchronized {
+    val id = i
+
+    i += 1
+
+    id
+  }
+}
