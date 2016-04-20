@@ -141,7 +141,7 @@ class GridScheduler(val id: Int,
   override def offLoad(req: OffLoadRequest): Unit = ifOnline {
     rmRepo.invokeOnEntity((rm, rmId) => {
       logger.info(s"[GS\t${id}] Offloading job ${req.work.job.id} to rm ${rmId}")
-      rm.orderWork(WorkOrder(req.work, id))
+      rm.orderWork(WorkOrder(req.work, id), true)
     }, InvertedRandomWeighedSelector)
   }
 
@@ -158,7 +158,7 @@ class GridScheduler(val id: Int,
           val workOrder = WorkOrder(work, newRmId)
 
           try {
-            rm.orderWork(workOrder)
+            rm.orderWork(workOrder, false)
             registerMonitor(work, newRmId)
           } catch {
             case NonFatal(e) =>
@@ -182,7 +182,7 @@ class GridScheduler(val id: Int,
           // no -> monitor and reschedule, otherwise rm will take care of itself
           logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
           val reschedule = rmRepo.invokeOnEntity((rm, newRmId) => {
-            rm.orderWork(WorkOrder(work, newRmId))
+            rm.orderWork(WorkOrder(work, newRmId), false)
 
             newRmId
           }, InvertedRandomWeighedSelector, rmId)

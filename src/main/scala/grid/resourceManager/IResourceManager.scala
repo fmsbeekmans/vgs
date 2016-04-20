@@ -12,7 +12,7 @@ trait IResourceManager extends Addressable with RemoteShutDown {
   def offerWork(work: WorkRequest) {}
 
   @throws(classOf[RemoteException])
-  def orderWork(work: WorkOrder)
+  def orderWork(work: WorkOrder, ack: Boolean)
 
   @throws(classOf[RemoteException])
   def finish(work: WorkRequest, worker: Node)

@@ -99,7 +99,7 @@ class ResourceManager(val id: Int,
   }
 
   @throws(classOf[RemoteException])
-  override def orderWork(order: WorkOrder): Unit = ifOnline {
+  override def orderWork(order: WorkOrder, ack: Boolean): Unit = ifOnline {
     val work = order.work
     val monitorId = order.monitorId
     registerMonitor(work, monitorId)
@@ -111,7 +111,20 @@ class ResourceManager(val id: Int,
         unregisterBackUp(work)
       }
       case Some(_) => {
-        if (online) { schedule(work) }
+        if (online) {
+          if (ack) {
+            userRepo.getEntity(work.userId).foreach { u =>
+              synchronized {
+                if (online) {
+                  u.acceptJob(work.job)
+                  schedule(work)
+                }
+              }
+            }
+          } else {
+            schedule(work)
+          }
+        }
       }
     }
   }
@@ -122,9 +135,18 @@ class ResourceManager(val id: Int,
     if(isFull) {
       offLoad(work)
     } else {
-      requestMonitoringAndBackUp(work).foreach(_ => if (online) {
-        schedule(work)
-      })
+      requestMonitoringAndBackUp(work).foreach(_ =>
+        if(online) {
+          userRepo.getEntity(work.userId).foreach { u =>
+            synchronized {
+              if (online) {
+                u.acceptJob(work.job)
+                schedule(work)
+              }
+            }
+          }
+        }
+      )
     }
   }
 
@@ -156,9 +178,9 @@ class ResourceManager(val id: Int,
       }
 
       synchronized {
-        if (online && result.isDefined) registerMonitor(work, result.get._2)
+        if (result.isDefined) {
+          registerMonitor(work, result.get._2)
 
-        if (online) {
           result.map(_._2)
         } else {
           None
@@ -186,9 +208,9 @@ class ResourceManager(val id: Int,
       }
 
       synchronized {
-        if (online && result.isDefined) registerBackUp(work, result.get._2)
+        if (result.isDefined) {
+          registerBackUp(work, result.get._2)
 
-        if (online) {
           result.map(_._2)
         } else {
           None

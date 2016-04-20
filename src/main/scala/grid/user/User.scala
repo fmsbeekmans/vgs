@@ -23,33 +23,24 @@ class User(val id: Int,
 
   val jobLog = LoggerFactory.getLogger("jobs")
 
-  var jobs = 0
   val pendingJobs: Set[Job] = Set()
   val offeredJobs: Map[Job, Promise[Unit]] = Map()
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
-    jobs += n
-
     for { i <- 0 until n }{
       rmRepo.getEntity(rmId).foreach(rm => {
-        synchronized {
-          val job = Job(IDGen.genId(), rmId, Random.nextInt(ms * 2))
-//          val promise = Promise[Unit]
-//          promise.future
+        val job = Job(IDGen.genId(), rmId, Random.nextInt(ms * 2))
 
-          pendingJobs += job
-//          offeredJobs.put(job, )
-
-          val req = WorkRequest(job, id)
-          rm.offerWork(req)
-        }
+        val req = WorkRequest(job, id)
+        rm.offerWork(req)
       })
     }
   }
 
   @throws(classOf[RemoteException])
   override def acceptJob(job: Job): Unit = {
+    pendingJobs.synchronized(pendingJobs += job)
 
   }
 
@@ -57,18 +48,15 @@ class User(val id: Int,
   override def acceptResult(job: Job): Unit = {
     pendingJobs.synchronized {
       if(pendingJobs.contains(job)) {
-        synchronized(jobs -= 1)
         pendingJobs -= job
 
         val now = System.currentTimeMillis()
         jobLog.info(s"${job.id}, ${job.created}, $now, ${job.firstRmId}, ${job.otherRms.mkString(", ")}")
 
-        logger.info(s"[U\t$id] Result for ${job.id} $jobs left")
+        logger.info(s"[U\t$id] Result for ${job.id} ${pendingJobs.size} left")
 
-        if (jobs == 0) {
+        if (pendingJobs.isEmpty) {
           logger.info(s"[U\t$id] Jobs completed")
-          logger.info(s"[U\t$id] Jobs completed")
-          System.exit(0)
         }
       }
     }
