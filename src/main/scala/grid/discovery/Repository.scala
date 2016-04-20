@@ -1,5 +1,7 @@
 package grid.discovery
 
+import java.io.File
+
 import collection.mutable._
 import java.nio.file.{Files, Path, Paths}
 import java.rmi.Naming
@@ -119,11 +121,8 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
 }
 
 object Repository {
-  def fromFile[T <: Addressable](path: Path): Repository[T] = {
-
-
-    val inStream = Files.newInputStream(path)
-    val scanner = new Scanner(inStream)
+  def fromFile[T <: Addressable](fileName: String): Repository[T] = {
+    val scanner = new Scanner(new File(fileName))
 
     val registry: Map[Int, String] = Map()
 
@@ -138,22 +137,15 @@ object Repository {
   }
 
 
-  val gsRepo = {
-    Repository.fromFile[IGridScheduler](resourcePath("gss"))
+  def gsRepo(fileName: String) = {
+    Repository.fromFile[IGridScheduler](fileName)
   }
 
-  val rmRepo = {
-    println("repo")
-    Repository.fromFile[IResourceManager](resourcePath("rms"))
+  def rmRepo(fileName: String) = {
+    Repository.fromFile[IResourceManager](fileName)
   }
 
-  val userRepo = {
-    Repository.fromFile[IUser](resourcePath("users"))
-  }
-
-
-  def resourcePath(fileName: String): Path = {
-    val url = getClass.getClassLoader.getResource(fileName)
-    Paths.get(url.toURI)
+  def userRepo(fileName: String) = {
+    Repository.fromFile[IUser](fileName)
   }
 }

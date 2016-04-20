@@ -12,8 +12,7 @@ import grid.rmi.RmiServer
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable._
-import scala.concurrent.Promise
-import scala.util.Random
+import scala.util.{Random, Try}
 
 class User(val id: Int,
            val userRepo: Repository[IUser],
@@ -24,7 +23,6 @@ class User(val id: Int,
   val jobLog = LoggerFactory.getLogger("jobs")
 
   val pendingJobs: Set[Job] = Set()
-  val offeredJobs: Map[Job, Promise[Unit]] = Map()
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
@@ -33,15 +31,15 @@ class User(val id: Int,
         val job = Job(IDGen.genId(), rmId, Random.nextInt(ms * 2))
 
         val req = WorkRequest(job, id)
-        rm.offerWork(req)
+
+        synchronized(pendingJobs += job)
+        Try { rm.offerWork(req) }
       })
     }
   }
 
   @throws(classOf[RemoteException])
   override def acceptJob(job: Job): Unit = {
-    pendingJobs.synchronized(pendingJobs += job)
-
   }
 
   @throws(classOf[RemoteException])
@@ -50,14 +48,10 @@ class User(val id: Int,
       if(pendingJobs.contains(job)) {
         pendingJobs -= job
 
+        logger.info(s"[U\t${id}] Result for job ${job.id}")
+
         val now = System.currentTimeMillis()
         jobLog.info(s"${job.id}, ${job.created}, $now, ${job.firstRmId}, ${job.otherRms.mkString(", ")}")
-
-        logger.info(s"[U\t$id] Result for ${job.id} ${pendingJobs.size} left")
-
-        if (pendingJobs.isEmpty) {
-          logger.info(s"[U\t$id] Jobs completed")
-        }
       }
     }
   }

@@ -6,9 +6,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable._
 import scala.util.Random
 
-class CrashSimulator(val meanTimeToCrash: Int, val meanCrashDuration: Int) {
-  val timer: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
-
+class CrashSimulator(val meanTimeToCrash: Int, val meanCrashDuration: Int, val timer: ScheduledExecutorService) {
   def simulateCrashes(canCrash: RemoteShutDown): Unit = {
     timer.schedule(new Runnable {
       override def run(): Unit = {
