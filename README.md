@@ -5,11 +5,11 @@ The virtual grid scheduler
 Launch with a manifest file as argument.
 
 This file consists of:
-grid scheduler ids to start
-resource manager ids to start
-users to start
-nodes per cluster
-repositories path
+* grid scheduler ids to start
+* resource manager ids to start
+* users to start
+* nodes per cluster
+* repositories path
 
 Example:
 ```
