@@ -146,56 +146,58 @@ class GridScheduler(val id: Int,
   }
 
   rmRepo.onOffline(rmId => {
-    logger.info(s"[GS\t${id}] Recovering monitored jobs")
+    logger.info(s"[GS\t${id}] rm ${rmId} offline")
+    val jobsToReschedule = synchronized(monitoringPerRm(rmId).clone)
+    jobsToReschedule.foreach(work => {
+      logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id}")
 
-    synchronized {
-      val jobsToReschedule = monitoringPerRm(rmId).clone()
-      jobsToReschedule.foreach(work => {
-        logger.info(s"[GS\t${id}] Rescheduling jobs ${work.job.id}")
+      rmRepo.invokeOnEntity((rm, newRmId) => {
+        unregisterMonitor(work)
+        rm.orderWork(WorkOrder(work, newRmId), false)
+        registerMonitor(work, newRmId)
 
+      }, InvertedRandomWeighedSelector, rmId)
+    })
+
+    val backedUpJobs = synchronized(backUpPerRm(rmId).clone)
+
+    backedUpJobs.foreach(work => {
+      // monitor still alive?
+      val monitorId = synchronized(backUpForGs(work))
+      if(gsRepo.checkStatus(monitorId)) {
+        releaseBackUp(work)
+      } else {
+        // monitor down => promote, reschedule
         rmRepo.invokeOnEntity((rm, newRmId) => {
-          unregisterMonitor(work)
-          val workOrder = WorkOrder(work, newRmId)
-
-          try {
-            rm.orderWork(workOrder, false)
-            registerMonitor(work, newRmId)
-          } catch {
-            case NonFatal(e) =>
-          }
-
-        }, InvertedRandomWeighedSelector, rmId)
-      })
-    }
+          logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id} as monitor")
+          rm.orderWork(WorkOrder(work, id), false)
+          promote(PromoteRequest(work, newRmId))
+        }, InvertedRandomWeighedSelector)
+      }
+    })
   })
 
   gsRepo.onOffline(gsId => {
-    logger.info(s"[GS\t${id}] Backup status check")
-    synchronized {
-      val backUpJobs = backUpPerGs(gsId).clone
+    logger.info(s"[GS\t${id}] rm ${gsId} offline")
+    val backUpJobs = synchronized(backUpPerGs(gsId).clone)
 
-      backUpJobs.foreach(work => {
-        val rmId = backUpForRm(work)
+    backUpJobs.foreach(work => {
+      val rmId = synchronized(backUpForRm(work))
 
-        // check if rm is still running
-        if(!rmRepo.checkStatus(rmId)) {
-          // no -> monitor and reschedule, otherwise rm will take care of itself
-          logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
-          val reschedule = rmRepo.invokeOnEntity((rm, newRmId) => {
-            rm.orderWork(WorkOrder(work, newRmId), false)
-
-            newRmId
-          }, InvertedRandomWeighedSelector, rmId)
-
-          reschedule match {
-            case Some((_, newRmId)) => registerMonitor(work, newRmId)
-            case _ => {}
-          }
-
-        }
-
-      })
-    }
+      // check if rm is still running
+      if(!rmRepo.checkStatus(rmId)) {
+        // no -> monitor and reschedule, otherwise rm will take care of itself
+        logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
+        rmRepo.invokeOnEntity((rm, newRmId) => {
+          unregisterBackUp(work)
+          rm.orderWork(WorkOrder(work, newRmId), false)
+          registerMonitor(work, newRmId)
+          newRmId
+        }, InvertedRandomWeighedSelector, rmId)
+      } else {
+        releaseBackUp(work)
+      }
+    })
   })
 
   @throws(classOf[RemoteException])

@@ -26,9 +26,12 @@ class User(val id: Int,
 
   @throws(classOf[RemoteException])
   override def createJobs(rmId: Int, n: Int, ms: Int): Unit = {
-    for { i <- 0 until n }{
+    for {
+      i <- 0 until n
+    }{
+
       rmRepo.getEntity(rmId).foreach(rm => {
-        val job = Job(IDGen.genId(), rmId, Random.nextInt(ms * 2))
+        val job = Job(IDGen.genId(), rmId, ms)
 
         val req = WorkRequest(job, id)
 
@@ -51,7 +54,7 @@ class User(val id: Int,
         logger.info(s"[U\t${id}] Result for job ${job.id}")
 
         val now = System.currentTimeMillis()
-        jobLog.info(s"${job.id}, ${job.created}, $now, ${job.firstRmId}, ${job.otherRms.mkString(", ")}")
+        jobLog.info(s"${id}, ${now - job.created}, ${job.firstRmId}")
       }
     }
   }

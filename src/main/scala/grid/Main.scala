@@ -4,10 +4,11 @@ import java.util.concurrent.Executors
 
 import grid.cluster.CrashSimulator
 import grid.discovery.Repository
-import grid.gridScheduler.GridScheduler
-import grid.resourceManager.ResourceManager
+import grid.gridScheduler.{GridScheduler, IGridScheduler}
+import grid.resourceManager.{IResourceManager, ResourceManager}
 import grid.user.User
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -22,8 +23,9 @@ object Main {
     val repoPath = manifest.repositoryPath
 
     val timer = Executors.newScheduledThreadPool(4)
-//    val gsCrasher = new CrashSimulator(manifest.meanTimeToGsCrash, manifest.meanGsCrashDuration, timer)
-//    val rmCrasher = new CrashSimulator(manifest.meanTimeToRmCrash, manifest.meanRmCrashDuration, timer)
+
+    val rms = ListBuffer[IResourceManager]()
+    val gss = ListBuffer[IGridScheduler]()
 
     manifest.gsIds.foreach(gsId => {
       val gs = new GridScheduler(
@@ -31,6 +33,8 @@ object Main {
         rmRepo(repoPath + "/rms"),
         gsRepo(repoPath + "/gss")
       )
+
+      gss += gs
     })
 
     manifest.rmIds.foreach(rmId => {
@@ -41,6 +45,8 @@ object Main {
         rmRepo(repoPath + "/rms"),
         gsRepo(repoPath + "/gss")
       )
+
+      rms += rm
     })
 
     manifest.userIds.foreach(userId => {
@@ -50,9 +56,12 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      Future {
-        user.createJobs(userId, 5000, 3000)
+      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
+        Future {
+          user.createJobs(rmId, 500, 2000)
+        }
       }
     })
+
   }
 }

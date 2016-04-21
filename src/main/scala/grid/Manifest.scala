@@ -24,11 +24,6 @@ object Manifest {
 
     val repositoryPath = scanner.nextLine()
 
-//    val meanTimeToGsCrash = scanner.nextInt
-//    val meanGsCrashDuration = scanner.nextInt
-//    val meanTimeToRmCrash = scanner.nextInt
-//    val meanRmCrashDuration = scanner.nextInt
-
     Manifest(gsIds, rmIds, uIds, nodes, repositoryPath)
   }
 }
