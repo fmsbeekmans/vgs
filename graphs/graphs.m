@@ -1,7 +1,7 @@
 %close all
 clear all
-M = csvread('40k/jobTimes0.csv');
-times = M(:,3);
+M = csvread('jobs.csv');
+times = M(:,2);
 times = times.';
 figure
 plot(times);
