@@ -28,13 +28,16 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     load.put(id, 0L)
   })
 
-  def ids(): collection.immutable.Seq[Int] = synchronized { registry.keys.toList }
+  def ids(): collection.immutable.Seq[Int] = registry.keys.toList
 
-  def url(id: Int): String = synchronized { urls().toList(id) }
-  def urls(): collection.immutable.Seq[String] = synchronized { registry.values.toList }
+  def url(id: Int): String = {
+    registry(id)
+  }
 
-  val onlineCallbacks: ListBuffer[Int => Unit] = synchronized { ListBuffer() }
-  val offlineCallbacks: ListBuffer[Int => Unit] = synchronized { ListBuffer() }
+  val urls: collection.immutable.Seq[String] = registry.values.toList
+
+  val onlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
+  val offlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
 
   def setStatus(id: Int, online: Boolean) = synchronized {
     val oldState = isOnline(id)
@@ -42,28 +45,26 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
 
     isOnline.put(id, online)
 
-    synchronized {
-      if (!silent && oldState != newState) {
-        silent = true
-        if (!newState) {
-          // went offline
-          offlineCallbacks.foreach(f => f(id))
-        } else {
-          // went online
-          onlineCallbacks.foreach(f => f(id))
-        }
-        silent = false
+    if (!silent && oldState != newState) {
+      silent = true
+      if (!newState) {
+        // went offline
+        offlineCallbacks.foreach(f => f(id))
+      } else {
+        // went online
+        onlineCallbacks.foreach(f => f(id))
       }
+      silent = false
     }
   }
 
-  def onlineIds(): collection.immutable.Seq[Int] = synchronized {
+  def onlineIds(): collection.immutable.Seq[Int] = {
     isOnline
       .collect { case (id, true) => id }
       .toList
   }
 
-  def getEntity(id: Int): Option[T] = synchronized {
+  def getEntity(id: Int): Option[T] = {
     val result = Try { Naming.lookup(url(id)).asInstanceOf[T] }.toOption
 
     result.flatMap(e => {
@@ -84,7 +85,7 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     result
   }
 
-  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = synchronized {
+  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = {
     var result: Option[(R, Int)] = None
     val afterExclude = load.filter(idAndWeight => onlineIds.contains(idAndWeight._1) && !excludeIds.contains(idAndWeight._1)).toMap
 

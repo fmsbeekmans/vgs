@@ -10,7 +10,7 @@
         <file>log</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg%n</pattern>
+            <pattern>%date{HH:mm:ss.SSS} %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -19,7 +19,7 @@
         <file>jobs</file>
         <append>false</append>
         <encoder>
-            <pattern>%msg%n</pattern>
+            <pattern>%date{HH:mm:ss.SSS} %msg%n</pattern>
         </encoder>
     </appender>
 

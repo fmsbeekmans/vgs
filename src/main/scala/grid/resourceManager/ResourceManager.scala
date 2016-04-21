@@ -185,6 +185,7 @@ class ResourceManager(val id: Int,
   }
 
   def registerMonitor(work: WorkRequest, monitorId: Int) = synchronized {
+    logger.info(s"[RM\t${id}] Job ${work.job.id} monitored at ${monitorId}")
     monitor.put(work, monitorId)
     monitoredBy(monitorId) += work
   }
@@ -215,6 +216,7 @@ class ResourceManager(val id: Int,
   }
 
   def registerBackUp(work: WorkRequest, backUpId: Int) = synchronized {
+    logger.info(s"[RM\t${id}] Job ${work.job.id} backed up at ${backUpId}")
     backUp.put(work, backUpId)
     backedUpBy(backUpId) += work
   }
@@ -240,25 +242,6 @@ class ResourceManager(val id: Int,
       case _ => {
         unregisterMonitor(work)
         Future { None }
-      }
-    }
-  }
-
-  def requestPromotion(work: WorkRequest, backUpId: Int): Future[Boolean] = ifOnline {
-    Future {
-      val result = blocking {
-        gsRepo.getEntity(backUpId).map { newMonitor =>
-          newMonitor.promote(PromoteRequest(work, backUpId))
-        }
-      }
-
-      synchronized {
-        if(result.isDefined) {
-          unregisterBackUp(work)
-          registerMonitor(work, backUpId)
-        }
-
-        result.isDefined
       }
     }
   }
@@ -319,25 +302,23 @@ class ResourceManager(val id: Int,
     }
   }
 
-  gsRepo.onOffline(gsId => synchronized {
+  gsRepo.onOffline(gsId => {
     // restoring monitors
     val restoreMonitor = monitoredBy(gsId).clone()
     restoreMonitor.foreach(work => {
+      logger.info(s"[RM\t${id}] Recovering from monitor crash for job ${work.job.id}")
       val backUpId = backUp(work)
 
       val monitorId = monitor(work)
       // try to promote backup
-      requestPromotion(work, backUpId) foreach { promoted =>
-        if(promoted) {
+      gsRepo.getEntity(backUpId).map(monitor =>
+        monitor.promote(PromoteRequest(work, id))
+      ).foreach { _ =>
+        synchronized {
           unregisterBackUp(work)
-          requestBackUp(work, backUpId)
-        } else {
-          logger.info(s"[RM\t${id}] do both for job ${work.job.id}")
-          // if fails create new monitor and backup
-          unregisterMonitor(work)
-          unregisterBackUp(work)
-          requestMonitoringAndBackUp(work)
+          registerMonitor(work, backUpId)
         }
+        requestBackUp(work, backUpId)
       }
     })
 
@@ -345,6 +326,7 @@ class ResourceManager(val id: Int,
     val restoreBackUp = backedUpBy(gsId).clone()
 
     restoreBackUp.foreach { work =>
+      logger.info(s"[RM\t${id}] Recovering from back-up crash for job ${work.job.id}")
       val monitorId = monitor(work)
 
       // does the monitor still respond?

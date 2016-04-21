@@ -27,6 +27,9 @@ object Main {
     val rms = ListBuffer[IResourceManager]()
     val gss = ListBuffer[IGridScheduler]()
 
+    val gsCrasher = new CrashSimulator(10000, 100)
+    val rmCrasher = new CrashSimulator(10000, 100)
+
     manifest.gsIds.foreach(gsId => {
       val gs = new GridScheduler(
         gsId,
@@ -56,7 +59,7 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      user.createJobs(0, 1, 10000)
+      user.createJobs(0, 1, 2000)
 
 //      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
 //        Future {
@@ -65,9 +68,10 @@ object Main {
 //      }
     })
 
-    Thread.sleep(1500)
+    Thread.sleep(500)
     rms(0).shutDown()
     gss(0).shutDown()
-
+//    gss.foreach(gs => gsCrasher.simulateCrashes(gs))
+//    rms.foreach(rm => rmCrasher.simulateCrashes(rm))
   }
 }
