@@ -18,7 +18,7 @@ import scala.util.control.Breaks._
 
 class Repository[T <: Addressable](registry: collection.immutable.Map[Int, String]) {
 
-  private var silent = false
+  var silent = false
 
   private val isOnline: Map[Int, Boolean] = Map()
   val load: Map[Int, Long] = Map()
@@ -89,14 +89,22 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     val afterExclude = load.filter(idAndWeight => onlineIds.contains(idAndWeight._1) && !excludeIds.contains(idAndWeight._1)).toMap
 
     breakable {
-      while ((onlineIds.diff(excludeIds)).nonEmpty) {
+      while (ids.nonEmpty) {
         result = for {
-          id <- selector.selectIndex(afterExclude)
+          id <- {
+            val id = selector.selectIndex(afterExclude)
+
+            if(excludeIds.contains(id)) println("CLASH")
+
+            id
+          }
           entity <- getEntity(id)
           response = f(entity, id)
         } yield (response, id)
 
         if (result.isDefined) break
+
+        var ids = (onlineIds.diff(excludeIds)).nonEmpty
       }
     }
 

@@ -86,13 +86,13 @@ class GridScheduler(val id: Int,
   }
 
   override def monitor(req: MonitorRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] Monitoring job ${req.work.job.id}")
     registerMonitor(req.work, req.rmId)
   }
 
   def registerMonitor(work: WorkRequest, rmId: Int): Unit = synchronized {
     monitoringForRm.put(work, rmId)
     monitoringPerRm(rmId) += work
+    logger.info(s"[GS\t${id}] Monitoring job ${work.job.id}")
   }
 
   def unregisterMonitor(work: WorkRequest): Unit = synchronized {
@@ -107,7 +107,6 @@ class GridScheduler(val id: Int,
   }
 
   override def backUp(req: BackUpRequest): Unit = ifOnline {
-    logger.info(s"[GS\t${id}] Backing up job ${req.work.job.id}")
     registerBackUp(req.work, req.rmId, req.monitorId)
   }
 
@@ -117,6 +116,7 @@ class GridScheduler(val id: Int,
 
     backUpForGs.put(work, monitorId)
     backUpPerGs(monitorId) += work
+    logger.info(s"[GS\t${id}] Backing up job ${work.job.id}")
   }
 
   def unregisterBackUp(work: WorkRequest): Unit = synchronized {
@@ -171,8 +171,9 @@ class GridScheduler(val id: Int,
         rmRepo.invokeOnEntity((rm, newRmId) => {
           logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id} as monitor")
           rm.orderWork(WorkOrder(work, id), false)
-          promote(PromoteRequest(work, newRmId))
-        }, InvertedRandomWeighedSelector)
+        }, InvertedRandomWeighedSelector) foreach {
+          case (_, newRmId) => promote(PromoteRequest(work, newRmId))
+        }
       }
     })
   })

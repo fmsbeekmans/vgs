@@ -19,7 +19,6 @@ object RmiServer {
 
   def register(entity: Addressable): Unit = {
     val bindResult = Naming.rebind(entity.url, entity)
-    println(s"Bound: $bindResult")
   }
 
 }

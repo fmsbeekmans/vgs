@@ -56,12 +56,18 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
-        Future {
-          user.createJobs(rmId, 500, 2000)
-        }
-      }
+      user.createJobs(0, 1, 10000)
+
+//      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
+//        Future {
+//          user.createJobs(rmId, 500, 2000)
+//        }
+//      }
     })
+
+    Thread.sleep(1500)
+    rms(0).shutDown()
+    gss(0).shutDown()
 
   }
 }
