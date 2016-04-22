@@ -37,9 +37,6 @@ class ResourceManager(val id: Int,
   var monitoredBy: Map[Int, Set[WorkRequest]] = null
   var backUp: Map[WorkRequest, Int] = null
   var backedUpBy: Map[Int, Set[WorkRequest]] = null
-
-  var load = 0
-
   implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutorService(
     Executors.newWorkStealingPool(128)
   )
@@ -71,8 +68,6 @@ class ResourceManager(val id: Int,
 
     nodes.foreach(idleNodes.enqueue(_))
 
-    load = 0
-
     pinger.start()
 
     online = true
@@ -90,8 +85,6 @@ class ResourceManager(val id: Int,
     monitoredBy = null
     backUp = null
     backedUpBy = null
-
-    load = 0
 
     pinger.stop()
 
@@ -148,7 +141,6 @@ class ResourceManager(val id: Int,
 
     logger.info(s"[RM\t${id}] Scheduling job ${work.job.id}")
     queue.synchronized(queue.enqueue(work))
-    load += work.job.ms
 
     processQueue()
   }
@@ -235,7 +227,6 @@ class ResourceManager(val id: Int,
   @throws(classOf[RemoteException])
   override def finish(work: WorkRequest, node: Node): Unit = ifOnline {
     logger.info(s"[RM\t${id}] Finished executing job ${work.job.id}")
-    synchronized(load -= work.job.ms)
     idleNodes.synchronized(idleNodes.enqueue(node))
 
     logger.info(s"[RM\t${id}] Releasing job ${work.job.id}")
@@ -320,7 +311,7 @@ class ResourceManager(val id: Int,
 
   @throws(classOf[RemoteException])
   override def ping(): Long = ifOnline {
-    load
+    queue.map(_.job.ms).sum
   }
 
   override def url: String = rmRepo.url(id)
