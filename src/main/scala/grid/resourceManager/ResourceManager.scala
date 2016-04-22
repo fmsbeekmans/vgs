@@ -172,14 +172,12 @@ class ResourceManager(val id: Int,
         }, WeighedRandomSelector)
       }
 
-      synchronized {
-        if (result.isDefined) {
-          registerMonitor(work, result.get._2)
+      if (result.isDefined) {
+        registerMonitor(work, result.get._2)
 
-          result.map(_._2)
-        } else {
-          None
-        }
+        result.map(_._2)
+      } else {
+        None
       }
     }
   }
@@ -203,14 +201,12 @@ class ResourceManager(val id: Int,
         }, WeighedRandomSelector, monitorId)
       }
 
-      synchronized {
-        if (result.isDefined) {
-          registerBackUp(work, result.get._2)
+      if (result.isDefined) {
+        registerBackUp(work, result.get._2)
 
-          result.map(_._2)
-        } else {
-          None
-        }
+        result.map(_._2)
+      } else {
+        None
       }
     }
   }
@@ -248,33 +244,31 @@ class ResourceManager(val id: Int,
 
   @throws(classOf[RemoteException])
   override def finish(work: WorkRequest, node: Node): Unit = ifOnline {
-    synchronized {
-      logger.info(s"[RM\t${id}] Finished executing job ${work.job.id}")
-      synchronized(load -= work.job.ms)
-      idleNodes.synchronized(idleNodes.enqueue(node))
+    logger.info(s"[RM\t${id}] Finished executing job ${work.job.id}")
+    synchronized(load -= work.job.ms)
+    idleNodes.synchronized(idleNodes.enqueue(node))
 
-      logger.info(s"[RM\t${id}] Releasing job ${work.job.id}")
+    logger.info(s"[RM\t${id}] Releasing job ${work.job.id}")
 
-      val releases = for {
-        acceptResult <- Future {
-          blocking {
-            userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
-          }
+    val releases = for {
+      acceptResult <- Future {
+        blocking {
+          userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
         }
-        releaseMonitor <- Future {
-          blocking {
-            gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
-            unregisterMonitor(work)
-          }
+      }
+      releaseMonitor <- Future {
+        blocking {
+          gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
+          unregisterMonitor(work)
         }
-        backUpMonitor <- Future {
-          blocking {
-            gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
-            unregisterBackUp(work)
-          }
+      }
+      backUpMonitor <- Future {
+        blocking {
+          gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
+          unregisterBackUp(work)
         }
-      } yield (acceptResult, releaseMonitor, backUpMonitor)
-    }
+      }
+    } yield (acceptResult, releaseMonitor, backUpMonitor)
 
     processQueue()
   }

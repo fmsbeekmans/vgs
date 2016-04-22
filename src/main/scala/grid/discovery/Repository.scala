@@ -3,7 +3,6 @@ package grid.discovery
 import java.io.File
 
 import collection.mutable._
-import java.nio.file.{Files, Path, Paths}
 import java.rmi.Naming
 import java.util.Scanner
 
@@ -39,7 +38,7 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
   val onlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
   val offlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
 
-  def setStatus(id: Int, online: Boolean) = synchronized {
+  def setStatus(id: Int, online: Boolean) = {
     val oldState = isOnline(id)
     val newState = online
 

@@ -35,7 +35,7 @@ class User(val id: Int,
 
         val req = WorkRequest(job, id)
 
-        synchronized(pendingJobs += job)
+        pendingJobs.synchronized(pendingJobs += job)
         Try { rm.offerWork(req) }
       })
     }
@@ -43,6 +43,7 @@ class User(val id: Int,
 
   @throws(classOf[RemoteException])
   override def acceptJob(job: Job): Unit = {
+    logger.info(s"[U\t${id}] Accepted job ${job.id}")
   }
 
   @throws(classOf[RemoteException])

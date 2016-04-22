@@ -59,19 +59,17 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      user.createJobs(0, 1, 2000)
+//      user.createJobs(0, 1, 10000)
 
-//      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
-//        Future {
-//          user.createJobs(rmId, 500, 2000)
-//        }
-//      }
+      Future {
+        rmRepo(repoPath + "/rms").ids().foreach(rmId => {
+          user.createJobs(rmId, 100, 10000)
+        })
+      }
     })
 
-    Thread.sleep(500)
-    rms(0).shutDown()
-    gss(0).shutDown()
-//    gss.foreach(gs => gsCrasher.simulateCrashes(gs))
-//    rms.foreach(rm => rmCrasher.simulateCrashes(rm))
+    Thread.sleep(1000)
+    gss.foreach(gs => gsCrasher.simulateCrashes(gs))
+    rms.foreach(rm => rmCrasher.simulateCrashes(rm))
   }
 }

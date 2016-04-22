@@ -197,14 +197,14 @@ class GridScheduler(val id: Int,
       if(!rmRepo.checkStatus(rmId)) {
         // no -> monitor and reschedule, otherwise rm will take care of itself
         logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
+        unregisterBackUp(work)
         rmRepo.invokeOnEntity((rm, newRmId) => {
-          unregisterBackUp(work)
           rm.orderWork(WorkOrder(work, newRmId), false)
-          registerMonitor(work, newRmId)
-          newRmId
-        }, InvertedRandomWeighedSelector, rmId)
+        }, InvertedRandomWeighedSelector, rmId) foreach {
+          case (_, newRmId) => registerMonitor(work, newRmId)
+        }
       } else {
-        releaseBackUp(work)
+//        releaseBackUp(work)
       }
     })
   })
