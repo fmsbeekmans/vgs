@@ -2,6 +2,7 @@ package grid.gridScheduler
 
 import java.rmi.RemoteException
 import java.rmi.server.UnicastRemoteObject
+import java.util.concurrent.Executors
 
 import com.typesafe.scalalogging.LazyLogging
 import grid.cluster.{Pinger, RemoteShutDown}
@@ -12,6 +13,7 @@ import grid.resourceManager.IResourceManager
 import grid.rmi.RmiServer
 
 import collection.mutable._
+import scala.concurrent._
 import scala.util.Try
 
 class GridScheduler(val id: Int,
@@ -33,6 +35,11 @@ class GridScheduler(val id: Int,
   var backUpPerGs: Map[Int, Set[WorkRequest]] = null
 
   var load = 0
+
+
+  implicit val executionContext: ExecutionContext = ExecutionContext.fromExecutorService(
+    Executors.newWorkStealingPool(128)
+  )
 
   start()
 
@@ -140,7 +147,7 @@ class GridScheduler(val id: Int,
   override def offLoad(req: OffLoadRequest): Unit = ifOnline {
     rmRepo.invokeOnEntity((rm, rmId) => {
       logger.info(s"[GS\t${id}] Offloading job ${req.work.job.id} to rm ${rmId}")
-      rm.orderWork(WorkOrder(req.work, id), true)
+      Future { rm.orderWork(WorkOrder(req.work, id), true) }
     }, InvertedRandomWeighedSelector) foreach {
       case newRmId => registerMonitor(req.work, newRmId)
     }
@@ -152,7 +159,7 @@ class GridScheduler(val id: Int,
       logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id}")
 
       rmRepo.invokeOnEntity((rm, newRmId) => {
-        rm.orderWork(WorkOrder(work, id), false)
+        Future { blocking { rm.orderWork(WorkOrder(work, id), false) } }
       }, InvertedRandomWeighedSelector, rmId) foreach {
         case newRmId => synchronized {
           unregisterMonitor(work)
@@ -175,7 +182,7 @@ class GridScheduler(val id: Int,
         // monitor down => promote, reschedule
         rmRepo.invokeOnEntity((rm, newRmId) => {
           logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id} as monitor")
-          rm.orderWork(WorkOrder(work, id), false)
+          Future { blocking { rm.orderWork(WorkOrder(work, id), false) } }
         }, InvertedRandomWeighedSelector) foreach {
           case newRmId => promote(PromoteRequest(work, newRmId))
         }
@@ -195,7 +202,7 @@ class GridScheduler(val id: Int,
         logger.info(s"[GS\t${id}] Use backup for job ${work.job.id}")
         unregisterBackUp(work)
         rmRepo.invokeOnEntity((rm, newRmId) => {
-          rm.orderWork(WorkOrder(work, newRmId), false)
+          Future { rm.orderWork(WorkOrder(work, newRmId), false) }
         }, InvertedRandomWeighedSelector, rmId) foreach {
           case newRmId => registerMonitor(work, newRmId)
         }

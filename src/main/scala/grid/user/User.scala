@@ -12,7 +12,10 @@ import grid.rmi.RmiServer
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable._
+import scala.concurrent._
 import scala.util.{Random, Try}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class User(val id: Int,
            val userRepo: Repository[IUser],
@@ -36,7 +39,11 @@ class User(val id: Int,
 
         synchronized(pendingJobs += job)
 
-        Try { rm.offerWork(req) }
+        Future {
+          blocking {
+            rm.offerWork(req)
+          }
+        }
       })
     }
   }

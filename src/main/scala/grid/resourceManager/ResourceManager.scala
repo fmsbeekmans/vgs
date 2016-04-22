@@ -101,20 +101,11 @@ class ResourceManager(val id: Int,
     logger.info(s"[RM\t${id}] Received work order for job ${work.job.id}")
 
     requestBackUp(work, monitorId) foreach {
-      case None => synchronized {
+      case None =>  {
         unregisterMonitor(work)
-        unregisterBackUp(work)
       }
       case Some(_) => {
-        if (online) {
-          if (ack) {
-            userRepo.getEntity(work.userId).foreach { u =>
-              u.acceptJob(work.job)
-            }
-          }
-
-          schedule(work)
-        }
+        Try { schedule(work) }
       }
     }
   }
@@ -125,15 +116,11 @@ class ResourceManager(val id: Int,
     if(isFull) {
       offLoad(work)
     } else {
-      requestMonitoringAndBackUp(work).foreach(_ =>
-        if(online) {
-          userRepo.getEntity(work.userId).foreach { u =>
-            u.acceptJob(work.job)
-          }
-
-          Try { schedule(work) }
+      requestMonitoringAndBackUp(work).foreach { _ =>
+        Try {
+          schedule(work)
         }
-      )
+      }
     }
   }
 
@@ -142,7 +129,7 @@ class ResourceManager(val id: Int,
     logger.info(s"[RM\t${id}] Scheduling job ${work.job.id}")
     queue.synchronized(queue.enqueue(work))
 
-    processQueue()
+    Future { processQueue() }
   }
 
   def isFull(): Boolean = synchronized {
@@ -231,24 +218,35 @@ class ResourceManager(val id: Int,
 
     logger.info(s"[RM\t${id}] Releasing job ${work.job.id}")
 
-    userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
-    gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
+    Future {
+      blocking {
+        userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
+      }
+    }
+    Future {
+      blocking {
+        gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
+      }
+    }
+    Future {
+      blocking {
+        gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
+      }
+    }
 
     unregisterMonitor(work)
-    gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
-
     unregisterBackUp(work)
 
-    processQueue()
+    Future { processQueue() }
   }
 
   def processQueue(): Unit = ifOnline {
     breakable {
 
-    var work: Option[WorkRequest] = None
-    var worker: Option[Node] = None
+      var work: Option[WorkRequest] = None
+      var worker: Option[Node] = None
 
-    if(!online) break
+      if(!online) break
 
       worker = Try { idleNodes.synchronized { idleNodes.dequeue() } }.toOption
       work = Try { queue.synchronized { queue.dequeue() } }.toOption
@@ -259,7 +257,7 @@ class ResourceManager(val id: Int,
         case (Some(worker), None) => idleNodes.synchronized(idleNodes.enqueue(worker)); break
         case (Some(worker), Some(work)) => {
           logger.info(s"[RM\t${id}] Executing job ${work.job.id}")
-          worker.handle(work)
+          Future { worker.handle(work) }
         }
       }
     }
@@ -274,13 +272,20 @@ class ResourceManager(val id: Int,
 
       val monitorId = monitor(work)
       // try to promote backup
-      val promoted = gsRepo.getEntity(backUpId).map(monitor =>
-        monitor.promote(PromoteRequest(work, id))
-      )
+      val promoted = gsRepo.getEntity(backUpId).map { monitor =>
+        blocking {
+          monitor.promote(PromoteRequest(work, id))
+        }
+      }
+
       if(promoted.isDefined) {
         promoted.map { _ =>
           unregisterBackUp(work)
-          gsRepo.getEntity(backUpId).foreach { backUp => backUp.releaseBackUp(work) }
+          gsRepo.getEntity(backUpId).foreach { backUp =>
+            blocking {
+              backUp.releaseBackUp(work)
+            }
+          }
           registerMonitor(work, backUpId)
           requestBackUp(work, backUpId)
         }

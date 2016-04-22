@@ -59,11 +59,11 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      rmRepo(repoPath + "/rms").ids().foreach(rmId => {
+      rmRepo(repoPath + "/rms").ids.foreach { rmId =>
         Future {
-          user.createJobs(rmId, Math.ceil(1000 / rms.size).toInt, 1000)
+          user.createJobs(rmId, 10, 4000)
         }
-      })
+      }
     })
   }
 }

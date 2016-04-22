@@ -15,14 +15,6 @@ object GridBuild extends Build {
     )
   )
 
-  lazy val repoCreator = Project(
-    id = "repoCreator",
-    base = file("./repoCreator"),
-    settings = commonSettings ++ assemblySettings ++ Seq(
-      libraryDependencies ++= consoleDeps
-    )
-  )
-
   lazy val commonSettings = Seq(
     organization := "santiagoAndFerdy",
     version := "1.0.0",
