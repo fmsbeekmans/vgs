@@ -240,25 +240,13 @@ class ResourceManager(val id: Int,
 
     logger.info(s"[RM\t${id}] Releasing job ${work.job.id}")
 
-    val releases = for {
-      acceptResult <- Future {
-        blocking {
-          userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
-        }
-      }
-      releaseMonitor <- Future {
-        blocking {
-          gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
-          unregisterMonitor(work)
-        }
-      }
-      backUpMonitor <- Future {
-        blocking {
-          gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
-          unregisterBackUp(work)
-        }
-      }
-    } yield (acceptResult, releaseMonitor, backUpMonitor)
+    userRepo.getEntity(work.userId).foreach(_.acceptResult(work.job))
+    gsRepo.getEntity(monitor(work)).foreach(gs => gs.releaseMonitor(work))
+
+    unregisterMonitor(work)
+    gsRepo.getEntity(backUp(work)).foreach(gs => gs.releaseBackUp(work))
+
+    unregisterBackUp(work)
 
     processQueue()
   }

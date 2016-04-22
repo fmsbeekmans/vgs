@@ -9,12 +9,15 @@ import grid.resourceManager.{IResourceManager, ResourceManager}
 import grid.user.User
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 object Main {
 
   import Repository._
+
+  implicit val executionContext = ExecutionContext.fromExecutor(
+    Executors.newFixedThreadPool(32)
+  )
 
   def main(args: Array[String]) {
 
@@ -26,9 +29,6 @@ object Main {
 
     val rms = ListBuffer[IResourceManager]()
     val gss = ListBuffer[IGridScheduler]()
-
-    val gsCrasher = new CrashSimulator(1000, 10000, 1000, 3000)
-    val rmCrasher = new CrashSimulator(1000, 10000, 1000, 3000)
 
     manifest.gsIds.foreach(gsId => {
       val gs = new GridScheduler(
@@ -59,15 +59,11 @@ object Main {
         rmRepo(repoPath + "/rms")
       )
 
-      Future {
-        rmRepo(repoPath + "/rms").ids().foreach(rmId => {
-          user.createJobs(rmId, 100, 8000)
-        })
-      }
+      rmRepo(repoPath + "/rms").ids().foreach(rmId => {
+        Future {
+          user.createJobs(rmId, Math.ceil(1000 / rms.size).toInt, 1000)
+        }
+      })
     })
-
-    Thread.sleep(100)
-    gss.foreach(gs => gsCrasher.simulateCrashes(gs))
-    rms.foreach(rm => rmCrasher.simulateCrashes(rm))
   }
 }
