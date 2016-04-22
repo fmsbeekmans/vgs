@@ -1,0 +1,14 @@
+\section{Implementation}
+This section will shortly review the main implementation decisions.
+
+\subsection{Future}
+To implement asynchronous execution Futures were used.
+A Future is a placeholder object for the result of a computation that can be run asynchronously. The result will become available upon completion. This abstraction is more similar to objects and methods than the threading alternative, which is closer to the hardware implementation.
+However, the easy use of asynchronous operations can be treacherous since it hides the possibility of deadlocks. Asynchronous programming is somewhat equivalent to program distributed computing without network failures.
+
+\subsection{Repository}
+The different components discover and communicate with each other through a Repository. Every time an entity is referenced or pinged, its state is updated. Interaction with other components is done by invoking callbacks on the respective entity, these can be either targeted or randomly selected using a selector. The callback will then be executed on the component resulted of the selection. In the case that the entity is not available, the Repository will keep retrying until no entities are available and report the failure. Every time a change in the state of another component is observed, a hook is triggered executing all the callbacks registered in that hook. This mechanism is used to implement fault recovery.
+
+\subsection{Scheduling}
+Executing the jobs is implemented by scheduling their completion after the amount of milliseconds that the job is meant to run for.
+By using a scheduler instead of using \textit{Thread.sleep} threads are not blocked, significantly lowering the number of context switches and improving the performance of the system.
