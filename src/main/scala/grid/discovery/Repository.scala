@@ -33,8 +33,6 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     registry(id)
   }
 
-  val urls: collection.immutable.Seq[String] = registry.values.toList
-
   val onlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
   val offlineCallbacks: ListBuffer[Int => Unit] = ListBuffer()
 

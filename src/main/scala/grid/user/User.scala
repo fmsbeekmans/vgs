@@ -58,7 +58,7 @@ class User(val id: Int,
   }
 
   override def url: String = {
-    userRepo.urls(id)
+    userRepo.url(id)
   }
 
   def ping = 0
