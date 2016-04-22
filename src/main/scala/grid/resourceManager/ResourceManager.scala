@@ -166,18 +166,14 @@ class ResourceManager(val id: Int,
 
   def requestMonitor(work: WorkRequest): Future[Option[Int]] = ifOnline {
     Future {
-      val result = blocking {
+      blocking {
         gsRepo.invokeOnEntity((gs, gsId) => {
           gs.monitor(MonitorRequest(work, id))
         }, WeighedRandomSelector)
-      }
+      } map { monitorId =>
+        registerMonitor(work, monitorId)
 
-      if (result.isDefined) {
-        registerMonitor(work, result.get._2)
-
-        result.map(_._2)
-      } else {
-        None
+        monitorId
       }
     }
   }
@@ -195,18 +191,14 @@ class ResourceManager(val id: Int,
 
   def requestBackUp(work: WorkRequest, monitorId: Int): Future[Option[Int]] = ifOnline {
     Future {
-      val result = blocking {
+      blocking {
         gsRepo.invokeOnEntity((gs, gsId) => {
           gs.backUp(BackUpRequest(work, id, monitorId))
         }, WeighedRandomSelector, monitorId)
-      }
+      } map { backUpId =>
+        registerBackUp(work, backUpId)
 
-      if (result.isDefined) {
-        registerBackUp(work, result.get._2)
-
-        result.map(_._2)
-      } else {
-        None
+        backUpId
       }
     }
   }
@@ -229,14 +221,12 @@ class ResourceManager(val id: Int,
           case Some(backUpId) if online => Some((monitorId, backUpId))
           case _ => {
             unregisterMonitor(work)
-            unregisterBackUp(work)
 
             None
           }
         }
       }
       case _ => {
-        unregisterMonitor(work)
         Future { None }
       }
     }
@@ -308,10 +298,9 @@ class ResourceManager(val id: Int,
       gsRepo.getEntity(backUpId).map(monitor =>
         monitor.promote(PromoteRequest(work, id))
       ).foreach { _ =>
-        synchronized {
-          unregisterBackUp(work)
-          registerMonitor(work, backUpId)
-        }
+        unregisterBackUp(work)
+        gsRepo.getEntity(backUpId).foreach { backUp => backUp.releaseBackUp(work) }
+        registerMonitor(work, backUpId)
         requestBackUp(work, backUpId)
       }
     })

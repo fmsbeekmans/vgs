@@ -4,8 +4,10 @@ import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
 import scala.util.Random
 
-class CrashSimulator(val meanTimeToCrash: Int, val meanCrashDuration: Int) {
+class CrashSimulator(val minTimeToCrash: Int, val maxTimeToCrash: Int, val minCrashDuration: Int, val maxCrashDuration: Int) {
   val timer: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+  val dTimeToCrash = maxTimeToCrash - minTimeToCrash
+  val dDuration = maxCrashDuration - minCrashDuration
 
   def simulateCrashes(canCrash: RemoteShutDown): Unit = {
     timer.schedule(new Runnable {
@@ -17,8 +19,8 @@ class CrashSimulator(val meanTimeToCrash: Int, val meanCrashDuration: Int) {
 
             simulateCrashes(canCrash)
           }
-        }, Random.nextInt(meanCrashDuration * 2), TimeUnit.MILLISECONDS)
+        }, minCrashDuration + Random.nextInt(dDuration * 2), TimeUnit.MILLISECONDS)
       }
-    }, Random.nextInt(meanTimeToCrash * 2), TimeUnit.MILLISECONDS)
+    }, minTimeToCrash + Random.nextInt(dTimeToCrash * 2), TimeUnit.MILLISECONDS)
   }
 }

@@ -84,23 +84,17 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     result
   }
 
-  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[(R, Int)] = {
-    var result: Option[(R, Int)] = None
+  def invokeOnEntity[R](f:(T, Int) => R, selector: Selector, excludeIds: Int*): Option[Int] = {
+    var result: Option[Int] = None
     val afterExclude = load.filter(idAndWeight => onlineIds.contains(idAndWeight._1) && !excludeIds.contains(idAndWeight._1)).toMap
 
     breakable {
       while (ids.nonEmpty) {
         result = for {
-          id <- {
-            val id = selector.selectIndex(afterExclude)
-
-            if(excludeIds.contains(id)) println("CLASH")
-
-            id
-          }
+          id <- selector.selectIndex(afterExclude)
           entity <- getEntity(id)
           response = f(entity, id)
-        } yield (response, id)
+        } yield id
 
         if (result.isDefined) break
 

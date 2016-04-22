@@ -13,7 +13,6 @@ import grid.rmi.RmiServer
 
 import collection.mutable._
 import scala.util.Try
-import scala.util.control.NonFatal
 
 class GridScheduler(val id: Int,
                     val rmRepo: Repository[IResourceManager],
@@ -133,12 +132,9 @@ class GridScheduler(val id: Int,
   }
 
   override def promote(req: PromoteRequest): Unit = ifOnline {
-    synchronized {
-      logger.info(s"[GS\t${id}] Promoting to primary for job ${req.work.job.id} for rm ${req.rmId}")
-      unregisterBackUp(req.work)
-      registerMonitor(req.work, req.rmId)
-      logger.info(s"[GS\t${id}] Monitoring [${monitoringPerRm(req.rmId).map(_.job.id)}] for rm ${req.rmId}")
-    }
+    logger.info(s"[GS\t${id}] Promoting to primary for job ${req.work.job.id} for rm ${req.rmId}")
+    unregisterBackUp(req.work)
+    registerMonitor(req.work, req.rmId)
   }
 
   override def offLoad(req: OffLoadRequest): Unit = ifOnline {
@@ -146,7 +142,7 @@ class GridScheduler(val id: Int,
       logger.info(s"[GS\t${id}] Offloading job ${req.work.job.id} to rm ${rmId}")
       rm.orderWork(WorkOrder(req.work, id), true)
     }, InvertedRandomWeighedSelector) foreach {
-      case (_, newRmId) => registerMonitor(req.work, newRmId)
+      case newRmId => registerMonitor(req.work, newRmId)
     }
   }
 
@@ -158,7 +154,7 @@ class GridScheduler(val id: Int,
       rmRepo.invokeOnEntity((rm, newRmId) => {
         rm.orderWork(WorkOrder(work, id), false)
       }, InvertedRandomWeighedSelector, rmId) foreach {
-        case (_, newRmId) => synchronized {
+        case newRmId => synchronized {
           unregisterMonitor(work)
           registerMonitor(work, newRmId)
         }
@@ -172,8 +168,8 @@ class GridScheduler(val id: Int,
       val monitorId = backUpForGs(work)
       logger.info(s"[GS\t${id}] Recovering rm crash for backed up job ${work.job.id} at ${monitorId}")
       if(gsRepo.checkStatus(monitorId)) {
-        logger.info(s"[GS\t${id}] Monitor still up, release job")
-        releaseBackUp(work)
+        logger.info(s"[GS\t${id}] Monitor (gs ${monitorId}) still up, release job")
+//        releaseBackUp(work)
       } else {
         logger.info(s"[GS\t${id}] Monitor down, promote, reschedule")
         // monitor down => promote, reschedule
@@ -181,7 +177,7 @@ class GridScheduler(val id: Int,
           logger.info(s"[GS\t${id}] Rescheduling job ${work.job.id} as monitor")
           rm.orderWork(WorkOrder(work, id), false)
         }, InvertedRandomWeighedSelector) foreach {
-          case (_, newRmId) => promote(PromoteRequest(work, newRmId))
+          case newRmId => promote(PromoteRequest(work, newRmId))
         }
       }
     })
@@ -201,7 +197,7 @@ class GridScheduler(val id: Int,
         rmRepo.invokeOnEntity((rm, newRmId) => {
           rm.orderWork(WorkOrder(work, newRmId), false)
         }, InvertedRandomWeighedSelector, rmId) foreach {
-          case (_, newRmId) => registerMonitor(work, newRmId)
+          case newRmId => registerMonitor(work, newRmId)
         }
       } else {
 //        releaseBackUp(work)
