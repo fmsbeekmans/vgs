@@ -283,13 +283,18 @@ class ResourceManager(val id: Int,
 
       val monitorId = monitor(work)
       // try to promote backup
-      gsRepo.getEntity(backUpId).map(monitor =>
+      val promoted = gsRepo.getEntity(backUpId).map(monitor =>
         monitor.promote(PromoteRequest(work, id))
-      ).foreach { _ =>
-        unregisterBackUp(work)
-        gsRepo.getEntity(backUpId).foreach { backUp => backUp.releaseBackUp(work) }
-        registerMonitor(work, backUpId)
-        requestBackUp(work, backUpId)
+      )
+      if(promoted.isDefined) {
+        promoted.map { _ =>
+          unregisterBackUp(work)
+          gsRepo.getEntity(backUpId).foreach { backUp => backUp.releaseBackUp(work) }
+          registerMonitor(work, backUpId)
+          requestBackUp(work, backUpId)
+        }
+      } else {
+        requestMonitoringAndBackUp(work)
       }
     })
 

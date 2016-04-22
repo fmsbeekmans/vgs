@@ -20,6 +20,8 @@ class User(val id: Int,
 
   RmiServer.register(this)
 
+  val pendingJobs = ListBuffer[Job]()
+
   val jobLog = LoggerFactory.getLogger("jobs.5.20.5.20.80.10.10.40.10")
 
   @throws(classOf[RemoteException])
@@ -32,6 +34,8 @@ class User(val id: Int,
         val job = Job(IDGen.genId(), rmId, ms)
         val req = WorkRequest(job, id)
 
+        synchronized(pendingJobs += job)
+
         Try { rm.offerWork(req) }
       })
     }
@@ -43,12 +47,14 @@ class User(val id: Int,
   }
 
   @throws(classOf[RemoteException])
-  override def acceptResult(job: Job): Unit = {
-    logger.info(s"[U\t${id}] Result for job ${job.id}")
+  override def acceptResult(job: Job): Unit = synchronized {
+    if (pendingJobs.contains(job)) {
+      pendingJobs -= job
+      logger.info(s"[U\t${id}] Result for job ${job.id}")
 
-    val now = System.currentTimeMillis()
-    logger.info(s"LOG ${id}, ${now - job.created}, ${job.firstRmId}")
-    jobLog.info(s"${id}, ${now - job.created}, ${job.firstRmId}")
+      val now = System.currentTimeMillis()
+      jobLog.info(s"${id}, ${now - job.created}, ${job.firstRmId}")
+    }
   }
 
   override def url: String = {

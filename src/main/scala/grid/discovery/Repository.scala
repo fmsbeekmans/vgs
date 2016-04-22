@@ -105,11 +105,11 @@ class Repository[T <: Addressable](registry: collection.immutable.Map[Int, Strin
     result
   }
 
-  def onOnline(f: Int => Unit): Unit = synchronized {
+  def onOnline(f: Int => Unit): Unit = {
     onlineCallbacks += f
   }
 
-  def onOffline(f: Int => Unit): Unit = synchronized {
+  def onOffline(f: Int => Unit): Unit = {
     offlineCallbacks += f
   }
 
