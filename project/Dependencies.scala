@@ -8,4 +8,8 @@ object Dependencies {
 
   lazy val testDeps = Seq(
     "org.scalatest" %% "scalatest" % "2.2.6" % "test")
+
+  lazy val consoleDeps = Seq(
+    "jline" % "jline" % "2.14.1"
+  )
 }
